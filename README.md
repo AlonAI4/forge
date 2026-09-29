@@ -33,6 +33,8 @@ Then just ask: "write me a Midjourney prompt for a red fox in the snow", or "mak
 Forge is free while it is being built. Found a bug, a model that is out of date, or have an idea?
 Open an issue: https://github.com/AlonAI4/forge/issues
 
+The website updates itself whenever this repo changes.
+
 ---
 
 Made by Alon Shayo. Free to use, not to copy: see [LICENSE](LICENSE).
