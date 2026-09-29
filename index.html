@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Forge</title>
 <script src="words.js" async></script><!-- 4.6: auto-correct dictionary. Forge works without it. -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="fonts/fonts.css"><!-- 5.11: fonts are hosted with Forge, so the page contacts no one else -->
 
 <style>
 /* ============================================================
@@ -441,9 +439,20 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
   .rail[data-open="1"] .rail-body{display:flex}
   .rail-scroll{max-height:46vh;-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 26px),transparent)}
   .topbar{padding:8px 12px;gap:8px}
-  .tabs{overflow-x:auto;max-width:100%;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
-  .tabs::-webkit-scrollbar{display:none}
-  .tab{white-space:nowrap;padding:12px 9px;min-height:44px;letter-spacing:.05em}
+  /* 5.9: no sideways scrolling on phones: all 6 tabs show at once, 3 per row */
+  .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));flex:1;min-width:0}
+  .topbar .spacer{display:none}
+  /* 5.9.2: the settings table becomes stacked cards on phones, instead of scrolling sideways */
+  .tbl-wrap{overflow:visible}
+  .tbl thead{display:none}
+  .tbl,.tbl tbody,.tbl tr,.tbl td{display:block;width:auto}
+  .tbl tr{padding:9px 0;border-bottom:1px solid var(--line)}
+  .tbl tr:last-child{border-bottom:0}
+  .tbl td{border:0;padding:1px 0}
+  .tbl .k,.tbl .v{display:inline;white-space:normal;overflow-wrap:anywhere}
+  .tbl .k::after{content:": "}
+  .tbl .w{display:block;margin-top:3px}
+  .tab{padding:8px 4px;min-height:44px;letter-spacing:.04em;line-height:1.2;text-align:center;overflow-wrap:anywhere}
   #themeLabel{display:none}
   .ghost{min-height:44px;min-width:44px;justify-content:center;padding:0 12px}
   .mini{min-height:40px;padding:8px 12px}
@@ -469,7 +478,28 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
 .ask-opts{display:flex;flex-wrap:wrap;gap:6px;margin-left:14px}
 .ask-opts .opt.more{border-style:dashed}
 /* 3.4: level switch */
+/* 5.10: context from a chat, in the Anvil */
+.anvilctx{margin:0 0 18px;border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;background:var(--surface-2)}
+.anvilctx summary{cursor:pointer;font-family:var(--f-mono);font-size:0.6875rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);min-height:24px;display:flex;align-items:center;gap:6px}
+.ctxsum{margin:8px 0 0;font-size:0.8125rem;color:var(--ink-dim);white-space:pre-wrap}
+/* 5.11: privacy controls */
+.privrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px}
+.privtoggle{display:flex;align-items:center;gap:8px;font-size:0.875rem;color:var(--ink-2);min-height:44px;cursor:pointer}
+.privtoggle input{width:18px;height:18px;accent-color:var(--ember)}
+/* 5.8: manual */
+.manual{max-width:808px;margin:0 auto;padding:22px 24px 90px}
+@media (max-width:820px){.manual{padding:18px 16px 70px}}
+.manual .billet-body p{margin:0 0 10px;font-size:0.875rem;color:var(--ink-2);line-height:1.55}
+.manual ol{margin:0 0 4px;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:0.875rem;color:var(--ink-2);line-height:1.55}
+.manual .mtip{margin:10px 0 0;color:var(--ink-dim)}
 .levelbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px}
+.lvn{font-family:var(--f-mono);font-size:0.6875rem;margin-left:3px}
+/* 5.6: boxes that just appeared after a level change glow for a moment */
+.fset.fresh{animation:fresh 1.6s ease-out}
+@keyframes fresh{0%{box-shadow:0 0 0 3px color-mix(in srgb,var(--ember) 45%,transparent);border-radius:var(--r)}100%{box-shadow:0 0 0 3px transparent}}
+@media (prefers-reduced-motion: reduce){.fset.fresh{animation:none;outline:2px solid var(--ember);outline-offset:4px}}
+/* 5.6: hover tips */
+.tip{position:fixed;z-index:60;max-width:280px;padding:8px 10px;border-radius:var(--r);background:var(--ink);color:var(--surface);font-size:0.8125rem;line-height:1.4;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 .levelhint{font-size:0.8125rem;color:var(--ink-dim)}
 .hiddennote{margin:-8px 0 18px;font-size:0.8125rem;color:var(--ink-dim);border-left:2px solid var(--ember);padding-left:10px}
 .midcraft{border-top:1px solid var(--line);padding-top:14px;margin:4px 0 18px}
@@ -493,7 +523,7 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
         <div class="brand-sub">Prompt Smithy</div>
       </div>
     </div>
-    <button class="rail-toggle" id="railToggle" aria-expanded="false" aria-controls="railBody">
+    <button class="rail-toggle" id="railToggle" data-tip="Pick which AI you are writing the prompt for" aria-expanded="false" aria-controls="railBody">
       <span class="now" id="railNow">Midjourney</span><span class="cue">Change model</span>
     </button>
     <div class="rail-body" id="railBody">
@@ -509,10 +539,12 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
   <main class="main"><!-- 4.5: the main landmark -->
     <div class="topbar">
       <nav class="tabs" aria-label="Workspaces">
-        <button class="tab" type="button" data-pane="bench" aria-pressed="true">Anvil</button>
-        <button class="tab" type="button" data-pane="doctor" aria-pressed="false">Prompt Doctor</button>
-        <button class="tab" type="button" data-pane="intake" aria-pressed="false">Reverse Forge</button>
-        <button class="tab" type="button" data-pane="match" aria-pressed="false">Matchmaker</button>
+        <button class="tab" type="button" data-pane="bench" data-tip="Build a prompt from scratch: pick an AI on the left, fill in the boxes, press Strike." aria-pressed="true">Anvil</button>
+        <button class="tab" type="button" data-pane="doctor" data-tip="Paste a prompt you already wrote. Forge scores it and writes a better one." aria-pressed="false">Prompt Doctor</button>
+        <button class="tab" type="button" data-pane="intake" data-tip="Drop in an image or a file. Forge works out the prompt that would make something like it." aria-pressed="false">Reverse Forge</button>
+        <button class="tab" type="button" data-pane="context" data-tip="Paste a chat with an AI. Forge finds what is missing and writes your next prompt with the chat's context built in." aria-pressed="false">Chat Context</button>
+        <button class="tab" type="button" data-pane="match" data-tip="Say what you want to make. Forge tells you which AI is best at it." aria-pressed="false">Matchmaker</button>
+        <button class="tab" type="button" data-tip="How to use Forge: every tab, the levels and the score, explained simply." data-pane="manual" aria-pressed="false">Manual</button>
       </nav>
       <div class="spacer"></div>
       <button class="ghost" id="themeBtn" aria-pressed="false">
@@ -535,7 +567,7 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
           </div>
           <div class="chips" id="mChips"></div>
           <div id="form" role="group" aria-label="Brief"></div>
-          <button class="strike" id="forgeBtn">Strike</button>
+          <button data-tip="Write the prompt for this AI, with its settings and a score out of 100." class="strike" id="forgeBtn">Strike</button>
         </div>
         <div class="bay" id="out" tabindex="-1" aria-live="polite">
           <div class="empty">
@@ -560,7 +592,7 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
             <label class="flabel" for="docIn"><span>The prompt</span><span class="fhint">paste it exactly as you sent it</span></label>
             <textarea class="inp" id="docIn" rows="11" placeholder="a cool picture of a robot in a city, 8k, masterpiece, very detailed, trending on artstation"></textarea>
           </div>
-          <button class="strike" id="docBtn">Diagnose</button>
+          <button data-tip="Score this prompt, show what is not working, and write a better one." class="strike" id="docBtn">Diagnose</button>
         </div>
         <div class="bay" id="docOut" tabindex="-1" aria-live="polite">
           <div class="empty"><h2>No patient</h2><p>Paste a prompt and Forge will tell you exactly which parts are doing no work.</p></div>
@@ -574,7 +606,7 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
         <div class="bay anvil">
           <h1 class="sec-title">Reverse Forge</h1>
           <p class="sec-sub">Drop in a reference image and Forge measures what it can measure (geometry, palette, exposure, contrast, detail density), then walks you through the parts only you can see, and writes the prompt that would produce it. Text files and prompt exports are read too.</p>
-          <div class="drop" id="drop" tabindex="0" role="button" aria-label="Add reference files">
+          <div class="drop" id="drop" data-tip="Add images or text files. Images are measured right here in your browser: shape, colours, brightness and detail." tabindex="0" role="button" aria-label="Add reference files">
             <h2>Drop in the reference</h2>
             <p>Images, .txt, .md, .json, .csv &mdash; or click to browse</p>
             <input type="file" id="file" multiple accept="image/*,.txt,.md,.json,.csv,.yaml,.yml" hidden>
@@ -585,6 +617,69 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
         <div class="bay" id="intakeOut" tabindex="-1" aria-live="polite">
           <div class="empty"><h2>Nothing in the fire</h2><p>Add a reference and Forge will read what it can, then ask you for the rest.</p></div>
         </div>
+      </div>
+    </section>
+
+    <!-- CONTEXT (5.5): read a chat, find what is missing, write the next prompt -->
+    <section class="pane" data-pane="context">
+      <div class="bench">
+        <div class="bay anvil">
+          <h1 class="sec-title">Chat Context</h1>
+          <p class="sec-sub">Paste a chat with Claude, ChatGPT or any AI. Forge finds what it is about, what you have already said and what is still missing, then writes your next prompt with that context built in. Nothing leaves your browser.</p>
+          <div class="fset">
+            <label class="flabel" for="ctxIn"><span>The chat</span><span class="fhint">only what you paste is read, and it is never saved or sent</span></label>
+            <textarea class="inp" id="ctxIn" rows="13" aria-describedby="ctxHow" placeholder="You said:&#10;make the league table sortable&#10;&#10;ChatGPT said:&#10;Sure. Which columns should sort?"></textarea>
+          </div>
+          <p class="fhint" id="ctxHow" style="margin:-8px 0 16px">Lines starting "You:" and "AI:" tell Forge who said what. Take out anything private first.</p>
+          <button data-tip="Find what the chat is about and what you have not said yet." class="strike" id="ctxBtn">Read the chat</button>
+        </div>
+        <div class="bay" id="ctxOut" tabindex="-1" aria-live="polite">
+          <div class="empty"><h2>No chat yet</h2><p>Paste a conversation and Forge will map it, then ask only about what it is missing.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MANUAL (5.8): how to use Forge, in plain words -->
+    <section class="pane" data-pane="manual">
+      <div class="manual">
+        <h1 class="sec-title">Manual</h1>
+        <p class="sec-sub">Forge writes prompts for AI tools. A prompt is the message you give an AI; a good one gets you what you wanted the first time. Everything runs in your browser: nothing you type is sent anywhere.</p>
+        <div class="billet"><div class="billet-head"><h2>Anvil</h2><button class="mini" type="button" data-go="bench">Open Anvil</button></div><div class="billet-body"><p>Build a prompt from scratch.</p><ol><li>Pick the AI you are writing for in the list on the left (or <b>Change model</b> on a phone). You can search it by name.</li><li>Pick a level: <b>Basic</b> for a few boxes, <b>Intermediate</b> for the details that matter most, <b>Professional</b> for every box. Each button shows how many boxes it has.</li><li>Fill in the boxes. Leave out anything you do not care about.</li><li>Press <b>Strike</b>. You get the prompt in that AI's own style, the settings to use with it, and a score out of 100.</li><li>Answer the questions under the prompt to make it better, then <b>Copy</b> it into the AI.</li></ol><p class="mtip"><b>Tip:</b> only the boxes you can see are used. If you fill a box on Professional and switch to Basic, your answer is kept but not used.</p></div></div>
+        <div class="billet"><div class="billet-head"><h2>Prompt Doctor</h2><button class="mini" type="button" data-go="doctor">Open Prompt Doctor</button></div><div class="billet-body"><p>Make a prompt you already wrote better.</p><ol><li>Choose the AI the prompt is for.</li><li>Paste your prompt exactly as you sent it.</li><li>Press <b>Diagnose</b>. Forge shows the score, what is not doing any work, and a better version.</li></ol><p class="mtip"><b>Tip:</b> Forge fixes spelling and cuts filler like &quot;8k, masterpiece&quot;. It always shows what it changed, and anything it added on its own is marked as a suggestion.</p></div></div>
+        <div class="billet"><div class="billet-head"><h2>Reverse Forge</h2><button class="mini" type="button" data-go="intake">Open Reverse Forge</button></div><div class="billet-body"><p>Start from something you already have: a picture you like, or a text file.</p><ol><li>Drop in images or files, or click the box to choose them.</li><li>Forge measures what it can: the shape, the main colours, how bright it is, how much detail.</li><li>It asks about the parts only you can see, like the subject and the mood.</li><li>It writes the prompt that would make something like it.</li></ol><p class="mtip"><b>Tip:</b> for a text file, <b>Diagnose</b> sends it to the Prompt Doctor.</p></div></div>
+        <div class="billet"><div class="billet-head"><h2>Chat Context</h2><button class="mini" type="button" data-go="context">Open Chat Context</button></div><div class="billet-body"><p>Keep a long chat with an AI on track.</p><ol><li>Copy a chat from Claude, ChatGPT or any AI and paste it in. Lines starting &quot;You:&quot; and &quot;AI:&quot; tell Forge who said what. ChatGPT's own &quot;You said:&quot; works too.</li><li>Press <b>Read the chat</b>. Forge shows what the chat is about, and which of the 9 things a good prompt needs you have already said.</li><li>Say what you want now, and answer up to 3 questions.</li><li>Press <b>Write the prompt</b>. You get a prompt with the chat's context built in. Paste it into the AI, or improve it in the Prompt Doctor.</li></ol><p class="mtip"><b>Tip:</b> the <b>Context block</b> is a short summary of the chat. Paste it at the start of a new chat so the AI remembers what you were doing.</p></div></div>
+        <div class="billet"><div class="billet-head"><h2>Matchmaker</h2><button class="mini" type="button" data-go="match">Open Matchmaker</button></div><div class="billet-body"><p>Not sure which AI to use? Ask here.</p><ol><li>Say what you want to make, like &quot;a 15-second video ad with music&quot;.</li><li>Pick what matters most to you, like speed or words inside the image.</li><li>Press <b>Find the tool</b>. Forge ranks the AIs that are best at it and says why.</li></ol></div></div>
+        <div class="billet"><div class="billet-head"><h2>The Forge Score</h2></div><div class="billet-body">
+          <p>Every prompt gets a score out of 100, made of 5 parts. Hover any bar to see what it means.</p>
+          <ul class="notes">
+            <li><span><b>Covered, 30:</b> the main questions are answered.</span></li>
+            <li><span><b>Detail, 20:</b> some useful detail. Each extra detail is worth less, and more than about 6 can blur each other.</span></li>
+            <li><span><b>Fits, 20:</b> the right length for this AI.</span></li>
+            <li><span><b>Clear, 15:</b> no choices that pull against each other, like &quot;golden hour&quot; and &quot;blue hour&quot; together.</span></li>
+            <li><span><b>Lean, 15:</b> no filler words, and nothing said twice.</span></li>
+          </ul>
+        </div></div>
+        <div class="billet" id="privacy"><div class="billet-head"><h2>Privacy</h2></div><div class="billet-body">
+          <p><b>Forge does not collect your data.</b> There are no accounts, no ads, no tracking and no cookies. Everything runs in your browser.</p>
+          <ul class="notes">
+            <li><span><b>Saved on this device only:</b> what you typed in the boxes, your level, the AI you picked, your pins, and light or dark mode. It never leaves your device, and Forge cannot see it.</span></li>
+            <li><span><b>Never saved, never sent:</b> chats you paste and files you drop in. Forge reads only what you give it, and forgets it when you close the page. Take out anything private (names, passwords, addresses) before you paste.</span></li>
+            <li><span><b>Nothing is sent anywhere.</b> Even the fonts and the spelling dictionary come from Forge's own site, so no other company sees your visit.</span></li>
+            <li><span><b>The website host</b> (Netlify) keeps normal server logs, like the internet address a page was loaded from, to keep the site running and safe. Forge does not use them.</span></li>
+          </ul>
+          <div class="privrow">
+            <label class="privtoggle"><input type="checkbox" id="rememberBox"> Remember my boxes on this device</label>
+            <button class="mini" type="button" id="wipeBtn" data-tip="Delete everything Forge saved on this device. This cannot be undone.">Delete everything Forge saved</button>
+          </div>
+        </div></div>
+        <div class="billet"><div class="billet-head"><h2>Good to know</h2></div><div class="billet-body">
+          <ul class="notes">
+            <li><span>Hover over any button or score (or move to it with Tab) and Forge says what it does.</span></li>
+            <li><span>The star next to an AI pins it to the top of the list.</span></li>
+            <li><span>Each AI's facts were checked against its official docs. The date and links are under its name.</span></li>
+            <li><span>Forge is free while it is being built. Found a bug or have an idea? Open an issue on GitHub.</span></li>
+          </ul>
+        </div></div>
       </div>
     </section>
 
@@ -602,7 +697,7 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
             <div class="flabel" id="lab-matchPri">What matters most?</div>
             <div class="opts" role="group" aria-labelledby="lab-matchPri" id="matchPri"></div>
           </div>
-          <button class="strike" id="matchBtn">Find the tool</button>
+          <button data-tip="Rank the AIs that are best for this job." class="strike" id="matchBtn">Find the tool</button>
         </div>
         <div class="bay" id="matchOut" tabindex="-1" aria-live="polite">
           <div class="empty"><h2>No brief</h2><p>Say what you are making and Forge will point you at the right anvil.</p></div>
@@ -612,6 +707,7 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
   </main>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="tip" id="tip" role="tooltip" hidden></div>
 
 <script>
 "use strict";
@@ -2537,7 +2633,10 @@ function stripBanned(t){
     const re = new RegExp("(^|[,;.\\s])" + w.replace(/[-\/\\^$*+?.()|[\]{}]/g,"\\$&") + "(?=$|[,;.\\s])","gi");
     if(re.test(out)){ removed.push(w); out = out.replace(re,"$1"); }
   });
-  out = out.replace(/\s*,\s*,+/g,", ").replace(/\s{2,}/g," ").replace(/^\s*,\s*/,"").replace(/,\s*$/,"").trim();
+  // 5.10.1: squash spaces, but keep line breaks: multi-part prompts (Claude, GPT, coding, research)
+  // were copied as one long line because "\s{2,}" also ate the blank lines between sections
+  out = out.replace(/[ \t]*,[ \t]*,+/g,", ").replace(/(\S)[ \t]{2,}/g,"$1 ").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n")
+    .replace(/^\s*,\s*/,"").replace(/,\s*$/,"").trim();
   return {text:out, removed:[...new Set(removed)]};
 }
 
@@ -3535,7 +3634,31 @@ function autocorrect(text){
 }
 
 /* --- the strike --- */
-/** @param {Brief} b @param {Model} m @param {Level=} level @param {{keep?: boolean, noFix?: boolean}=} opts */
+// 5.10: background from a chat, added in the Anvil. Only AIs that read instructions get it: an
+// image, video, voice or music AI would try to draw or say it. It is added after scoring, because
+// it is background for the AI, not part of the brief the score judges.
+const READS_BACKGROUND = ["text","code","app","research"];
+/** Put background into a finished prompt, in the same style as its other sections.
+ *  @param {Result} res @param {Model} m @param {string=} context */
+function addBackground(res, m, context){
+  const ctx = String(context || "").trim();
+  if(!ctx) return;
+  if(!READS_BACKGROUND.includes(m.cat)){
+    res.warn.push(m.n + " does not read background notes, so your chat context was not added. Use it to fill the boxes instead.");
+    return;
+  }
+  const f = res.flat;
+  const [block, before] = /<[a-z_]+>/.test(f) ? ["<background>\n" + ctx + "\n</background>", /^<instructions>/m]
+    : /^## /m.test(f) ? ["## Background\n" + ctx, /^## Task/m]
+    : /^[A-Z][A-Z ]{2,}$/m.test(f) ? ["BACKGROUND\n" + ctx, /^TASK$/m]
+    : ["Background from our earlier chat:\n" + ctx, null];
+  const at = before ? f.search(before) : -1;
+  res.flat = at > 0 ? f.slice(0, at) + block + "\n\n" + f.slice(at) : block + "\n\n" + f;
+  res.blocks.unshift(["Background", ctx]);
+  res.background = true;
+}
+
+/** @param {Brief} b @param {Model} m @param {Level=} level @param {{keep?: boolean, noFix?: boolean, context?: string}=} opts */
 function forge(b, m, level, opts){
   level = level || "pro"; opts = opts || {};
   // 3.4: what you see is what is used. Boxes hidden at this level are left out.
@@ -3570,9 +3693,438 @@ function forge(b, m, level, opts){
   const sc = forgeScore(orig, m, res, level);
   res.score = sc.total; res.parts = sc.parts;
   if(sc.repeats.length) res.warn.push("Said more than once: " + sc.repeats.join(", ") + ". Saying it once is enough, and repeats can make the AI overdo it.");
+  addBackground(res, m, opts.context);
   const hi = (m.len||[0,0])[1];
   if(hi && sc.words > hi) res.warn.push("About " + (sc.words - hi) + " words over the " + m.len[0] + " to " + hi + " word range for " + m.n + ". Cut the least important part yourself: Forge does not cut your sentences, because that can change what you meant.");
   return res;
+}
+
+/* ==========================================================================
+   GRAPH-LITE (Forge stage 5)
+   graphify's main ideas, small enough to run in a browser tab: read a chat or a page, pull out
+   the things it talks about, link things mentioned together, group them into topics, find the
+   main topics, spot what is missing, and write a short context block for the next prompt.
+
+   Ideas and rules ported from graphify (https://github.com/safishamsi/graphify),
+   Copyright (c) 2026 Safi Shamsi, MIT License: the god-node rule and its skip lists
+   (analyze.py), Louvain grouping with oversized groups split again (cluster.py), and
+   bridge-based questions (suggest_questions). Written again in plain JavaScript, no
+   dependencies. The full notice is in THIRD_PARTY_NOTICES.md.
+   ========================================================================== */
+
+/** @typedef {{id: string, label: string, kind: string, count: number, turns: number[], user: number, source_file?: string}} GNode */
+/** @typedef {{nodes: Map<string, GNode>, adj: Map<string, Map<string, number>>}} Graph */
+/** @typedef {{role?: string, text: string}} Turn */
+
+// graphify's skip lists (analyze.py): labels that are never a "main topic"
+const GL_NOISE = new Set(["Any","AsyncMock","Callable","ClassVar","Counter","Dict","Enum","False","Final","List","Literal","MagicMock","Mock","NonCallableMagicMock","NonCallableMock","Optional","OrderedDict","Path","PropertyMock","Protocol","Set","True","Tuple","Type","Union","abc","bool","bytearray","bytes","complex","datetime","defaultdict","float","int","io","json","object","os","patch","re","sentinel","str","sys","typing"]);
+const GL_JSON_NOISE = new Set(["bundleddependencies","bundledependencies","data","dependencies","description","devdependencies","end","id","items","key","name","optionaldependencies","peerdependencies","properties","start","title","type","value","version"]);
+
+// words too common to be a topic in a chat
+const GL_STOP = new Set(("a about above after again against all also am an and any are aren't as at be because been before being below between both but by can can't " +
+  "cannot could couldn't did didn't do does doesn't doing don't down during each few for from further had hadn't has hasn't have haven't having he her here hers " +
+  "herself him himself his how i if in into is isn't it it's its itself just let's like make me more most much must my myself need no nor not now of off on once " +
+  "only or other ought our ours ourselves out over own really same she should shouldn't so some such than that that's the their theirs them themselves then there " +
+  "there's these they this those through to too under until up us very was wasn't we were weren't what when where which while who whom why will with won't would " +
+  "wouldn't you your yours yourself yourselves yes okay ok please thanks thank want wants get got going gonna also maybe well still even every one two three first " +
+  "last next new good great better best lot lots thing things something anything everything way ways use using used make made makes making see look looks looking " +
+  "know think go goes done do doing sure right now just let lets put take give say said tell told try trying work works working able going etc bit kind sort " +
+  "i'm i've i'll you're we're they're that'll there'll it'll can't don't won't isn't aren't").split(" "));
+
+// chat talk, not topics: verbs, describing words and fillers that come up in almost every chat
+// (measured on 9 real chats: "real" was a main topic in 8 of them)
+const GL_VAGUE = new Set(("real actually check test verify build clean full open read write run start add fix create show need mean " +
+  "nothing already rather different since instead exactly probably basically simply simple small big quick fast slow whole part step " +
+  "left keep change update happen stuff idea point reason problem issue answer question pretty quite almost around back away inside " +
+  "without within across bad sick insane wow cool nice true false fully correctly properly currently again later today tomorrow " +
+  "yesterday time minute second hour day week whether though although however because either else might may came come find found call " +
+  "move set support handle return rest wrong fine hard easy fun seem seems feel next last plus mine yours ours theirs another " +
+  "four five six seven eight nine ten hundred thousand half enough whatever wherever whoever anyway sometime sometimes often never " +
+  "always usually likely unlikely possible actual literally totally completely super hey hello hi yeah yep nope lol means ask say says wait someone somebody anyone everyone " +
+  "jan feb mar apr jun jul aug sep sept oct nov dec mon tue wed thu fri sat sun").split(" "));
+
+/** Is this word just chat talk? Checks the word and its -ing / -ed / -s forms. @param {string} w */
+function glVague(w){
+  if(GL_STOP.has(w) || GL_VAGUE.has(w)) return true;
+  const base = w.replace(/(?:ing|ed|s)$/, "");
+  return base.length >= 3 && [base, base + "e", base.replace(/(.)\1$/, "$1")].some(b => GL_VAGUE.has(b) || GL_STOP.has(b));
+}
+
+/** Tidy a word into its topic form: lower case, simple plural removed. @param {string} w */
+function glStem(w){
+  const x = w.toLowerCase();
+  if(x.length > 4 && x.endsWith("ies")) return x.slice(0, -3) + "y";
+  if(x.length > 5 && /(?:sh|ch|x|ss|z)es$/.test(x)) return x.slice(0, -2);
+  if(x.length > 4 && x.endsWith("s") && !x.endsWith("ss") && !x.endsWith("us") && !x.endsWith("is")) return x.slice(0, -1);
+  return x;
+}
+
+// who is speaking, when a copied chat labels its lines ("You said:", "ChatGPT said:", "Claude:")
+const GL_WHO = /^[ \t]*(?:\*\*|#+ )?(you|user|human|me|i|assistant|claude|chatgpt|gpt|gemini|copilot|grok|perplexity|deepseek|ai|bot)(?: said)?(?:\*\*)?[ \t]*:[ \t]*/gim;
+
+/** A pasted chat as turns. Uses "You:" / "ChatGPT said:" style labels when there are any;
+ *  with no labels, every paragraph counts as the user's. @param {string} text @returns {Turn[]} */
+function glParseChat(text){
+  const t = String(text || "");
+  const marks = [...t.matchAll(GL_WHO)];
+  if(!marks.length) return t.split(/\n\s*\n/).map(x => ({role:"user", text:x.trim()})).filter(x => x.text);
+  /** @type {Turn[]} */
+  const turns = [];
+  const before = t.slice(0, marks[0].index).trim();
+  if(before) turns.push({role:"user", text:before});
+  marks.forEach((m, i) => {
+    const body = t.slice(/** @type {number} */ (m.index) + m[0].length, i + 1 < marks.length ? marks[i + 1].index : t.length).trim();
+    const role = /^(you|user|human|me|i)$/i.test(m[1]) ? "user" : "assistant";
+    if(body) turns.push({role, text:body});
+  });
+  return turns;
+}
+
+/** Split a chat into turns. Accepts pasted text, or a list of {role, text}. @param {string | Turn[]} input @returns {Turn[]} */
+function glTurns(input){
+  if(Array.isArray(input)) return input.filter(t => t && typeof t.text === "string");
+  return glParseChat(String(input || ""));
+}
+
+/** The things one sentence mentions, strongest kinds first. @param {string} s @returns {{id: string, label: string, kind: string}[]} */
+function glTerms(s){
+  /** @type {{id: string, label: string, kind: string}[]} */
+  const out = []; const seen = new Set();
+  /** @param {string} id @param {string} label @param {string} kind */
+  const add = (id, label, kind) => { if(id && !seen.has(id)){ seen.add(id); out.push({id, label, kind}); } };
+  let rest = s;
+  /** Take matches out of the sentence so they are not counted twice. @param {RegExp} re @param {(m: RegExpExecArray) => void} fn */
+  const take = (re, fn) => { rest = rest.replace(re, (...a) => { fn(/** @type {RegExpExecArray} */ (/** @type {unknown} */ (a))); return " "; }); };
+  take(/["“]([^"”]{2,40})["”]/g, m => add("q:" + m[1].toLowerCase(), "\"" + m[1] + "\"", "quote"));
+  take(/https?:\/\/\S+/g, () => {});
+  take(/\b[\w-]+\.(?:tsx?|jsx?|mjs|py|md|html|css|json|txt|pdf|toml|ya?ml)\b/gi, m => add("f:" + m[0].toLowerCase(), m[0], "file"));
+  take(/\b(?:under|over|at most|at least|max(?:imum)?|min(?:imum)?|exactly|about)?\s*\d+(?:\.\d+)?\s*(?:words?|chars?|characters?|seconds?|secs?|s|minutes?|mins?|px|%|bpm|fps|k|mb|gb|steps?|slides?|pages?|lines?|bullets?|points?|questions?)\b/gi,
+       m => { const t = m[0].trim(); if(/[a-z]/i.test(t)) add("c:" + t.toLowerCase().replace(/\s+/g, " "), t, "constraint"); });
+  take(/\b[a-z]+[A-Z][A-Za-z0-9]*\(?\)?|\b[A-Za-z]+_[A-Za-z0-9_]+\b|\b[A-Za-z][A-Za-z0-9]*\(\)/g, m => add("k:" + m[0].replace(/\(\)$/, ""), m[0], "code"));
+  // names: two or more capitalised words together, or one capitalised word not starting the sentence
+  take(/\b[A-Z][A-Za-z0-9]+(?:[ -][A-Z0-9][A-Za-z0-9]+)+\b/g, m => {
+    const t = m[0].split(" "); if(t[0] !== "The" && GL_STOP.has(t[0].toLowerCase())) t.shift(); // "All 20" is not a name
+    const n = t.join(" "); if(/[a-z]/i.test(n) && (t.length > 1 || !glVague(n.toLowerCase()))) add("n:" + n.toLowerCase(), n, "name");
+  });
+  // one capital word is a name only mid-sentence: not first on a line or bullet, not after ":" or "**"
+  rest = rest.replace(/^[\s>#*_`-]*(?:\d+[.)]\s*)?[*_`]*/, "");
+  rest = rest.replace(/([^.!?:*_`\s(\["'“]\s+)([A-Z][a-z0-9]{2,})\b/g, (all, pre, w) => { if(!glVague(w.toLowerCase())) add("n:" + w.toLowerCase(), w, "name"); return pre + " "; });
+  // plain words that carry meaning
+  const words = (rest.toLowerCase().match(/[a-z][a-z'-]{2,}/g) || []).map(w => w.replace(/'s$/, "").replace(/^['-]+|['-]+$/g, "")).filter(w => !/^\d/.test(w) && !glVague(w));
+  for(const w of words) if(w.length >= 4 && !glVague(glStem(w))) add("w:" + glStem(w), glStem(w), "word");
+  return out;
+}
+
+/** Things a chat talks about, and which of them are mentioned together.
+ *  Words must come up at least twice to count; files, code, names, quotes and limits count at once.
+ *  @param {string | Turn[]} input @param {{minWord?: number, perSentence?: number}=} opts @returns {Graph} */
+function glExtract(input, opts){
+  const minWord = (opts && opts.minWord) || 2, per = (opts && opts.perSentence) || 12;
+  const turns = glTurns(input);
+  /** @type {Map<string, GNode>} */
+  const nodes = new Map();
+  /** @type {{ids: string[]}[]} */
+  const sentences = [];
+  turns.forEach((t, ti) => {
+    for(const s of t.text.split(/(?<=[.!?])\s+|\n+/)){
+      const terms = glTerms(s); if(!terms.length) continue;
+      for(const x of terms){
+        const n = nodes.get(x.id) || {id:x.id, label:x.label, kind:x.kind, count:0, turns:[], user:0};
+        n.count++; if(n.turns[n.turns.length - 1] !== ti) n.turns.push(ti); if(t.role !== "assistant") n.user++;
+        nodes.set(x.id, n);
+      }
+      sentences.push({ids: terms.map(x => x.id)});
+    }
+  });
+  // "Camera" said once mid-sentence but "camera" said five times is a word, not a name
+  /** @type {Map<string, string>} */
+  const alias = new Map();
+  for(const [id, n] of nodes){
+    if(n.kind !== "name" || n.label.includes(" ")) continue;
+    const w = nodes.get("w:" + glStem(n.label));
+    if(!w || w.count < n.count) continue;
+    w.count += n.count; w.user += n.user; w.turns = [...new Set([...w.turns, ...n.turns])].sort((a, b) => a - b);
+    alias.set(id, w.id); nodes.delete(id);
+  }
+  for(const x of sentences) x.ids = [...new Set(x.ids.map(id => alias.get(id) || id))];
+  for(const [id, n] of nodes) if(n.kind === "word" && n.count < minWord) nodes.delete(id);
+  /** @type {Map<string, Map<string, number>>} */
+  const adj = new Map([...nodes.keys()].map(id => [id, new Map()]));
+  for(const {ids} of sentences){
+    // strongest first: named things before plain words, so a long sentence keeps what matters
+    const kept = ids.filter(id => nodes.has(id)).sort((a, b) => (a[0] === "w" ? 1 : 0) - (b[0] === "w" ? 1 : 0)).slice(0, per);
+    for(let i = 0; i < kept.length; i++) for(let j = i + 1; j < kept.length; j++){
+      const a = kept[i], b = kept[j];
+      const A = /** @type {Map<string, number>} */ (adj.get(a)), B = /** @type {Map<string, number>} */ (adj.get(b));
+      A.set(b, (A.get(b) || 0) + 1); B.set(a, (B.get(a) || 0) + 1);
+    }
+  }
+  return {nodes, adj};
+}
+
+/** Load a graph saved by graphify (graph.json), so graph-lite can be checked against graphify.
+ *  @param {{nodes: {id: string, label?: string, source_file?: string, file_type?: string}[], links: {source: string, target: string, weight?: number}[]}} json @returns {Graph} */
+function glFromGraphify(json){
+  /** @type {Map<string, GNode>} */
+  const nodes = new Map(json.nodes.map(n => [n.id, {id:n.id, label:n.label || n.id, kind:n.file_type || "code", count:1, turns:[], user:0, source_file:n.source_file || ""}]));
+  /** @type {Map<string, Map<string, number>>} */
+  const adj = new Map([...nodes.keys()].map(id => [id, new Map()]));
+  for(const e of json.links){
+    if(e.source === e.target || !adj.has(e.source) || !adj.has(e.target)) continue;
+    const w = e.weight || 1;
+    const A = /** @type {Map<string, number>} */ (adj.get(e.source)), B = /** @type {Map<string, number>} */ (adj.get(e.target));
+    A.set(e.target, w); B.set(e.source, w);
+  }
+  return {nodes, adj};
+}
+
+/** graphify's _is_file_node, _is_concept_node and _is_json_key_node, for graphs loaded from graphify.
+ *  @param {Graph} g @param {string} id */
+function glSkip(g, id){
+  const n = /** @type {GNode} */ (g.nodes.get(id));
+  const deg = /** @type {Map<string, number>} */ (g.adj.get(id)).size;
+  if(n.source_file === undefined) return n.kind === "file"; // graph-lite's own graphs: files are never main topics
+  const src = n.source_file, label = n.label;
+  if(src && label === src.split("/").pop()) return true;           // file hub
+  if(label.startsWith(".") && label.endsWith("()")) return true;   // method stub
+  if(label.endsWith("()") && deg <= 1) return true;                // lonely function stub
+  if(!src || !src.split("/").pop()?.includes(".")) return true;    // concept node
+  if(src.toLowerCase().endsWith(".json") && GL_JSON_NOISE.has(label.trim().toLowerCase())) return true;
+  return false;
+}
+
+/** The main topics: the most connected things (graphify's god-node rule).
+ *  @param {Graph} g @param {number=} topN @returns {{id: string, label: string, degree: number}[]} */
+function glGodNodes(g, topN){
+  const n = topN || 10;
+  return [...g.adj.entries()].map(([id, nb]) => ({id, degree: nb.size}))
+    .sort((a, b) => b.degree - a.degree || (a.id < b.id ? -1 : 1))
+    .filter(x => !glSkip(g, x.id) && !GL_NOISE.has(/** @type {GNode} */ (g.nodes.get(x.id)).label))
+    .slice(0, n).map(x => ({id:x.id, label:/** @type {GNode} */ (g.nodes.get(x.id)).label, degree:x.degree}));
+}
+
+/** One Louvain pass: move each thing to the neighbouring group that raises modularity most.
+ *  @param {string[]} ids @param {Map<string, Map<string, number>>} adj @param {number} res */
+function glOneLevel(ids, adj, res){
+  /** @type {Map<string, number>} */
+  const k = new Map(); let m2 = 0;
+  for(const id of ids){ let s = 0; for(const w of (adj.get(id) || new Map()).values()) s += w; k.set(id, s); m2 += s; }
+  /** @type {Map<string, number>} */
+  const part = new Map(ids.map((id, i) => [id, i]));
+  /** @type {Map<number, number>} */
+  const tot = new Map(ids.map((id, i) => [i, /** @type {number} */ (k.get(id))]));
+  if(!m2) return {part, moved:false};
+  let moved = false, changed = true, passes = 0;
+  while(changed && passes++ < 50){
+    changed = false;
+    for(const id of ids){
+      const home = /** @type {number} */ (part.get(id)), ki = /** @type {number} */ (k.get(id));
+      /** @type {Map<number, number>} */
+      const toC = new Map();
+      for(const [nb, w] of (adj.get(id) || new Map())) if(nb !== id){ const c = /** @type {number} */ (part.get(nb)); toC.set(c, (toC.get(c) || 0) + w); }
+      tot.set(home, /** @type {number} */ (tot.get(home)) - ki);
+      let best = home, bestGain = (toC.get(home) || 0) - res * /** @type {number} */ (tot.get(home)) * ki / m2;
+      for(const [c, w] of [...toC.entries()].sort((a, b) => a[0] - b[0])){
+        const gain = w - res * /** @type {number} */ (tot.get(c)) * ki / m2;
+        if(gain > bestGain + 1e-12){ best = c; bestGain = gain; }
+      }
+      tot.set(best, /** @type {number} */ (tot.get(best)) + ki);
+      if(best !== home){ part.set(id, best); changed = true; moved = true; }
+    }
+  }
+  return {part, moved};
+}
+
+/** Louvain grouping over a set of things. Deterministic: same input, same groups.
+ *  @param {string[]} ids @param {Map<string, Map<string, number>>} adj @param {number} res @returns {Map<string, number>} */
+function glLouvain(ids, adj, res){
+  /** @type {Map<string, string>} */
+  const member = new Map(ids.map(id => [id, id]));
+  let level = ids.slice().sort(), ladj = adj;
+  for(let round = 0; round < 20; round++){
+    const {part, moved} = glOneLevel(level, ladj, res);
+    if(!moved) break;
+    for(const [orig, ln] of member) member.set(orig, "L" + round + ":" + part.get(ln));
+    /** @type {Map<string, Map<string, number>>} */
+    const next = new Map();
+    for(const [u, nb] of ladj){
+      if(!part.has(u)) continue;
+      const cu = "L" + round + ":" + part.get(u);
+      if(!next.has(cu)) next.set(cu, new Map());
+      const M = /** @type {Map<string, number>} */ (next.get(cu));
+      for(const [v, w] of nb){ if(!part.has(v)) continue; const cv = "L" + round + ":" + part.get(v); M.set(cv, (M.get(cv) || 0) + w); }
+    }
+    ladj = next; level = [...next.keys()].sort();
+  }
+  /** @type {Map<string, number>} */
+  const out = new Map(); /** @type {Map<string, number>} */ const ids2 = new Map();
+  for(const id of ids){ const g = /** @type {string} */ (member.get(id)); if(!ids2.has(g)) ids2.set(g, ids2.size); out.set(id, /** @type {number} */ (ids2.get(g))); }
+  return out;
+}
+
+/** Topics: groups of things that are mentioned together (graphify's cluster rule: Louvain, lonely
+ *  things get their own group, groups over 25% of the graph (min 10) are split again, 0 = biggest).
+ *  @param {Graph} g @param {{resolution?: number}=} opts @returns {string[][]} */
+function glCluster(g, opts){
+  const res = (opts && opts.resolution) || 1;
+  const all = [...g.nodes.keys()].sort();
+  const connected = all.filter(id => /** @type {Map<string, number>} */ (g.adj.get(id)).size > 0);
+  /** @type {Map<number, string[]>} */
+  const raw = new Map();
+  for(const [id, c] of glLouvain(connected, g.adj, res)){ if(!raw.has(c)) raw.set(c, []); /** @type {string[]} */ (raw.get(c)).push(id); }
+  /** @type {string[][]} */
+  let groups = [...raw.values()];
+  const limit = Math.max(10, Math.floor(all.length * 0.25));
+  /** @type {string[][]} */
+  const split = [];
+  for(const grp of groups){
+    if(grp.length <= limit){ split.push(grp); continue; }
+    const set = new Set(grp);
+    /** @type {Map<string, Map<string, number>>} */
+    const sub = new Map(grp.map(id => [id, new Map([.../** @type {Map<string, number>} */ (g.adj.get(id))].filter(([n]) => set.has(n)))]));
+    /** @type {Map<number, string[]>} */
+    const parts = new Map();
+    for(const [id, c] of glLouvain(grp, sub, res)){ if(!parts.has(c)) parts.set(c, []); /** @type {string[]} */ (parts.get(c)).push(id); }
+    split.push(...parts.values());
+  }
+  groups = split.map(x => x.sort());
+  for(const id of all) if(/** @type {Map<string, number>} */ (g.adj.get(id)).size === 0) groups.push([id]);
+  return groups.sort((a, b) => b.length - a.length || (a[0] < b[0] ? -1 : 1));
+}
+
+/** How well the groups fit the links (Newman modularity, -0.5 to 1). Used to compare with graphify.
+ *  @param {Graph} g @param {string[][]} groups */
+function glModularity(g, groups){
+  /** @type {Map<string, number>} */
+  const of = new Map(); groups.forEach((grp, i) => grp.forEach(id => of.set(id, i)));
+  let m2 = 0; /** @type {number[]} */ const tot = groups.map(() => 0); /** @type {number[]} */ const inn = groups.map(() => 0);
+  for(const [u, nb] of g.adj){ const cu = /** @type {number} */ (of.get(u)); for(const [v, w] of nb){ m2 += w; tot[cu] += w; if(of.get(v) === cu) inn[cu] += w; } }
+  if(!m2) return 0;
+  return groups.reduce((q, _, i) => q + inn[i] / m2 - (tot[i] / m2) ** 2, 0);
+}
+
+/** Things that link two topics that are otherwise apart (graphify's bridge nodes, by betweenness).
+ *  @param {Graph} g @param {number=} topN @returns {{id: string, label: string, score: number}[]} */
+function glBridges(g, topN){
+  const ids = [...g.nodes.keys()].filter(id => /** @type {Map<string, number>} */ (g.adj.get(id)).size > 0).sort();
+  /** @type {Map<string, number>} */
+  const bc = new Map(ids.map(id => [id, 0]));
+  const sources = ids.length > 400 ? ids.filter((_, i) => i % Math.ceil(ids.length / 200) === 0) : ids; // sample big graphs, like graphify
+  for(const s of sources){ // Brandes, unweighted
+    /** @type {string[]} */ const stack = []; /** @type {Map<string, string[]>} */ const pred = new Map();
+    /** @type {Map<string, number>} */ const sigma = new Map([[s, 1]]); /** @type {Map<string, number>} */ const dist = new Map([[s, 0]]);
+    const q = [s];
+    for(let qi = 0; qi < q.length; qi++){
+      const v = q[qi]; stack.push(v);
+      for(const w of /** @type {Map<string, number>} */ (g.adj.get(v)).keys()){
+        if(!dist.has(w)){ dist.set(w, /** @type {number} */ (dist.get(v)) + 1); q.push(w); }
+        if(dist.get(w) === /** @type {number} */ (dist.get(v)) + 1){ sigma.set(w, (sigma.get(w) || 0) + /** @type {number} */ (sigma.get(v))); if(!pred.has(w)) pred.set(w, []); /** @type {string[]} */ (pred.get(w)).push(v); }
+      }
+    }
+    /** @type {Map<string, number>} */ const delta = new Map();
+    while(stack.length){
+      const w = /** @type {string} */ (stack.pop());
+      for(const v of pred.get(w) || []) delta.set(v, (delta.get(v) || 0) + /** @type {number} */ (sigma.get(v)) / /** @type {number} */ (sigma.get(w)) * (1 + (delta.get(w) || 0)));
+      if(w !== s) bc.set(w, /** @type {number} */ (bc.get(w)) + (delta.get(w) || 0));
+    }
+  }
+  return [...bc.entries()].filter(([id, v]) => v > 0 && !glSkip(g, id)).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+    .slice(0, topN || 3).map(([id, v]) => ({id, label:/** @type {GNode} */ (g.nodes.get(id)).label, score:v}));
+}
+
+/* --- the Forge part: the master prompt's 9 slots ----------------------------------------
+   From Forge's prompt library: every model wants the same nine things. graph-lite checks which
+   of them the chat already gives, so it only asks about the rest. */
+const GL_SLOTS = [
+  {k:"subject",  n:"Subject",  q:"What is this about, in one line?"},
+  {k:"ask",      n:"Ask",      q:"What exactly do you want back?", re:/\b(write|make|build|create|draw|generate|explain|summari[sz]e|fix|add|design|plan|list|compare|turn|give|show|find|improve|rewrite|translate)\b/i},
+  {k:"setting",  n:"Setting",  q:"What does the AI need to know first: where, when, or what it is working with?", re:/\b(in|at|on|inside)\s+(?:a|an|the|my|our)?\s*[a-z]{3,}|\b(i am|i'm|we are|my project|the project|the code|the repo|this app|this site|background|context)\b/i},
+  {k:"medium",   n:"Medium",   q:"What form should it take: a photo, a drawing, a list, a table, code?", re:/\b(photo|photograph|painting|illustration|drawing|render|3d|vector|pixel art|anime|video|clip|song|track|voice|list|table|steps|code|json|markdown|email|essay|poster|logo|website|page|app|game|slides?|deck)\b/i},
+  {k:"purpose",  n:"Purpose",  q:"Where will it be used, and who is it for?", re:/\bfor\s+(?:a|an|the|my|our|your|\d+)\s+[a-z]|\b(audience|users?|players?|customers?|students?|teachers?|kids|beginners?|so that|in order to)\b/i},
+  {k:"details",  n:"Details",  q:"What are the one to four details that matter most?", re:/\b(colou?r|palette|style|light(ing)?|lens|mood|tone|font|tempo|bpm|genre|voice|accent|layout|size|dark mode|theme)\b/i},
+  {k:"avoid",    n:"Avoid",    q:"Is there anything it must leave out or not touch?", re:/\b(no|not|don'?t|do not|never|avoid|without|leave .{1,30} alone|except)\b/i},
+  {k:"settings", n:"Settings", q:"Any settings to set: size, length, duration, quality?", re:/\b\d+\s*(?:words?|seconds?|s|minutes?|px|bpm|fps|slides?|pages?)\b|\b(aspect|16:9|9:16|1:1|4:5|duration|resolution|quality|effort|model)\b/i},
+  {k:"check",    n:"Check",    q:"How will you know it worked?", re:/\b(tests? pass|should (?:be|have|show|work)|must (?:be|have|show)|so i can|make sure|check that|until|exits? 0|count|at least|no more than)\b/i}
+];
+
+/** Which of the 9 slots the user has already filled, judged on what the USER wrote (not the AI).
+ *  @param {Turn[]} turns @returns {{k: string, n: string, q: string, filled: boolean}[]} */
+function glSlots(turns){
+  const user = turns.filter(t => t.role !== "assistant").map(t => t.text).join("\n");
+  const words = user.trim().split(/\s+/).filter(Boolean).length;
+  return GL_SLOTS.map(s => ({k:s.k, n:s.n, q:s.q, filled: s.k === "subject" ? words >= 3 : !!(s.re && s.re.test(user))}));
+}
+
+/** The user's last message, tidied for a prompt: attached file paths become just the file name.
+ *  @param {string} text */
+function glTidyAsk(text){
+  return text.replace(/@"([^"]+)"|@(\S+)/g, (_, a, b) => "[" + String(a || b).split("/").pop() + "]").replace(/\s+/g, " ").trim();
+}
+
+/** Write the next prompt from what the chat already says plus the user's answers to the questions.
+ *  @param {{context: string, slots: {k: string, n: string, filled: boolean}[]}} read what readChat returned
+ *  @param {Record<string, string>} answers slot key (or "focus") to the user's answer
+ *  @param {string=} ask what the user wants now (defaults to the chat's latest ask) */
+function glWritePrompt(read, answers, ask){
+  const a = answers || {};
+  const latest = (read.context.match(/^Latest ask: (.*)$/m) || [])[1] || "";
+  const want = (ask || a.ask || latest).trim();
+  const known = read.context.split("\n").filter(l => !l.startsWith("Latest ask: "));
+  const extra = read.slots.filter(s => s.k !== "ask" && (a[s.k] || "").trim()).map(s => s.n + ": " + a[s.k].trim());
+  // XML tags keep the chat's background apart from the instruction (Anthropic's and OpenAI's guides both advise it)
+  const task = [a.focus && a.focus.trim() ? "Focus on: " + a.focus.trim() : "", want].filter(Boolean).join("\n");
+  return [
+    known.length ? "<context>\nWhat our chat so far covered:\n" + known.map(l => "- " + l).join("\n") + "\n</context>" : "",
+    task ? "<task>\n" + task + "\n</task>" : "",
+    extra.length ? "<details>\n" + extra.join("\n") + "\n</details>" : "",
+    "If anything important is still unclear, ask me before you start."
+  ].filter(Boolean).join("\n\n");
+}
+
+/** Read a chat: its main topics, groups, bridges, what is missing, and a short context block.
+ *  @param {string | Turn[]} input @param {{budget?: number, topics?: number}=} opts */
+function readChat(input, opts){
+  const budget = (opts && opts.budget) || 120;
+  const turns = glTurns(input);
+  const g = glExtract(turns);
+  const groups = glCluster(g);
+  // main topics: graphify's rule (most connected), but what the USER says counts double,
+  // because the AI's answers are long and would drown out what the chat is really about
+  const weight = /** @param {string} id */ id => { const n = /** @type {GNode} */ (g.nodes.get(id)); return /** @type {Map<string, number>} */ (g.adj.get(id)).size * (1 + n.user / n.count); };
+  const gods = glGodNodes(g, 1e9).map(x => ({...x, score: weight(x.id)}))
+    .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1)).slice(0, (opts && opts.topics) || 6)
+    .map(({id, label, degree}) => ({id, label, degree}));
+  const lab = /** @param {string} id */ id => /** @type {GNode} */ (g.nodes.get(id)).label;
+  // a topic is named after its most connected thing
+  const topics = groups.filter(grp => grp.length >= 3).slice(0, 4).map(grp => {
+    const top = grp.slice().sort((a, b) => weight(b) - weight(a) || (a < b ? -1 : 1));
+    return {name: lab(top[0]), members: top.slice(0, 5).map(lab), size: grp.length};
+  });
+  const named = [...g.nodes.values()].filter(n => n.kind !== "word").sort((a, b) => b.count - a.count || (a.id < b.id ? -1 : 1));
+  const limits = named.filter(n => n.kind === "constraint" && n.user > 0).map(n => n.label).slice(0, 4);
+  const things = named.filter(n => ["file","code","name","quote"].includes(n.kind)).map(n => n.label).slice(0, 6);
+  const slots = glSlots(turns);
+  const lastUser = [...turns].reverse().find(t => t.role !== "assistant");
+  // at most 3 questions, like the rest of Forge: which topic first (if the chat has several), then the gaps
+  /** @type {{k: string, kind: string, q: string}[]} */
+  const questions = [];
+  if(topics.length >= 2)
+    questions.push({k:"focus", kind:"focus", q:"This chat covers " + topics.slice(0, 3).map(t => t.name).join(", ") + ". Which one is the next prompt about?"});
+  // subject and ask are left out: the next step always asks "What do you want now?" anyway
+  for(const s of slots) if(!s.filled && s.k !== "subject" && s.k !== "ask" && questions.length < 3) questions.push({k:s.k, kind:"missing", q:s.q});
+  // the context block, cut to the word budget: least important lines go first
+  const lines = [
+    gods.length ? "Main topics: " + gods.map(x => x.label).join(", ") + "." : "",
+    things.length ? "Named: " + things.join(", ") + "." : "",
+    limits.length ? "Limits the user gave: " + limits.join(", ") + "." : "",
+    lastUser ? "Latest ask: " + glTidyAsk(lastUser.text) : "",
+    ...topics.map(t => "Topic, " + t.name + ": " + t.members.slice(1).join(", ") + ".")
+  ].filter(Boolean);
+  /** @param {string[]} ls */
+  const count = ls => ls.join(" ").split(/\s+/).filter(Boolean).length;
+  while(lines.length > 1 && count(lines) > budget) lines.pop();
+  if(count(lines) > budget) lines[0] = lines[0].split(/\s+/).slice(0, budget).join(" ") + "…";
+  return {topics, main: gods, bridges: glBridges(g, 3), slots, questions, context: lines.join("\n"), graph: {nodes: g.nodes.size, links: [...g.adj.values()].reduce((a, m) => a + m.size, 0) / 2}};
 }
 
 /* ==========================================================================
@@ -3580,7 +4132,13 @@ function forge(b, m, level, opts){
    ========================================================================== */
 const store = {
   get(k, d){ try{ const v = localStorage.getItem("forge."+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
-  set(k, v){ try{ localStorage.setItem("forge."+k, JSON.stringify(v)); }catch(e){} }
+  set(k, v){
+    // 5.11: with "Remember my boxes" off, what you type is never written to this device
+    if(k === "briefs" && this.get("remember", true) === false) return;
+    try{ localStorage.setItem("forge."+k, JSON.stringify(v)); }catch(e){}
+  },
+  /** 5.11: delete everything Forge saved on this device. */
+  wipe(){ try{ Object.keys(localStorage).filter(k => k.startsWith("forge.")).forEach(k => localStorage.removeItem(k)); }catch(e){} }
 };
 const ST = {
   model: store.get("model","midjourney"),
@@ -3629,7 +4187,7 @@ function applyTheme(){
   const btn = $("#themeBtn");
   btn.setAttribute("aria-pressed", String(dark));
   btn.setAttribute("aria-label", dark ? "Theme: dark. Switch to light." : "Theme: light. Switch to dark.");
-  btn.setAttribute("title", dark ? "Switch to light" : "Switch to dark");
+  btn.setAttribute("data-tip", dark ? "Switch to light mode" : "Switch to dark mode");
   drawMark();
 }
 $("#themeBtn").addEventListener("click", ()=>{
@@ -3750,10 +4308,10 @@ function renderRail(){
     const on = ST.pins.includes(m.id) ? "1" : "0";
     // 4.5: two sibling buttons. No button inside another control, and no title tooltip (spec rule).
     return '<div class="mrow' + (ST.model===m.id ? " on" : "") + '" data-m="' + m.id + '">'
-      + '<button type="button" class="mrow-btn" tabindex="' + (ST.model===m.id ? "0" : "-1") + '" aria-current="' + (ST.model===m.id ? "true" : "false") + '">'
+      + '<button type="button" class="mrow-btn" data-tip="' + esc(m.blurb || "") + '" tabindex="' + (ST.model===m.id ? "0" : "-1") + '" aria-current="' + (ST.model===m.id ? "true" : "false") + '">'
       + '<span class="cat-dot" style="background:' + cat.c + '" aria-hidden="true"></span>'
       + '<span class="nm">' + esc(m.n) + (m.sub ? ' <span class="msub">· ' + esc(m.sub) + '</span>' : '') + '</span></button>'
-      + '<button type="button" class="pin" tabindex="-1" data-pin="' + m.id + '" data-on="' + on + '" aria-pressed="' + (on==="1") + '" aria-label="' + (on==="1"?"Unpin ":"Pin ") + esc(m.n + (m.sub ? " " + m.sub : "")) + '">'
+      + '<button type="button" class="pin" tabindex="-1" data-tip="' + (on==="1" ? "Unpin: take it off the top of the list" : "Pin: keep this AI at the top of the list") + '" data-pin="' + m.id + '" data-on="' + on + '" aria-pressed="' + (on==="1") + '" aria-label="' + (on==="1"?"Unpin ":"Pin ") + esc(m.n + (m.sub ? " " + m.sub : "")) + '">'
       + '<svg width="12" height="12" viewBox="0 0 24 24" fill="' + (on==="1"?"currentColor":"none") + '" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6.1L12 16.8 6.6 19.7l1.2-6.1L3.3 9.4l6.1-.8z"/></svg></button>'
       + '</div>';
   }
@@ -3947,6 +4505,11 @@ document.addEventListener("input", e=>{
 /* ==========================================================================
    9. THE BRIEF FORM
    ========================================================================== */
+/** How many boxes a level shows for this model. @param {Model} m @param {string} level */
+function boxCount(m, level){
+  const v = visibleFields(m, level);
+  return v.core.length + v.tech.length + (level === "pro" ? (m.craft||[]).length : v.craft.length);
+}
 function fieldHTML(id, m, b, ns){
   const f = F[id]; if(!f) return "";
   const val = b[id];
@@ -3976,8 +4539,17 @@ function fieldHTML(id, m, b, ns){
     PICKER_DATA[fid] = rows;
     ctl = pickerHTML(fid, val||"", rows, {field:id, label:f.l, placeholder:"Not set", labelledby:"lab-"+fid});
   }
-  return '<div class="fset">' + lab + ctl + '</div>';
+  return '<div class="fset" data-field="' + id + '">' + lab + ctl + '</div>';
 }
+
+const ANVIL_CTX = { text: "", summary: "" };
+/** Read the pasted chat into a short background summary (without the chat's old last message). */
+function anvilContext(){
+  const t = ANVIL_CTX.text.trim(); if(!t) return (ANVIL_CTX.summary = "");
+  return (ANVIL_CTX.summary = readChat(t, {budget: 70}).context.split("\n").filter(l => !l.startsWith("Latest ask: ")).join("\n"));
+}
+document.addEventListener("input", e=>{ if(e.target.id === "anvilCtx"){ ANVIL_CTX.text = e.target.value; anvilContext(); } });
+document.addEventListener("change", e=>{ if(e.target.id === "anvilCtx") renderForm(); });
 
 function renderForm(){
   const m = byId(ST.model), b = brief();
@@ -4010,20 +4582,31 @@ function renderForm(){
   const lv = LEVELS.find(l=>l.k===ST.level);
   const hidden = hiddenAnswers(b, m, ST.level);
   const levelBar = '<div class="levelbar"><div class="seg" role="group" aria-label="Level">'
-    + LEVELS.map(l=>'<button type="button" data-level="' + l.k + '" aria-pressed="' + (l.k===ST.level) + '">' + esc(l.n) + '</button>').join("")
+    + LEVELS.map(l=>{ const n = boxCount(m, l.k);
+        return '<button type="button" data-level="' + l.k + '" aria-pressed="' + (l.k===ST.level) + '" data-tip="' + esc(l.n + ": " + n + " boxes, " + l.h + ".") + '">' + esc(l.n) + ' <span class="lvn">' + n + '</span></button>'; }).join("")
     + '</div><span class="levelhint">' + esc(cap(lv.h)) + '</span></div>'
     + (hidden.length ? '<p class="hiddennote">' + hidden.length + (hidden.length===1 ? " hidden box has an answer" : " hidden boxes have answers")
       + ' (' + esc(hidden.map(k=>F[k].l).join(", ")) + '). ' + (hidden.length===1 ? "It is" : "They are") + ' not used at this level.</p>' : "");
   const mid = ST.level === "intermediate" && vis.craft.length
     ? '<div class="midcraft"><div class="midcraft-h">The details that matter most</div>' + vis.craft.map(id=>fieldHTML(id,m,b)).join("") + '</div>' : "";
 
+  // 5.10: optional background from a chat. Kept in memory only, never saved.
+  const reads = READS_BACKGROUND.includes(m.cat);
+  const ctxBox = '<details class="anvilctx"' + (ANVIL_CTX.text ? " open" : "") + '><summary data-tip="Paste a chat with an AI. Forge adds a short summary of it as background, so the prompt fits what you were already doing.">'
+    + 'Add context from a chat' + (ANVIL_CTX.text ? ' <span class="lvn">added</span>' : '') + '</summary>'
+    + '<div class="fset" style="margin:12px 0 0"><label class="flabel" for="anvilCtx"><span>The chat</span><span class="fhint">'
+    + (reads ? 'Forge adds a short summary, not the whole chat. Never saved or sent' : esc(m.n) + ' does not read background, so use the chat to fill the boxes below')
+    + '</span></label><textarea class="inp" id="anvilCtx" rows="5" placeholder="You: ...&#10;AI: ...">' + esc(ANVIL_CTX.text) + '</textarea></div>'
+    + (ANVIL_CTX.text ? '<p class="ctxsum">' + esc(ANVIL_CTX.summary || "Forge could not find much in it yet. Paste more of the chat.") + '</p>' : '')
+    + '</details>';
+
   $("#form").innerHTML =
-    levelBar +
+    levelBar + ctxBox +
     core +
     tech +
     mid +
     (craft ?
-      '<details class="craft" ' + (craftCount ? "open" : "") + ' style="margin:4px 0 18px;border-top:1px solid var(--line);padding-top:14px">'
+      '<details class="craft" open style="margin:4px 0 18px;border-top:1px solid var(--line);padding-top:14px">'
       + '<summary style="cursor:pointer;font-family:var(--f-mono);font-size:0.6875rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);list-style:none;display:flex;align-items:center;gap:8px">'
       + '<span class="chev"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg></span>'
       + '<span>Craft layer</span>'
@@ -4110,7 +4693,7 @@ function partsHTML(parts){
   return '<div class="axes">' + PARTS.map(p=>{
     const v = (parts && parts[p.k]) || 0, pct = Math.round(v / p.max * 100);
     const cls = pct < 40 ? "lo" : pct < 70 ? "mid" : "";
-    return '<div class="axis"><div class="axis-n">' + esc(p.n) + '</div><div class="axis-bar"><div class="axis-fill ' + cls + '" style="width:' + pct + '%"></div></div><div class="axis-v">' + v + '/' + p.max + '</div></div>';
+    return '<div class="axis" tabindex="0" data-tip="' + esc(p.n + ", up to " + p.max + " points: " + p.h + ".") + '"><div class="axis-n">' + esc(p.n) + '</div><div class="axis-bar"><div class="axis-fill ' + cls + '" style="width:' + pct + '%"></div></div><div class="axis-v">' + v + '/' + p.max + '</div></div>';
   }).join("") + '</div>';
 }
 
@@ -4118,7 +4701,7 @@ function renderResult(res, m, target, skipHeat){
   const h = heatName(res.score);
   let html = "";
 
-  if(!skipHeat) html += '<div class="heat"><div><div class="heat-n">' + res.score + '</div><div class="heat-t">Heat</div></div>'
+  if(!skipHeat) html += '<div class="heat"><div tabindex="0" data-tip="The Forge Score, out of 100: Covered 30, Detail 20, Fits 20, Clear 15, Lean 15. Hover the bars to see each part."><div class="heat-n">' + res.score + '</div><div class="heat-t">Heat</div></div>'
     + '<div style="flex:1"><div style="font-family:var(--f-display);font-size:1.25rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;line-height:1">' + esc(h[1]) + '</div>'
     + '<div style="font-size:0.8125rem;color:var(--ink-dim);margin:3px 0 7px">' + esc(h[2]) + '</div>'
     + '<div class="heat-bar"><div class="heat-fill" style="width:' + res.score + '%"></div></div></div></div>';
@@ -4143,7 +4726,7 @@ function renderResult(res, m, target, skipHeat){
   // 4.6: spelling that was fixed, always shown, with a way to keep your own
   if(res.fixes && res.fixes.length)
     html += billet("Fixed spelling", '<p style="margin:0;font-size:0.875rem">' + res.fixes.map(f=>'<s>' + esc(f.from) + '</s> → <b>' + esc(f.to) + '</b>').join(", ") + '</p>',
-      target && target.id==="out" ? '<button class="mini" data-nofix="1">Keep my spelling</button>' : "");
+      target && target.id==="out" ? '<button class="mini" data-nofix="1" data-tip="Undo the spelling fixes and use your words exactly as you typed them">Keep my spelling</button>' : "");
   else if(res.keptSpelling && target && target.id==="out")
     html += billet("Spelling left as you typed it", '<p style="margin:0;font-size:0.8125rem;color:var(--ink-dim)">Forge is not fixing any spelling in this prompt.</p>', '<button class="mini" data-nofix="0">Fix spelling</button>');
 
@@ -4157,21 +4740,23 @@ function renderResult(res, m, target, skipHeat){
   if(res.cut && res.cut.length)
     html += billet("Cut from your prompt", '<ul class="notes">' + res.cut.map(c=>'<li><b>' + esc(c.what) + '</b>. ' + esc(cap(c.why)) + '.</li>').join("") + '</ul>',
       !(target && target.id==="out") ? "" :
-      undoable.length ? '<button class="mini" data-keep="1">Put the details back</button>' :
-      res.kept ? '<button class="mini" data-keep="0">Cut them again</button>' : "");
+      undoable.length ? '<button class="mini" data-keep="1" data-tip="Put back the style details Forge cut. More than 6 can blur each other.">Put the details back</button>' :
+      res.kept ? '<button class="mini" data-keep="0" data-tip="Cut the extra details again">Cut them again</button>' : "");
   else if(res.kept && target && target.id==="out")
     html += billet("Nothing cut", '<p style="margin:0;font-size:0.8125rem;color:var(--ink-dim)">You put the details back. More than 6 style details can blur each other.</p>',
-      '<button class="mini" data-keep="0">Cut them again</button>');
+      '<button class="mini" data-keep="0" data-tip="Cut the extra details again">Cut them again</button>');
 
+  if(res.background && target && target.id==="out")
+    html += billet("Context from your chat", '<p style="margin:0;font-size:0.8125rem;color:var(--ink-dim)">Added as a Background section at the top of the prompt. It is not counted in the score. To remove it, clear the chat box above.</p>');
   const sects = res.blocks.map(s=>'<div class="sect on"><div class="sect-l">' + esc(s[0]) + '</div><div class="sect-b">' + esc(s[1]) + '</div></div>').join("");
   html += billet("The prompt · " + m.n + (m.sub?" "+m.sub:""), sects,
-    '<button class="mini" data-copy="flat">Copy</button><button class="mini" data-copy="sections">Copy with labels</button>');
+    '<button class="mini" data-copy="flat" data-tip="Copy the prompt, ready to paste">Copy</button><button class="mini" data-copy="sections" data-tip="Copy the prompt with a heading for each part">Copy with labels</button>');
 
   if(res.negative){
     const nl = m.neg.label || "Negative";
     html += billet(nl, '<div class="sect-b" style="font-family:var(--f-mono);font-size:0.8125rem">' + esc(res.negative) + '</div>'
       + '<p style="margin:10px 0 0;font-size:0.8125rem;color:var(--ink-dim)">' + esc(m.neg.note||"") + '</p>',
-      '<button class="mini" data-copy="neg">Copy</button>');
+      '<button class="mini" data-copy="neg" data-tip="Copy what to leave out, for the negative box">Copy</button>');
   } else if(m.neg.mode==="none"){
     html += billet("No negative prompt", '<p style="margin:0;font-size:0.8125rem;color:var(--ink-dim)">' + esc(m.neg.note||"") + '</p>');
   }
@@ -4181,7 +4766,7 @@ function renderResult(res, m, target, skipHeat){
       '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Setting</th><th>Value</th><th>Why</th></tr></thead><tbody>'
       + res.settings.map(r=>'<tr><td class="k">' + esc(r[0]) + '</td><td class="v">' + esc(r[1]) + '</td><td class="w">' + esc(r[2]||"") + '</td></tr>').join("")
       + '</tbody></table></div>',
-      '<button class="mini" data-copy="settings">Copy</button>');
+      '<button class="mini" data-copy="settings" data-tip="Copy the settings to use with this prompt">Copy</button>');
   }
 
   if(res.notes && res.notes.length)
@@ -4193,8 +4778,8 @@ function renderResult(res, m, target, skipHeat){
       '<div class="sect"><div class="sect-l" style="color:var(--ink-dim)">' + esc(v.n) + '</div><div style="font-size:0.8125rem;color:var(--ink-2)">' + esc(v.t) + '</div></div>').join(""));
 
   html += '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'
-    + '<button class="ghost" data-copy="all">Copy everything</button>'
-    + '<button class="ghost" data-copy="flat">Copy prompt only</button>'
+    + '<button class="ghost" data-copy="all" data-tip="Copy the prompt, settings, score and warnings together">Copy everything</button>'
+    + '<button class="ghost" data-copy="flat" data-tip="Copy just the prompt">Copy prompt only</button>'
     + '</div>';
 
   target.innerHTML = html;
@@ -4274,14 +4859,24 @@ $("#forgeBtn").addEventListener("click", ()=>{
 // 3.4: switching level redraws the form and, if there is a result, strikes again
 document.addEventListener("click", e=>{
   const btn = e.target.closest("[data-level]"); if(!btn) return;
+  const before = new Set([...$$("#form [data-field]")].map(el=>el.dataset.field));
+  const from = ST.level;
   ST.level = btn.dataset.level; store.set("level", ST.level);
   renderForm();
+  // 5.6: make the change visible: new boxes glow, and a toast says how many came or went
+  const now = [...$$("#form [data-field]")];
+  const added = now.filter(el=>!before.has(el.dataset.field));
+  added.forEach(el=>el.classList.add("fresh"));
+  const gone = before.size - (now.length - added.length);
+  const lv = LEVELS.find(l=>l.k===ST.level);
+  if(from !== ST.level) toast(lv.n + ": " + (added.length ? added.length + " more box" + (added.length===1?"":"es") + " below" : gone ? gone + " box" + (gone===1?"":"es") + " hidden" : "same boxes for this model"));
+  if(added.length && !reduced) added[0].scrollIntoView({behavior:"smooth", block:"center"});
   if($("#out .billet")) strike(false);
 });
 // 3.3: strike with or without the cut details. "keep" is per strike: a new Strike cuts again.
 function strike(keep, noFix){
   const m = byId(ST.model);
-  const res = forge(brief(), m, ST.level || "pro", {keep, noFix});
+  const res = forge(brief(), m, ST.level || "pro", {keep, noFix, context: anvilContext()});
   res.kept = keep; res.keptSpelling = !!noFix;
   renderResult(res, m, $("#out"));
 }
@@ -4300,6 +4895,42 @@ document.addEventListener("click", e=>{
 /* ==========================================================================
    11. TABS
    ========================================================================== */
+// 5.6: hover (or keyboard focus) on anything with data-tip shows what it does
+const tipEl = $("#tip"); let tipFor = null, tipTimer = 0;
+function showTip(el){
+  tipFor = el; tipEl.textContent = el.getAttribute("data-tip"); tipEl.hidden = false;
+  const r = el.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+  const x = Math.min(Math.max(8, r.left + r.width/2 - w/2), innerWidth - w - 8);
+  const y = r.bottom + 8 + h > innerHeight ? r.top - h - 8 : r.bottom + 8;
+  tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+}
+function hideTip(){ clearTimeout(tipTimer); tipFor = null; tipEl.hidden = true; }
+document.addEventListener("mouseover", e=>{
+  const el = e.target.closest("[data-tip]");
+  if(el === tipFor) return;
+  hideTip(); if(el) tipTimer = setTimeout(()=>showTip(el), 300);
+});
+document.addEventListener("focusin", e=>{ const el = e.target.closest("[data-tip]"); hideTip(); if(el && el.matches(":focus-visible")) showTip(el); });
+document.addEventListener("focusout", hideTip);
+document.addEventListener("click", hideTip, true);
+document.addEventListener("scroll", hideTip, true);
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") hideTip(); });
+
+// 5.11: privacy controls in the manual
+$("#rememberBox").checked = store.get("remember", true) !== false;
+$("#rememberBox").addEventListener("change", e=>{
+  const on = e.target.checked;
+  try{ localStorage.setItem("forge.remember", JSON.stringify(on)); if(!on) localStorage.removeItem("forge.briefs"); }catch(err){}
+  toast(on ? "Your boxes will be remembered on this device" : "Your boxes will not be saved. Saved ones were deleted");
+});
+$("#wipeBtn").addEventListener("click", ()=>{
+  if(!confirm("Delete everything Forge saved on this device? Your boxes, pins and settings go back to the start.")) return;
+  store.wipe(); location.reload();
+});
+
+// 5.8: the manual's "Open ..." buttons jump to that tab
+document.addEventListener("click", e=>{ const b = e.target.closest("[data-go]"); if(b){ document.querySelector('.tab[data-pane="' + b.dataset.go + '"]').click(); window.scrollTo(0,0); } });
+
 $$(".tab").forEach(t=>t.addEventListener("click", ()=>{
   $$(".tab").forEach(x=>x.setAttribute("aria-pressed", x===t ? "true":"false"));
   $$(".pane").forEach(p=>p.setAttribute("data-active", p.getAttribute("data-pane")===t.getAttribute("data-pane") ? "1":"0"));
@@ -4382,11 +5013,11 @@ $("#docBtn").addEventListener("click", ()=>{
   burst(44,56); glow = 1;
 
   const h = heatName(d.score), h2 = heatName(res.score);
-  let html = '<div class="heat"><div><div class="heat-n">' + d.score + '</div><div class="heat-t">Before</div></div>'
+  let html = '<div class="heat"><div tabindex="0" data-tip="How your pasted prompt scores, out of 100."><div class="heat-n">' + d.score + '</div><div class="heat-t">Before</div></div>'
     + '<div style="flex:1"><div style="font-family:var(--f-display);font-size:1.25rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;line-height:1">' + esc(h[1]) + ' &nbsp;→&nbsp; <span style="color:var(--ember)">' + esc(h2[1]) + '</span></div>'
     + '<div style="font-size:0.8125rem;color:var(--ink-dim);margin:3px 0 7px">' + d.words + ' words in, ' + String(res.flat).trim().split(/\s+/).length + ' words out</div>'
     + '<div class="heat-bar"><div class="heat-fill" style="width:' + res.score + '%"></div></div></div>'
-    + '<div style="text-align:right"><div class="heat-n" style="color:var(--ember)">' + res.score + '</div><div class="heat-t">After</div></div></div>';
+    + '<div style="text-align:right" tabindex="0" data-tip="How Forge\'s rewrite scores. Things Forge added on its own are not counted."><div class="heat-n" style="color:var(--ember)">' + res.score + '</div><div class="heat-t">After</div></div></div>';
 
   html += billet("Diagnosis", partsHTML(d.parts));
 
@@ -4399,6 +5030,62 @@ $("#docBtn").addEventListener("click", ()=>{
   renderResult(res, m, tail, true);
   $("#docOut")._res = res; $("#docOut")._m = m;
 });
+
+/* ==========================================================================
+   12b. CHAT CONTEXT (5.5): graph-lite reads a chat, asks about the gaps, writes the next prompt
+   ========================================================================== */
+const CTX = { read: null };
+$("#ctxBtn").addEventListener("click", ()=>{
+  const text = $("#ctxIn").value.trim();
+  if(!text){ toast("Paste a chat first"); return; }
+  const r = readChat(text, {budget: 90});
+  CTX.read = r;
+  if(!r.main.length && !r.questions.length){ $("#ctxOut").innerHTML = '<div class="empty"><h2>Too short</h2><p>Paste a bit more of the chat. Forge needs a few messages to find what it is about.</p></div>'; return; }
+  burst(44,56); glow = 1;
+  const turns = glTurns(text), you = turns.filter(t=>t.role!=="assistant").length;
+  const lastUser = [...turns].reverse().find(t=>t.role!=="assistant");
+  let html = '';
+  html += billet("What this chat is about",
+    '<p style="margin:0 0 10px;font-size:0.8125rem;color:var(--ink-dim)">' + turns.length + ' messages, ' + you + ' from you'
+      + (you===turns.length && turns.length>1 ? '. Forge found no AI replies, so it treats everything as yours. Start lines with "You:" and "AI:" to fix that' : '') + '.</p>'
+    + '<div class="chips" style="margin-bottom:10px">' + r.main.map((x,i)=>'<span class="chip' + (i<2?" hot":"") + '">' + esc(x.label) + '</span>').join("") + '</div>'
+    + (r.topics.length ? '<ul class="notes">' + r.topics.map(t=>'<li><span><b>' + esc(t.name) + '</b>: ' + esc(t.members.slice(1).join(", ")) + '</span></li>').join("") + '</ul>' : ''));
+  html += billet("What you have already said",
+    '<ul class="notes">' + r.slots.map(s=>'<li><span><b>' + esc(s.n) + '</b>: ' + (s.filled ? 'given' : '<span style="color:var(--ember-text);font-weight:600">missing</span>') + '</span></li>').join("") + '</ul>');
+  const ask = lastUser ? glTidyAsk(lastUser.text) : "";
+  html += billet("Fill the gaps",
+    '<div class="fset"><label class="flabel" for="ctxAsk">What do you want now?</label><textarea class="inp" id="ctxAsk" rows="3">' + esc(ask) + '</textarea></div>'
+    + r.questions.map((q,i)=>'<div class="fset"><label class="flabel" for="ctxQ' + i + '">' + esc(q.q) + '</label><input class="inp" id="ctxQ' + i + '" data-k="' + esc(q.k) + '" placeholder="skip if it does not matter"></div>').join("")
+    + '<button class="strike" id="ctxWrite" type="button" data-tip="Put the chat\'s context and your answers into one prompt">Write the prompt</button>');
+  html += '<div id="ctxPrompt"></div>';
+  html += billet("Context block", '<div class="sect-b" style="font-family:var(--f-mono);font-size:0.8125rem;white-space:pre-wrap">' + esc(r.context) + '</div>',
+    '<button class="mini" type="button" id="ctxCopyBlock" data-tip="Copy just the summary, to paste at the start of a new chat">Copy</button>');
+  $("#ctxOut").innerHTML = html;
+  $("#ctxCopyBlock").addEventListener("click", e=>copy(r.context, e.target.textContent));
+  $("#ctxWrite").addEventListener("click", writeCtxPrompt);
+  const first = $("#ctxOut").querySelector("[data-k]"); if(first) first.focus();
+});
+function writeCtxPrompt(){
+  const r = CTX.read; if(!r) return;
+  const answers = {};
+  $("#ctxOut").querySelectorAll("[data-k]").forEach(el=>{ answers[el.getAttribute("data-k")] = el.value; });
+  const text = glWritePrompt(r, answers, $("#ctxAsk").value);
+  $("#ctxPrompt").innerHTML = billet("Your next prompt", '<div class="sect-b" style="white-space:pre-wrap">' + esc(text) + '</div>',
+    '<button class="mini" type="button" id="ctxCopy" data-tip="Copy the prompt, ready to paste">Copy</button><button class="mini" type="button" id="ctxDoc" data-tip="Score it and make it better in the Prompt Doctor, for the AI from your chat">Improve in Prompt Doctor</button>');
+  $("#ctxCopy").addEventListener("click", e=>copy(text, e.target.textContent));
+  $("#ctxDoc").addEventListener("click", ()=>{
+    // 5.5.1: judge it as a chat prompt, never as an image prompt. Use the AI named in the pasted chat,
+    // else the model you have open if it is a chat or coding one, else Claude.
+    const pasted = $("#ctxIn").value, cur = byId(ST.model);
+    const target = /^\s*(?:\*\*)?chatgpt|^\s*(?:\*\*)?gpt/im.test(pasted) ? "gpt" : /^\s*(?:\*\*)?gemini/im.test(pasted) ? "gemini"
+      : /^\s*(?:\*\*)?claude/im.test(pasted) ? "claude" : cur && (cur.cat === "text" || cur.cat === "code") ? cur.id : "claude";
+    setPickerValue("docModel", target, true);
+    $("#docIn").value = text;
+    document.querySelector('.tab[data-pane="doctor"]').click();
+    $("#docBtn").click();
+  });
+  $("#ctxPrompt").scrollIntoView({behavior: reduced ? "auto" : "smooth", block:"nearest"});
+}
 
 /* ==========================================================================
    13. REVERSE FORGE: read what can be measured, ask for the rest
@@ -4500,13 +5187,13 @@ function renderIntake(){
     '<div class="thumb" style="height:auto"><div style="padding:10px;font-family:var(--f-mono);font-size:0.6875rem;color:var(--ink-dim);height:88px;overflow:hidden">' + esc(t.body.slice(0,180)) + '…</div>'
     + '<div class="cap">' + esc(t.name) + ' · ' + t.body.trim().split(/\s+/).length + ' words</div>'
     + '<div style="padding:6px;border-top:1px solid var(--line);display:flex;gap:5px">'
-    + '<button class="mini" type="button" data-doc="' + i + '">Diagnose</button>'
-    + '<button class="mini" type="button" data-usetext="' + i + '">Use as subject</button></div></div>'
+    + '<button class="mini" type="button" data-doc="' + i + '" data-tip="Open this text in the Prompt Doctor">Diagnose</button>'
+    + '<button class="mini" type="button" data-usetext="' + i + '" data-tip="Put its first line in the Subject box">Use as subject</button></div></div>'
   ).join("");
   $("#thumbs").querySelectorAll("[data-doc]").forEach(btn=>btn.addEventListener("click", ()=>{
     const t = INTAKE.texts[+btn.getAttribute("data-doc")];
     $("#docIn").value = t.body.slice(0, 6000);
-    $("#docModel").value = ST.model;
+    setPickerValue("docModel", ST.model, true); // 5.5.2: was setting .value on a button, which did nothing
     document.querySelector('.tab[data-pane="doctor"]').click();
     $("#docBtn").click();
   }));
@@ -4593,7 +5280,7 @@ function runReverse(){
    14. MATCHMAKER
    ========================================================================== */
 const PRIS = ["Photoreal quality","Words inside the image","Long clips","Native audio","Character consistency","Editable vectors","Speed and cost","Open weights","Commercial safety","Non-English text"];
-$("#matchPri").innerHTML = PRIS.map(p=>'<button type="button" class="opt" data-pri="' + esc(p) + '" aria-pressed="false">' + esc(p) + '</button>').join("");
+$("#matchPri").innerHTML = PRIS.map(p=>'<button type="button" class="opt" data-pri="' + esc(p) + '" data-tip="' + esc("Rank higher the AIs that are strong at: " + p.toLowerCase()) + '" aria-pressed="false">' + esc(p) + '</button>').join("");
 $("#matchPri").addEventListener("click", e=>{
   const b = e.target.closest("[data-pri]"); if(!b) return;
   b.setAttribute("aria-pressed", b.getAttribute("aria-pressed")==="true" ? "false":"true");

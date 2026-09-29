@@ -1923,7 +1923,10 @@ function stripBanned(t){
     const re = new RegExp("(^|[,;.\\s])" + w.replace(/[-\/\\^$*+?.()|[\]{}]/g,"\\$&") + "(?=$|[,;.\\s])","gi");
     if(re.test(out)){ removed.push(w); out = out.replace(re,"$1"); }
   });
-  out = out.replace(/\s*,\s*,+/g,", ").replace(/\s{2,}/g," ").replace(/^\s*,\s*/,"").replace(/,\s*$/,"").trim();
+  // 5.10.1: squash spaces, but keep line breaks: multi-part prompts (Claude, GPT, coding, research)
+  // were copied as one long line because "\s{2,}" also ate the blank lines between sections
+  out = out.replace(/[ \t]*,[ \t]*,+/g,", ").replace(/(\S)[ \t]{2,}/g,"$1 ").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n")
+    .replace(/^\s*,\s*/,"").replace(/,\s*$/,"").trim();
   return {text:out, removed:[...new Set(removed)]};
 }
 
@@ -2921,7 +2924,31 @@ function autocorrect(text){
 }
 
 /* --- the strike --- */
-/** @param {Brief} b @param {Model} m @param {Level=} level @param {{keep?: boolean, noFix?: boolean}=} opts */
+// 5.10: background from a chat, added in the Anvil. Only AIs that read instructions get it: an
+// image, video, voice or music AI would try to draw or say it. It is added after scoring, because
+// it is background for the AI, not part of the brief the score judges.
+const READS_BACKGROUND = ["text","code","app","research"];
+/** Put background into a finished prompt, in the same style as its other sections.
+ *  @param {Result} res @param {Model} m @param {string=} context */
+function addBackground(res, m, context){
+  const ctx = String(context || "").trim();
+  if(!ctx) return;
+  if(!READS_BACKGROUND.includes(m.cat)){
+    res.warn.push(m.n + " does not read background notes, so your chat context was not added. Use it to fill the boxes instead.");
+    return;
+  }
+  const f = res.flat;
+  const [block, before] = /<[a-z_]+>/.test(f) ? ["<background>\n" + ctx + "\n</background>", /^<instructions>/m]
+    : /^## /m.test(f) ? ["## Background\n" + ctx, /^## Task/m]
+    : /^[A-Z][A-Z ]{2,}$/m.test(f) ? ["BACKGROUND\n" + ctx, /^TASK$/m]
+    : ["Background from our earlier chat:\n" + ctx, null];
+  const at = before ? f.search(before) : -1;
+  res.flat = at > 0 ? f.slice(0, at) + block + "\n\n" + f.slice(at) : block + "\n\n" + f;
+  res.blocks.unshift(["Background", ctx]);
+  res.background = true;
+}
+
+/** @param {Brief} b @param {Model} m @param {Level=} level @param {{keep?: boolean, noFix?: boolean, context?: string}=} opts */
 function forge(b, m, level, opts){
   level = level || "pro"; opts = opts || {};
   // 3.4: what you see is what is used. Boxes hidden at this level are left out.
@@ -2956,10 +2983,11 @@ function forge(b, m, level, opts){
   const sc = forgeScore(orig, m, res, level);
   res.score = sc.total; res.parts = sc.parts;
   if(sc.repeats.length) res.warn.push("Said more than once: " + sc.repeats.join(", ") + ". Saying it once is enough, and repeats can make the AI overdo it.");
+  addBackground(res, m, opts.context);
   const hi = (m.len||[0,0])[1];
   if(hi && sc.words > hi) res.warn.push("About " + (sc.words - hi) + " words over the " + m.len[0] + " to " + hi + " word range for " + m.n + ". Cut the least important part yourself: Forge does not cut your sentences, because that can change what you meant.");
   return res;
 }
 
 
-export { MODERN, dictionary, isWord, edits1, bestFix, autocorrect, MODEL_SOURCES, byValue, SETTING_HELP, FIND, TEXT_SIGNS, forgeFromText, rebuildBrief, onlyVisible, hiddenAnswers, CUTTABLE, MAX_DETAIL, cutBrief, listedTogether, NO_REPEAT_CHECK, LEX, hasPhrase, scoreText, PARTS, DETAIL_STEPS, repeatsIn, fitsPoints, sumParts, forgeScore, LEVELS, BASIC_TECH, visibleFields, CLASHES, NOT_A_CAMERA, findClashes, QUESTIONS, HIGH_VALUE, askQuestions, V, HEAT, heatName, F, CATS, IMG_CORE, IMG_CRAFT, MODELS, VID_CORE, VID_CRAFT, LLM_CORE, LLM_CRAFT, has, arr, join, cap, stripDot, artic, sentences, DET, lc, deMeta, stripBanned, camClause, lightClause, finishClause, moodClause, imageSections, COMPOSE, splitBeats, markUpScript, videoSections, clamp, makeVariations, forge };
+export { MODERN, dictionary, isWord, edits1, bestFix, autocorrect, MODEL_SOURCES, byValue, SETTING_HELP, FIND, TEXT_SIGNS, forgeFromText, rebuildBrief, onlyVisible, hiddenAnswers, CUTTABLE, MAX_DETAIL, cutBrief, listedTogether, NO_REPEAT_CHECK, LEX, hasPhrase, scoreText, PARTS, DETAIL_STEPS, repeatsIn, fitsPoints, sumParts, forgeScore, LEVELS, BASIC_TECH, visibleFields, CLASHES, NOT_A_CAMERA, findClashes, QUESTIONS, HIGH_VALUE, askQuestions, V, HEAT, heatName, F, CATS, IMG_CORE, IMG_CRAFT, MODELS, VID_CORE, VID_CRAFT, LLM_CORE, LLM_CRAFT, has, arr, join, cap, stripDot, artic, sentences, DET, lc, deMeta, stripBanned, camClause, lightClause, finishClause, moodClause, imageSections, COMPOSE, splitBeats, markUpScript, videoSections, clamp, makeVariations, READS_BACKGROUND, addBackground, forge };
