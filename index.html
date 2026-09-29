@@ -2620,8 +2620,11 @@ const lc = s => {
   const looksProper = /^[A-Z][a-z]+ [A-Z]/.test(s);
   return (DET.test(s) || (/^[A-Z][a-z]/.test(s) && !looksProper)) ? s.charAt(0).toLowerCase()+s.slice(1) : s;
 };
+// 6.1.2: also drops the request in front ("make me a picture of", "create an image of", "draw"),
+// which people type all the time and which ended up inside the prompt as the subject
+const REQUEST_LEAD = /^\s*(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:(?:make|create|generate|draw|paint|render|design|produce|give|show|do)\s+(?:me\s+|us\s+)?|i\s+(?:want|need|would like|'d like)\s+)/i;
 /** @type {(s: Value) => string} */
-const deMeta = s => String(s||"").replace(/^\s*(a|an|the)?\s*(cool|nice|good|great|amazing|awesome|beautiful|epic)?\s*(picture|photo|photograph|image|shot|render|drawing|painting|illustration)\s+of\s+/i,"").trim();
+const deMeta = s => String(s||"").replace(REQUEST_LEAD, "").replace(/^\s*(a|an|the)?\s*(cool|nice|good|great|amazing|awesome|beautiful|epic)?\s*(picture|photo|photograph|image|shot|render|drawing|painting|illustration)\s+(of|showing)\s+/i,"").trim();
 
 /** @param {string} t */
 function stripBanned(t){
@@ -3427,6 +3430,18 @@ function forgeFromText(text, m, level){
   res.score = counted.score; res.parts = counted.parts; res.ask = counted.ask;
   res.suggested = suggested.map(k=>({f:k, what:(F[k] ? F[k].l : k) + ": " + join(brief[k])}));
   res.fixes = fixed.fixes;
+  // 6.1.3: say what was wrong in YOUR text, even when the rewrite quietly fixes it, so you learn why
+  const mine = stripBanned(fixed.text);
+  res.stripped = [...new Set([...(res.stripped || []), ...mine.removed])];
+  const reps = repeatsIn([mine.text]).filter(w => !res.warn.some(x => x.startsWith("Said more than once")));
+  if(reps.length) res.warn.unshift("Said more than once in your text: " + reps.join(", ") + ". Saying it once is enough, and repeats can make the AI overdo it.");
+  for(const c of findClashes({text: fixed.text}).reverse()) if(!res.warn.includes(c)) res.warn.unshift(c);
+  // 6.1.2: say so when the text asks for the wrong kind of thing for this AI
+  const media = {image:"a picture", video:"a video", music:"music", voice:"speech", sfx:"a sound"}[m.cat];
+  if(media && /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:write|explain|summari[sz]e|tell me|answer|translate|debug|list|compare|plan|research)\b/i.test(fixed.text))
+    res.warn.unshift("This reads like a request for writing, not " + media + ". " + m.n + " makes " + media + ": for writing, pick a chat AI like Claude, GPT or Gemini.");
+  if(["text","code","research"].includes(m.cat) && /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:make|create|generate|draw|paint)\s+(?:me\s+)?(?:a|an)\s+(?:picture|image|photo|drawing|painting|logo|poster|video)\b/i.test(fixed.text))
+    res.warn.unshift("This asks for a picture or video. " + m.n + " writes text: pick an image or video AI like Midjourney, GPT Image or Veo, and Forge will write it in that AI's style.");
   return res;
 }
 
@@ -3583,6 +3598,12 @@ function isSwap(a, b){
   const diff = [...a].map((ch, i) => ch !== b[i] ? i : -1).filter(i => i >= 0);
   return diff.length === 2 && diff[1] === diff[0] + 1 && a[diff[0]] === b[diff[1]] && a[diff[1]] === b[diff[0]];
 }
+/** Is x the word w with exactly one letter added somewhere? @param {string} w @param {string} x */
+function isAdd(w, x){
+  if(x.length !== w.length + 1) return false;
+  for(let i = 0; i < x.length; i++) if(x.slice(0, i) + x.slice(i + 1) === w) return true;
+  return false;
+}
 /** The one clear fix for a word, or "" if there is none. @param {string} w */
 function bestFix(w){
   const d = dictionary(); if(!d) return "";
@@ -3593,6 +3614,11 @@ function bestFix(w){
     // two swapped letters is the most common typo, so a swap fix wins (tracekr -> tracker, not tracer)
     const swaps = c.filter(x => isSwap(w, x));
     if(swaps.length === 1) return swaps[0];
+    // 6.1.1: a missing letter is the next most common typo, so a fix that only adds one letter and
+    // keeps every typed letter in order wins (robt -> robot, not root)
+    // (only when no swap fits at all: wiht could be with or whit, and must not become wight)
+    const adds = swaps.length ? [] : c.filter(x => isAdd(w, x));
+    if(adds.length === 1) return adds[0];
     // only when one fix is clearly the most common: a tie means we do not know what was meant...
     if(c.length > 1 && d.rank.get(c[0]) === d.rank.get(c[1])){
       // ...unless exactly one of the tied fixes is two swapped letters, the most common typo (teh -> the)
