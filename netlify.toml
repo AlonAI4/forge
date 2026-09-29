@@ -1,0 +1,16 @@
+[build]
+  publish = "."
+  command = ""
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Only the website is served; the skill folder is for downloading from GitHub.
+[[redirects]]
+  from = "/skill/*"
+  to = "https://github.com/AlonAI4/forge/tree/main/skill/forge"
+  status = 302
+  force = true
