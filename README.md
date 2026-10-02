@@ -27,7 +27,8 @@ wrote. It keeps no data. In Claude Code:
 /plugin install forge@forge
 ```
 
-Then type `/forge:forge a cinematic shot of a cat leaping between rooftops` (or `/forge:forge-map` to map a chat).
+Then type `/forge:forge a cinematic shot of a cat leaping between rooftops`, drop a picture in the chat and type
+`/forge:forge-reverse midjourney` to get a prompt that makes more like it, or `/forge:forge-map` to map a chat.
 Switch it off any time with `/plugin disable forge`.
 
 ## The Forge skill for Claude and ChatGPT

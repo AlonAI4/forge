@@ -4345,6 +4345,62 @@ function howTo(m){
   return how;
 }
 
+/** 11.2: where the subject sits, which side the light comes from, sharp subject on a soft background, and text.
+ *  Pure maths on a small brightness map. Every answer is "unsure" unless the pixels clearly say so.
+ *  @param {number[]} lum brightness 0..1, row by row @param {number} w @param {number} h @returns {Record<string, string>} */
+function lookPixels(lum, w, h){
+  const at = /** @param {number} x @param {number} y */ (x, y) => lum[y * w + x];
+  if(w < 8 || h < 8) return { subject: "unsure", light: "unsure", focus: "unsure", text: "unsure" };
+  // detail map: how much each pixel differs from its neighbours (edges and texture)
+  const g = new Float32Array(w * h); let gsum = 0;
+  for(let y = 1; y < h - 1; y++) for(let x = 1; x < w - 1; x++){
+    const v0 = Math.abs(at(x + 1, y) - at(x - 1, y)) + Math.abs(at(x, y + 1) - at(x, y - 1));
+    const v = v0 > .08 ? v0 : 0; // 11.2: only clearly sharp detail counts (a smooth background gradient pulled every subject to the centre)
+    g[y * w + x] = v; gsum += v;
+  }
+  const out = /** @type {Record<string, string>} */ ({});
+  // 1. subject: the centre of the detail, and how packed together it is
+  let cx = 0, cy = 0; for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){ cx += x * g[y * w + x]; cy += y * g[y * w + x]; }
+  if(gsum > 1e-6){
+    cx /= gsum * (w - 1); cy /= gsum * (h - 1);
+    const bx0 = Math.max(0, Math.round((cx - .2) * w)), bx1 = Math.min(w, Math.round((cx + .2) * w)), by0 = Math.max(0, Math.round((cy - .2) * h)), by1 = Math.min(h, Math.round((cy + .2) * h));
+    let inside = 0; for(let y = by0; y < by1; y++) for(let x = bx0; x < bx1; x++) inside += g[y * w + x];
+    const area = ((bx1 - bx0) * (by1 - by0)) / (w * h), packed = inside / gsum;
+    if(packed > Math.min(.9, area * 1.8)){
+      const col = cx < .4 ? "left" : cx > .6 ? "right" : "centre", row = cy < .4 ? "top" : cy > .6 ? "bottom" : "middle";
+      const third = [1/3, 2/3].some(t => Math.abs(cx - t) < .07) || [1/3, 2/3].some(t => Math.abs(cy - t) < .07);
+      out.subject = (row === "middle" ? col : row + " " + col).replace("middle centre", "centre") + (third && col !== "centre" ? " (on a third line)" : "");
+      // 3. focus: the subject area sharp, the rest soft or plain
+      const outsideMean = (gsum - inside) / Math.max(1, (1 - area) * w * h), insideMean = inside / Math.max(1, area * w * h);
+      out.focus = insideMean > outsideMean * 3 && outsideMean < .03 ? "sharp subject, soft or plain background" : insideMean < outsideMean * 1.4 ? "sharp throughout" : "unsure";
+    } else { out.subject = "unsure (detail spread over the whole picture)"; out.focus = "unsure"; }
+  } else { out.subject = "unsure"; out.focus = "unsure"; }
+  // 2. light: which half is brighter, only when one side clearly wins
+  let L = 0, R = 0, T = 0, B = 0;
+  for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){ const v = at(x, y); if(x < w / 2) L += v; else R += v; if(y < h / 2) T += v; else B += v; }
+  const half = (w * h) / 2, dx = (R - L) / half, dy = (T - B) / half;
+  out.light = Math.abs(dx) >= .12 && Math.abs(dx) > Math.abs(dy) * 1.3 ? (dx > 0 ? "from the right (right side brighter)" : "from the left (left side brighter)")
+    : dy >= .12 && dy > Math.abs(dx) * 1.3 ? "from above (top brighter)" : "unsure";
+  // 4. text: bands of rows full of short sharp strokes, with quiet rows between them (lines of letters).
+  // 11.2: looked for across the whole width AND inside thirds of it, because text often sits in a column
+  /** @param {number} x0 @param {number} x1 */
+  const linesIn = (x0, x1) => {
+    const span = x1 - x0, rows = [];
+    for(let y = 0; y < h; y++){ let c = 0; for(let x = x0 + 1; x < x1; x++) if(Math.abs(at(x, y) - at(x - 1, y)) > .25) c++; rows.push(c / span); }
+    let bands = 0, run = 0;
+    for(let y = 0; y < h; y++){
+      if(rows[y] > .12){ run++; continue; }
+      if(run >= 2 && run <= h / 8 && rows[y] < .05) bands++;
+      run = 0;
+    }
+    return { bands, busy: rows.reduce((a, b) => a + b, 0) / h };
+  };
+  const strips = [linesIn(0, w), linesIn(0, Math.round(w / 3)), linesIn(Math.round(w / 3), Math.round(2 * w / 3)), linesIn(Math.round(2 * w / 3), w)];
+  const bands = Math.max(...strips.map(t => t.bands)), busy = strips.some(t => t.busy > .025); // a busy picture can hide small text
+  out.text = bands >= 2 ? "likely (" + bands + " lines of small sharp strokes)" : bands === 1 || busy ? "unsure" : "none found";
+  return out;
+}
+
 /** 9.10: what Forge measures from a picture's pixels (shared by the website, the extension and the plugin; no DOM).
  *  @param {ArrayLike<number>} d RGBA pixels of a small copy @param {number} w @param {number} h its size
  *  @param {number} W @param {number} H the real size @returns {Record<string, any>} */
@@ -4366,7 +4422,8 @@ function measurePixels(d, w, h, W, H){
   const mean = lsum / n, sd = Math.sqrt(Math.max(0, l2/n - mean*mean));
   const top = Object.values(bins).sort((a, b) => b.n - a.n).slice(0, 6).map(o => hx(o.r/o.n, o.g/o.n, o.b/o.n));
   const sat = ssum / n, dens = edges / Math.max(1, (w-1)*(h-1));
-  return { w: W, h: H, ratio, mean, sd, sat, dens, top,
+  const extra = lookPixels(lum, w, h);
+  return { w: W, h: H, ratio, mean, sd, sat, dens, top, ...extra,
     key: mean > .62 ? "high-key" : mean < .3 ? "low-key" : "mid-key",
     contrast: sd > .26 ? "high contrast" : sd < .14 ? "flat, low contrast" : "normal contrast",
     satWord: sat > .5 ? "saturated" : sat < .22 ? "desaturated" : "moderately saturated",
@@ -4392,7 +4449,10 @@ function reverseBrief(o){
   const meas = [a.w && a.h ? "Size: " + a.w + " x " + a.h + " px" + (a.ratio ? " (aspect " + a.ratio + (ar && ar !== a.ratio ? ", nearest " + name + " takes: " + ar : "") + ")" : "") : "",
     a.key ? "Brightness: " + a.key + (typeof a.mean === "number" ? " (mean " + a.mean.toFixed(2) + ")" : "") : "",
     a.contrast ? "Contrast: " + a.contrast : "", a.satWord ? "Saturation: " + a.satWord : "", a.temp ? "Colour temperature: " + a.temp : "",
-    a.detail ? "Detail: " + a.detail : "", Array.isArray(a.top) && a.top.length ? "Main colours: " + a.top.slice(0, 5).join(", ") : ""].filter(Boolean);
+    a.detail ? "Detail: " + a.detail : "", Array.isArray(a.top) && a.top.length ? "Main colours: " + a.top.slice(0, 5).join(", ") : "",
+    // 11.2: only what Forge is sure of; "unsure" stays out
+    ...[["Where the subject sits", a.subject], ["Light", a.light], ["Focus", a.focus], ["Text in the picture", a.text]]
+      .filter(([, v]) => typeof v === "string" && v && !/^unsure/.test(v)).map(([k, v]) => k + ": " + v)].filter(Boolean);
   if(meas.length) L.push("", "WHAT FORGE MEASURED FROM THE PIXELS (exact, use these)", ...meas.map(x => "- " + x));
   if(has(o.notes)) L.push("", "WHAT I KNOW ABOUT IT", String(o.notes).trim());
   L.push("", "STEP 2: WRITE THE PROMPT FOR " + name.toUpperCase(), "HOW " + name.toUpperCase() + " WANTS PROMPTS", ...howTo(m).map(x => "- " + x));

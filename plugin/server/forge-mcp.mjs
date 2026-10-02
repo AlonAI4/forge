@@ -4545,7 +4545,7 @@ function isRef(value) {
 function cloneIssues(issues) {
   return issues.map((iss) => iss.path ? { ...iss, path: iss.path.slice() } : { ...iss });
 }
-function isRecursive(inst, stack, resolve) {
+function isRecursive(inst, stack, resolve2) {
   const cached2 = recursive.get(inst);
   if (cached2 !== void 0)
     return cached2 ? PROVEN : NONE;
@@ -4555,7 +4555,7 @@ function isRecursive(inst, stack, resolve) {
   let result = NONE;
   const check3 = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve);
+      const answer = isRecursive(child, stack, resolve2);
       if (answer > result)
         result = answer;
     }
@@ -4566,7 +4566,7 @@ function isRecursive(inst, stack, resolve) {
       const desc = Object.getOwnPropertyDescriptor(sh, key);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve2) : NONE;
       if (child > answer)
         answer = child;
     }
@@ -4630,7 +4630,7 @@ function isRecursive(inst, stack, resolve) {
       break;
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve ? inst._zod.innerType : void 0);
+      const inner = def._cachedInner ?? (resolve2 ? inst._zod.innerType : void 0);
       merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -22652,7 +22652,7 @@ var require_resolve = __commonJS({
       traverse(schema, { allKeys: true }, (sch, jsonPtr, _2, parentJsonPtr) => {
         if (parentJsonPtr === void 0)
           return;
-        const fullPath = pathPrefix + jsonPtr;
+        const fullPath2 = pathPrefix + jsonPtr;
         let innerBaseId = baseIds[parentJsonPtr];
         if (typeof sch[schemaId] == "string")
           innerBaseId = addRef.call(this, sch[schemaId]);
@@ -22670,12 +22670,12 @@ var require_resolve = __commonJS({
             schOrRef = this.refs[schOrRef];
           if (typeof schOrRef == "object") {
             checkAmbiguosRef(sch, schOrRef.schema, ref);
-          } else if (ref !== normalizeId(fullPath)) {
+          } else if (ref !== normalizeId(fullPath2)) {
             if (ref[0] === "#") {
               checkAmbiguosRef(sch, localRefs[ref], ref);
               localRefs[ref] = sch;
             } else {
-              this.refs[ref] = fullPath;
+              this.refs[ref] = fullPath2;
             }
           }
           return ref;
@@ -23366,7 +23366,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve.call(this, root, ref);
+      let _sch = resolve2.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a3 = root.localRefs) === null || _a3 === void 0 ? void 0 : _a3[ref];
         const { schemaId } = this.opts;
@@ -23393,7 +23393,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve(root, ref) {
+    function resolve2(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -24223,7 +24223,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve(baseURI, relativeURI, options) {
+    function resolve2(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -24592,7 +24592,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve,
+      resolve: resolve2,
       resolveComponent,
       equal,
       serialize,
@@ -27956,15 +27956,15 @@ function getErrorMap() {
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
   const { data, path, errorMaps, issueData } = params;
-  const fullPath = [...path, ...issueData.path || []];
+  const fullPath2 = [...path, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
-    path: fullPath
+    path: fullPath2
   };
   if (issueData.message !== void 0) {
     return {
       ...issueData,
-      path: fullPath,
+      path: fullPath2,
       message: issueData.message
     };
   }
@@ -27975,7 +27975,7 @@ var makeIssue = (params) => {
   }
   return {
     ...issueData,
-    path: fullPath,
+    path: fullPath2,
     message: errorMessage
   };
 };
@@ -35077,7 +35077,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error62) {
@@ -35094,7 +35094,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       const earlyReject = (error62) => {
         reject(error62);
       };
@@ -35172,7 +35172,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve(parseResult.data);
+            resolve2(parseResult.data);
           }
         } catch (error62) {
           reject(error62);
@@ -35433,12 +35433,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve, interval);
+      const timeoutId = setTimeout(resolve2, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -36533,7 +36533,7 @@ var McpServer = class {
     let task = createTaskResult.task;
     const pollInterval = task.pollInterval ?? 5e3;
     while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
       const updatedTask = await extra.taskStore.getTask(taskId);
       if (!updatedTask) {
         throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -37197,12 +37197,12 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve) => {
+    return new Promise((resolve2) => {
       const json2 = serializeMessage(message);
       if (this._stdout.write(json2)) {
-        resolve();
+        resolve2();
       } else {
-        this._stdout.once("drain", resolve);
+        this._stdout.once("drain", resolve2);
       }
     });
   }
@@ -43224,6 +43224,83 @@ function howTo(m2) {
   how.push(!m2.neg || m2.neg.mode === "none" ? "It takes no keep-outs." : m2.neg.mode === "field" ? "It has a separate negative field" + (m2.neg.label ? " (" + m2.neg.label + ")" : "") + "." : m2.neg.mode === "flag" ? "Keep-outs go in the " + m2.neg.label + " parameter." : "It has NO negative field: put keep-outs inside the prompt.");
   return how;
 }
+function lookPixels(lum, w2, h2) {
+  const at = (
+    /** @param {number} x @param {number} y */
+    (x, y) => lum[y * w2 + x]
+  );
+  if (w2 < 8 || h2 < 8) return { subject: "unsure", light: "unsure", focus: "unsure", text: "unsure" };
+  const g = new Float32Array(w2 * h2);
+  let gsum = 0;
+  for (let y = 1; y < h2 - 1; y++) for (let x = 1; x < w2 - 1; x++) {
+    const v0 = Math.abs(at(x + 1, y) - at(x - 1, y)) + Math.abs(at(x, y + 1) - at(x, y - 1));
+    const v2 = v0 > 0.08 ? v0 : 0;
+    g[y * w2 + x] = v2;
+    gsum += v2;
+  }
+  const out = (
+    /** @type {Record<string, string>} */
+    {}
+  );
+  let cx = 0, cy = 0;
+  for (let y = 0; y < h2; y++) for (let x = 0; x < w2; x++) {
+    cx += x * g[y * w2 + x];
+    cy += y * g[y * w2 + x];
+  }
+  if (gsum > 1e-6) {
+    cx /= gsum * (w2 - 1);
+    cy /= gsum * (h2 - 1);
+    const bx0 = Math.max(0, Math.round((cx - 0.2) * w2)), bx1 = Math.min(w2, Math.round((cx + 0.2) * w2)), by0 = Math.max(0, Math.round((cy - 0.2) * h2)), by1 = Math.min(h2, Math.round((cy + 0.2) * h2));
+    let inside = 0;
+    for (let y = by0; y < by1; y++) for (let x = bx0; x < bx1; x++) inside += g[y * w2 + x];
+    const area = (bx1 - bx0) * (by1 - by0) / (w2 * h2), packed = inside / gsum;
+    if (packed > Math.min(0.9, area * 1.8)) {
+      const col = cx < 0.4 ? "left" : cx > 0.6 ? "right" : "centre", row = cy < 0.4 ? "top" : cy > 0.6 ? "bottom" : "middle";
+      const third = [1 / 3, 2 / 3].some((t) => Math.abs(cx - t) < 0.07) || [1 / 3, 2 / 3].some((t) => Math.abs(cy - t) < 0.07);
+      out.subject = (row === "middle" ? col : row + " " + col).replace("middle centre", "centre") + (third && col !== "centre" ? " (on a third line)" : "");
+      const outsideMean = (gsum - inside) / Math.max(1, (1 - area) * w2 * h2), insideMean = inside / Math.max(1, area * w2 * h2);
+      out.focus = insideMean > outsideMean * 3 && outsideMean < 0.03 ? "sharp subject, soft or plain background" : insideMean < outsideMean * 1.4 ? "sharp throughout" : "unsure";
+    } else {
+      out.subject = "unsure (detail spread over the whole picture)";
+      out.focus = "unsure";
+    }
+  } else {
+    out.subject = "unsure";
+    out.focus = "unsure";
+  }
+  let L = 0, R2 = 0, T2 = 0, B = 0;
+  for (let y = 0; y < h2; y++) for (let x = 0; x < w2; x++) {
+    const v2 = at(x, y);
+    if (x < w2 / 2) L += v2;
+    else R2 += v2;
+    if (y < h2 / 2) T2 += v2;
+    else B += v2;
+  }
+  const half = w2 * h2 / 2, dx = (R2 - L) / half, dy = (T2 - B) / half;
+  out.light = Math.abs(dx) >= 0.12 && Math.abs(dx) > Math.abs(dy) * 1.3 ? dx > 0 ? "from the right (right side brighter)" : "from the left (left side brighter)" : dy >= 0.12 && dy > Math.abs(dx) * 1.3 ? "from above (top brighter)" : "unsure";
+  const linesIn = (x0, x1) => {
+    const span = x1 - x0, rows = [];
+    for (let y = 0; y < h2; y++) {
+      let c = 0;
+      for (let x = x0 + 1; x < x1; x++) if (Math.abs(at(x, y) - at(x - 1, y)) > 0.25) c++;
+      rows.push(c / span);
+    }
+    let bands2 = 0, run = 0;
+    for (let y = 0; y < h2; y++) {
+      if (rows[y] > 0.12) {
+        run++;
+        continue;
+      }
+      if (run >= 2 && run <= h2 / 8 && rows[y] < 0.05) bands2++;
+      run = 0;
+    }
+    return { bands: bands2, busy: rows.reduce((a, b) => a + b, 0) / h2 };
+  };
+  const strips = [linesIn(0, w2), linesIn(0, Math.round(w2 / 3)), linesIn(Math.round(w2 / 3), Math.round(2 * w2 / 3)), linesIn(Math.round(2 * w2 / 3), w2)];
+  const bands = Math.max(...strips.map((t) => t.bands)), busy = strips.some((t) => t.busy > 0.025);
+  out.text = bands >= 2 ? "likely (" + bands + " lines of small sharp strokes)" : bands === 1 || busy ? "unsure" : "none found";
+  return out;
+}
 function measurePixels(d2, w2, h2, W, H2) {
   const hx = (
     /** @param {number} r @param {number} g @param {number} bl */
@@ -43270,6 +43347,7 @@ function measurePixels(d2, w2, h2, W, H2) {
   const mean = lsum / n, sd = Math.sqrt(Math.max(0, l2 / n - mean * mean));
   const top = Object.values(bins).sort((a, b) => b.n - a.n).slice(0, 6).map((o) => hx(o.r / o.n, o.g / o.n, o.b / o.n));
   const sat = ssum / n, dens = edges / Math.max(1, (w2 - 1) * (h2 - 1));
+  const extra = lookPixels(lum, w2, h2);
   return {
     w: W,
     h: H2,
@@ -43279,6 +43357,7 @@ function measurePixels(d2, w2, h2, W, H2) {
     sat,
     dens,
     top,
+    ...extra,
     key: mean > 0.62 ? "high-key" : mean < 0.3 ? "low-key" : "mid-key",
     contrast: sd > 0.26 ? "high contrast" : sd < 0.14 ? "flat, low contrast" : "normal contrast",
     satWord: sat > 0.5 ? "saturated" : sat < 0.22 ? "desaturated" : "moderately saturated",
@@ -43308,7 +43387,9 @@ function reverseBrief(o) {
     a.satWord ? "Saturation: " + a.satWord : "",
     a.temp ? "Colour temperature: " + a.temp : "",
     a.detail ? "Detail: " + a.detail : "",
-    Array.isArray(a.top) && a.top.length ? "Main colours: " + a.top.slice(0, 5).join(", ") : ""
+    Array.isArray(a.top) && a.top.length ? "Main colours: " + a.top.slice(0, 5).join(", ") : "",
+    // 11.2: only what Forge is sure of; "unsure" stays out
+    ...[["Where the subject sits", a.subject], ["Light", a.light], ["Focus", a.focus], ["Text in the picture", a.text]].filter(([, v2]) => typeof v2 === "string" && v2 && !/^unsure/.test(v2)).map(([k2, v2]) => k2 + ": " + v2)
   ].filter(Boolean);
   if (meas.length) L.push("", "WHAT FORGE MEASURED FROM THE PIXELS (exact, use these)", ...meas.map((x) => "- " + x));
   if (has(o.notes)) L.push("", "WHAT I KNOW ABOUT IT", String(o.notes).trim());
@@ -43840,9 +43921,10 @@ function checkPrompt(E2, o) {
   const { m: m2, res } = o, name = m2.n + (m2.sub ? " " + m2.sub : "");
   const reply2 = splitReply(o.prompt);
   const P2 = { kept: [], settings: [], invented: [], other: [] };
-  const fixed = E2.autocorrect(o.said);
+  const theirs = /\bforge\b/i.test(o.said), mask = (t) => theirs ? String(t).replace(/\bforge\b/gi, "smithy") : t;
+  const fixed = E2.autocorrect(mask(o.said));
   const { brief: brief2, suggested } = E2.rebuildBrief(fixed.text, m2);
-  const cw = E2.checkWritten(JSON.stringify({ prompt: reply2.prompt, negative: reply2.negative }), { m: m2, request: o.said, brief: brief2, suggested, res });
+  const cw = E2.checkWritten(JSON.stringify({ prompt: mask(reply2.prompt), negative: mask(reply2.negative) }), { m: m2, request: mask(o.said), brief: brief2, suggested, res });
   if (cw.used === "forge") P2.kept.push(String(cw.notes[0] || "").replace(/,? so this is Forge's version\.?$/, ". Rewrite it from the brief."));
   else for (const n of cw.notes) {
     if (/^Forge checked it/.test(n) || /^The AI added /.test(n)) continue;
@@ -43860,6 +43942,11 @@ function checkPrompt(E2, o) {
   const knowledge = JSON.stringify(m2) + "\n" + String(res.flat || "") + "\n" + JSON.stringify(res.settings || []);
   const knownFlags = new Set(flagsIn(knowledge));
   const usedFlags = [...new Set(flagsIn(reply2.prompt + " " + reply2.settings))];
+  const orig = (reply2.prompt.match(/\bforge\b/i) || ["Forge"])[0], unmask = (t) => theirs ? String(t).replace(/\bsmithy\b/gi, orig) : t;
+  if (theirs) {
+    cw.prompt = unmask(cw.prompt);
+    cw.negative = unmask(cw.negative);
+  }
   let cleaned = cw.used === "ai" ? cw.prompt : reply2.prompt;
   if (usedFlags.length && !knownFlags.size) {
     P2.settings.push(name + " takes no --parameters: it would read " + usedFlags.join(", ") + " as words. Remove them; put settings under Settings instead.");
@@ -43909,6 +43996,138 @@ function checkPrompt(E2, o) {
   if (cw.used === "ai" && cw.negative && cw.negative !== reply2.negative) out.negative = cw.negative;
   if (cw.used === "forge") out.forge_draft = res.flat;
   return out;
+}
+
+// src/png.js
+import { readFileSync, statSync } from "node:fs";
+import { inflateSync } from "node:zlib";
+import { homedir } from "node:os";
+import { resolve, extname } from "node:path";
+var SIG = [137, 80, 78, 71, 13, 10, 26, 10];
+var MAX_BYTES = 40 * 1024 * 1024;
+var MAX_PIXELS = 5e7;
+var SMALL = 200;
+function decodePng(buf) {
+  if (buf.length < 8 || SIG.some((b, i) => buf[i] !== b)) throw new Error("not a PNG file");
+  const u32 = (o) => (buf[o] << 24 | buf[o + 1] << 16 | buf[o + 2] << 8 | buf[o + 3]) >>> 0;
+  let width = 0, height = 0, depth = 0, type = 0, interlace = 0;
+  let palette = null;
+  let trns = null;
+  const idat = [];
+  for (let o = 8; o + 8 <= buf.length; ) {
+    const len = u32(o), kind = String.fromCharCode(buf[o + 4], buf[o + 5], buf[o + 6], buf[o + 7]), data = buf.subarray(o + 8, o + 8 + len);
+    if (kind === "IHDR") {
+      width = u32(o + 8);
+      height = u32(o + 12);
+      depth = data[8];
+      type = data[9];
+      interlace = data[12];
+    } else if (kind === "PLTE") palette = data;
+    else if (kind === "tRNS") trns = data;
+    else if (kind === "IDAT") idat.push(data);
+    else if (kind === "IEND") break;
+    o += 12 + len;
+  }
+  if (!width || !height) throw new Error("the PNG has no size (broken file)");
+  if (width * height > MAX_PIXELS) throw new Error("the PNG is too big to measure here (" + width + " x " + height + ")");
+  if (interlace) throw new Error("interlaced PNG");
+  const chans = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }[type];
+  if (!chans || ![1, 2, 4, 8, 16].includes(depth)) throw new Error("unusual PNG format (colour type " + type + ", depth " + depth + ")");
+  const raw = inflateSync(Buffer.concat(idat));
+  const bpp = Math.max(1, chans * depth >> 3), stride = width * chans * depth + 7 >> 3;
+  if (raw.length < height * (stride + 1)) throw new Error("the PNG is cut short (broken file)");
+  const px = new Uint8Array(height * stride);
+  for (let y = 0; y < height; y++) {
+    const f2 = raw[y * (stride + 1)], src = y * (stride + 1) + 1, row = y * stride, up = row - stride;
+    for (let x = 0; x < stride; x++) {
+      const a = x >= bpp ? px[row + x - bpp] : 0, b = y ? px[up + x] : 0, c = y && x >= bpp ? px[up + x - bpp] : 0;
+      let v2 = raw[src + x];
+      if (f2 === 1) v2 += a;
+      else if (f2 === 2) v2 += b;
+      else if (f2 === 3) v2 += a + b >> 1;
+      else if (f2 === 4) {
+        const p2 = a + b - c, pa = Math.abs(p2 - a), pb = Math.abs(p2 - b), pc = Math.abs(p2 - c);
+        v2 += pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      }
+      px[row + x] = v2 & 255;
+    }
+  }
+  const max = (1 << depth) - 1;
+  const sample = (y, i) => {
+    const row = y * stride;
+    if (depth === 8) return px[row + i];
+    if (depth === 16) return px[row + i * 2];
+    const bit = i * depth, v2 = px[row + (bit >> 3)] >> 8 - depth - (bit & 7) & max;
+    return type === 3 ? v2 : Math.round(v2 * 255 / max);
+  };
+  const rgba = new Uint8Array(width * height * 4);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const o = (y * width + x) * 4, s = x * chans;
+    if (type === 3) {
+      const k2 = sample(y, s);
+      rgba[o] = palette ? palette[k2 * 3] : 0;
+      rgba[o + 1] = palette ? palette[k2 * 3 + 1] : 0;
+      rgba[o + 2] = palette ? palette[k2 * 3 + 2] : 0;
+      rgba[o + 3] = trns && k2 < trns.length ? trns[k2] : 255;
+    } else if (type === 0 || type === 4) {
+      const g = sample(y, s);
+      rgba[o] = rgba[o + 1] = rgba[o + 2] = g;
+      rgba[o + 3] = type === 4 ? sample(y, s + 1) : 255;
+    } else {
+      rgba[o] = sample(y, s);
+      rgba[o + 1] = sample(y, s + 1);
+      rgba[o + 2] = sample(y, s + 2);
+      rgba[o + 3] = type === 6 ? sample(y, s + 3) : 255;
+    }
+  }
+  return { width, height, rgba };
+}
+function shrink(img) {
+  const s = Math.min(1, SMALL / Math.max(img.width, img.height));
+  const w2 = Math.max(1, Math.round(img.width * s)), h2 = Math.max(1, Math.round(img.height * s));
+  const out = new Uint8ClampedArray(w2 * h2 * 4);
+  for (let y = 0; y < h2; y++) for (let x = 0; x < w2; x++) {
+    const x0 = Math.floor(x * img.width / w2), x1 = Math.max(x0 + 1, Math.floor((x + 1) * img.width / w2));
+    const y0 = Math.floor(y * img.height / h2), y1 = Math.max(y0 + 1, Math.floor((y + 1) * img.height / h2));
+    let r2 = 0, g = 0, b = 0, n = 0;
+    for (let yy = y0; yy < y1; yy++) for (let xx = x0; xx < x1; xx++) {
+      const i = (yy * img.width + xx) * 4, al = img.rgba[i + 3] / 255;
+      r2 += img.rgba[i] * al + 255 * (1 - al);
+      g += img.rgba[i + 1] * al + 255 * (1 - al);
+      b += img.rgba[i + 2] * al + 255 * (1 - al);
+      n++;
+    }
+    const o = (y * w2 + x) * 4;
+    out[o] = r2 / n;
+    out[o + 1] = g / n;
+    out[o + 2] = b / n;
+    out[o + 3] = 255;
+  }
+  return { w: w2, h: h2, data: out };
+}
+var fullPath = (p2) => resolve(String(p2).trim().replace(/^~(?=$|\/)/, homedir()));
+function measureFile(E2, path) {
+  const p2 = fullPath(path);
+  const web = "Measure it on the Forge website instead (Reverse Forge reads any picture in the browser), or go on with your description only.";
+  const ext = extname(p2).toLowerCase();
+  if (/^\.(jpe?g|webp|gif|heic|heif|avif|bmp|tiff?)$/.test(ext)) return { ok: false, path: p2, why: "Forge can measure PNG files here, not " + ext.slice(1).toUpperCase() + ". " + web };
+  try {
+    const st = statSync(p2);
+    if (!st.isFile()) return { ok: false, path: p2, why: "That path is not a file. " + web };
+    if (st.size > MAX_BYTES) return { ok: false, path: p2, why: "The file is too big to measure here (" + Math.round(st.size / 1048576) + " MB). " + web };
+    const img = decodePng(readFileSync(p2));
+    const s = shrink(img);
+    return { ok: true, path: p2, measures: E2.measurePixels(s.data, s.w, s.h, img.width, img.height) };
+  } catch (e) {
+    const msg = String(
+      /** @type {any} */
+      e.code === "ENOENT" ? "no file there" : (
+        /** @type {any} */
+        e.message || e
+      )
+    );
+    return { ok: false, path: p2, why: "Forge could not measure it (" + msg + "). " + web };
+  }
 }
 
 // src/forge.js
@@ -43986,14 +44205,82 @@ function chatContext2(a) {
   if (typeof fn !== "function") return { available: false, message: "Read this chat is " + COMING };
   return { available: true, result: fn(String(a.conversation || "")) };
 }
+function tidyMeasures(ms) {
+  const a = { ...ms || {} };
+  if (!a.w && Number(a.width)) a.w = Number(a.width);
+  if (!a.h && Number(a.height)) a.h = Number(a.height);
+  delete a.width;
+  delete a.height;
+  if (!a.ratio && a.w > 0 && a.h > 0 && typeof engine_default.measurePixels === "function") a.ratio = engine_default.measurePixels([128, 128, 128, 255], 1, 1, a.w, a.h).ratio;
+  return a;
+}
+var ratioOf2 = (x) => {
+  const r2 = String(x).match(/^\s*(\d+(?:\.\d+)?)\s*[:x]\s*(\d+(?:\.\d+)?)/i);
+  return r2 ? Number(r2[1]) / Number(r2[2]) : 0;
+};
+function aspectFor(m2, a) {
+  const want = a.w > 0 && a.h > 0 ? a.w / a.h : ratioOf2(a.ratio || "");
+  if (!want || !Array.isArray(m2.aspects)) return "";
+  let best = "", d2 = Infinity;
+  for (const x of m2.aspects) {
+    const r2 = ratioOf2(x);
+    if (!r2) continue;
+    const e = Math.abs(Math.log(want / r2));
+    if (e < d2) {
+      d2 = e;
+      best = x;
+    }
+  }
+  return d2 < 0.12 ? best : "";
+}
 function reverse(a) {
   const fn = (
     /** @type {any} */
     engine_default["reverseBrief"]
   );
   if (typeof fn !== "function") return { available: false, message: "Reverse Forge is " + COMING };
-  const m2 = needModel(a.ai);
-  return { available: true, result: fn({ m: m2, measures: a.measures || {}, notes: String(a.notes || "") }) };
+  const m2 = needModel(a.ai), name = m2.n + (m2.sub ? " " + m2.sub : "");
+  let file2;
+  let measures = tidyMeasures(
+    /** @type {any} */
+    a.measures
+  );
+  if (a.image_path && String(a.image_path).trim()) {
+    if (typeof engine_default.measurePixels !== "function") file2 = { path: String(a.image_path), ok: false, why: "This Forge engine cannot measure pictures yet. Update Forge, or measure on the Forge website." };
+    else {
+      const r2 = measureFile(engine_default, String(a.image_path));
+      file2 = r2.ok ? { path: r2.path, ok: true } : { path: r2.path, ok: false, why: r2.why };
+      if (r2.ok) measures = { ...r2.measures, ...measures };
+    }
+  }
+  const notes = String(a.notes || "").trim(), description = String(a.description || "").trim();
+  const base = { available: true, ai: m2.id, name, ...Object.keys(measures).length ? { measures } : {}, ...file2 ? { image: file2 } : {} };
+  if (!description) return { ...base, mode: "brief", result: fn({ m: m2, measures, notes }) };
+  const res = engine_default.reverseFromAI("Description: " + description + (notes ? "\n" + notes : ""), m2, measures);
+  const ar = aspectFor(m2, measures);
+  const isAspect = (v2) => (m2.aspects || []).some((x) => ratioOf2(x) && ratioOf2(x) === ratioOf2(v2));
+  const settings = (res.settings || []).map((r2) => ({ name: String(r2[0]), value: String(r2[1]) })).map((s) => ar && isAspect(s.value) ? { ...s, value: /^--ar$/.test(s.name) ? ar.split(" ")[0] : ar } : s);
+  const negField = m2.neg && m2.neg.mode === "field";
+  return {
+    ...base,
+    mode: "write",
+    description,
+    ...notes ? { notes } : {},
+    how: engine_default.howTo(m2),
+    rules: [
+      "Describe what is in the picture, not that it is a picture: 'a tabby cat leaping between rooftops', not 'an image of a cat'.",
+      "The most important thing first (the subject), then action, setting, camera, light, colours, style. Keep every detail from your description that makes this picture this picture.",
+      ...ar ? ["Use the measured aspect ratio: " + ar + "."] : measures.ratio ? ["The picture is " + measures.ratio + "; " + name + " does not offer that exact ratio, so pick its closest setting."] : [],
+      ...Array.isArray(measures.top) && measures.top.length ? ["Use the measured colours (by name in the prompt, not hex codes, unless " + name + " reads hex)."] : [],
+      ...m2.cat === "video" ? ["This AI makes video and a picture does not move: treat the picture as the first frame. Add ONE simple camera move and only motion that fits what you saw (water ripples, lights flicker, clouds drift), and say it is one continuous take."] : [],
+      "Quote any text in the picture word for word, in quotes.",
+      "No filler words (masterpiece, 8k, stunning) and nothing you did not see. Say nothing about Forge or this brief."
+    ],
+    settings,
+    ...ar ? { aspect: ar } : {},
+    reply_with: "Prompt: <the prompt>" + (negField ? "\nNegative: <keep-outs>" : "") + "\nSettings: <settings, if it takes any>",
+    next: "Write the prompt for " + name + ' now from your description, following these rules. Then call forge_check with request = your description (the same text you sent here), ai = "' + m2.id + '", and prompt = what you wrote. Fix every problem it lists before showing the person.'
+  };
 }
 function map2(a) {
   const fn = (
@@ -44079,14 +44366,43 @@ function mapText(r2) {
   if (m2.context) out.push("", "Context:", fence(m2.context));
   return out.join("\n");
 }
+var MEASURE_LABEL = (
+  /** @type {Record<string, string>} */
+  { ratio: "Aspect", key: "Brightness", contrast: "Contrast", satWord: "Saturation", temp: "Colour temperature", detail: "Detail", top: "Main colours", subject: "Subject position", light: "Light direction", focus: "Depth of field", text: "Text in the picture" }
+);
+var MEASURE_RAW = /* @__PURE__ */ new Set(["w", "h", "mean", "sd", "sat", "dens"]);
+function measureLines(a) {
+  const show = (v2) => Array.isArray(v2) ? v2.map(show).join(", ") : typeof v2 === "number" ? String(Math.round(v2 * 100) / 100) : v2 && typeof v2 === "object" ? Object.entries(v2).map(([k2, x]) => k2 + " " + show(x)).join(", ") : String(v2);
+  const out = [];
+  if (a.w && a.h) out.push("Size: " + a.w + " x " + a.h + " px");
+  for (const [k2, v2] of Object.entries(a)) {
+    if (v2 === void 0 || v2 === null || v2 === "" || MEASURE_RAW.has(k2)) continue;
+    out.push((MEASURE_LABEL[k2] || k2) + ": " + show(v2));
+  }
+  if (!a.key && typeof a.mean === "number") out.push("Brightness: " + show(a.mean));
+  return out;
+}
 function reverseText(r2, name) {
   if (!r2.available) return offText("Reverse Forge is not in this build", r2);
-  return [
-    "## Reverse Forge" + (name ? " for " + name : ""),
-    "You can see the item: follow these steps (describe it, then write the prompt), then call forge_check.",
-    "",
-    fence(typeof r2.result === "string" ? r2.result : JSON.stringify(r2.result, null, 2), typeof r2.result === "string" ? "text" : "json")
-  ].join("\n");
+  const who = r2.name || name;
+  const out = ["## Reverse Forge" + (who ? " for " + who : "")];
+  if (r2.image) out.push(r2.image.ok ? "Measured the picture at " + r2.image.path + " (read only, nothing kept)." : "Could not measure " + r2.image.path + ": " + r2.image.why);
+  const meas = r2.measures ? measureLines(r2.measures) : [];
+  if (r2.mode !== "write") {
+    out.push(
+      "You cannot see the item, or gave no description: send this message WITH the picture to a vision AI, or, if you can see it, call forge_reverse again with your `description`.",
+      "",
+      fence(typeof r2.result === "string" ? r2.result : JSON.stringify(r2.result, null, 2), typeof r2.result === "string" ? "text" : "json")
+    );
+    return out.join("\n");
+  }
+  out.push("Next: " + r2.next, "");
+  if (meas.length) out.push("**Measured from the pixels (exact, use these):**", ...meas.map((x) => "- " + x), "");
+  out.push("**How " + who + " wants prompts:**", ...r2.how.map((x) => "- " + x), "");
+  out.push("**Rules:**", ...r2.rules.map((x, i) => i + 1 + ". " + x), "");
+  if (r2.settings && r2.settings.length) out.push("**Settings Forge would use:**", ...r2.settings.map((s) => "- " + s.name + ": " + s.value), "");
+  out.push("**Reply with:**", fence(r2.reply_with));
+  return out.join("\n");
 }
 function openText(r2) {
   const byCat = /* @__PURE__ */ new Map();
@@ -44114,6 +44430,7 @@ var INSTRUCTIONS = [
   "Forge writes expert prompts for other AIs (image, video, voice, music, chat, coding, app builders, research). Forge is the expert; you (Claude) are the writer.",
   "The flow: forge_pick_ai (which AI fits the job) -> forge_questions (at most 3 short questions; ask the person, skip any they don't care about) -> forge_brief (Forge's full brief) -> you write the final prompt from the brief -> forge_check (fix every problem it lists, then show the person the prompt).",
   "If the person already named the AI, skip forge_pick_ai. Never ask a question the person already answered.",
+  "Reverse Forge (a picture the person wants more of): if you can see it, YOU describe it precisely, call forge_reverse with that description (and image_path for a PNG file in Claude Code), write the prompt from its rules, then forge_check with request = your description.",
   '"Read this chat" is OFF by default. Only when the person turns it on (they say so in this chat, or the Read this chat setting is on) may you send the conversation to forge_chat_context. Otherwise use only the request they give you.',
   "After forge_check passes, always show the prompt in a code block so the person can copy it. Then offer, in one line, to use it now: if the prompt is for you (Claude, or any chat or coding job you can do here), you may run it yourself once they say yes; if a tool for the target AI is connected in this session (for example an image or video generator), offer to send it there and do so only after they say yes, because other AIs can cost credits. Otherwise, copying is the way.",
   "Forge keeps no data: nothing you send is saved, logged or sent anywhere."
@@ -44203,11 +44520,13 @@ function createServer() {
   });
   server.registerTool("forge_reverse", {
     title: "Reverse Forge",
-    description: "Work backwards from something the person already has (a picture, clip or text they like) to a prompt that makes more like it. You can see the item: describe what it shows in notes; add any measurements you have (size, ratio, colours as hex, brightness).",
+    description: "Work backwards from a picture the person already has to a prompt that makes more like it, for the AI they pick. If you can see the picture, YOU are the eyes: describe it precisely (subject, action, setting, camera, light, colours, style, any text word for word) and pass that as description. Forge answers with that AI's rules and settings (aspect from the measures); you then write the prompt and call forge_check with request = your description. In Claude Code, pass image_path when the person gave a file: Forge measures PNG files read-only. Without a description, Forge returns a message to send with the picture to a vision AI.",
     inputSchema: {
       ai: AI,
-      measures: external_exports.record(external_exports.string(), external_exports.unknown()).optional().describe('Measurements, e.g. {"width": 1920, "height": 1080, "palette": ["#1a2b3c"]}.'),
-      notes: external_exports.string().optional().describe("What the item shows and what the person wants to keep or change.")
+      description: external_exports.string().optional().describe("What YOU see in the picture, precisely: subject, action, setting, camera, light, colours, style, any text word for word. Required whenever you can see the picture."),
+      measures: external_exports.record(external_exports.string(), external_exports.unknown()).optional().describe('Measurements if you have them, e.g. from the Forge website: {"w": 1920, "h": 1080, "ratio": "16:9", "top": ["#1a2b3c"]}. width/height also work.'),
+      notes: external_exports.string().optional().describe('What the person wants to keep or change (e.g. "same scene but at night").'),
+      image_path: external_exports.string().optional().describe("Claude Code only: the picture's file path, if the person gave one. Forge reads it (never writes) and measures it. PNG only; for JPEG or WebP, skip it (or measure on the Forge website).")
     },
     annotations: RO
   }, async (a) => {

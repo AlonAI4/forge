@@ -43,9 +43,12 @@ export function checkPrompt(E, o) {
   const P = { kept: [], settings: [], invented: [], other: [] };
 
   // --- the engine's own check (filler, the person's words, parameters, keep-outs) ---
-  const fixed = E.autocorrect(o.said);
+  // The engine treats the word "Forge" in a prompt as the writer talking about its instructions. When the person's
+  // own words have it (a screenshot of Forge, a blacksmith's forge), it is a fact, not chat talk: hide it from that test.
+  const theirs = /\bforge\b/i.test(o.said), mask = (/** @type {string} */ t) => (theirs ? String(t).replace(/\bforge\b/gi, "smithy") : t);
+  const fixed = E.autocorrect(mask(o.said));
   const { brief, suggested } = E.rebuildBrief(fixed.text, m);
-  const cw = E.checkWritten(JSON.stringify({ prompt: reply.prompt, negative: reply.negative }), { m, request: o.said, brief, suggested, res });
+  const cw = E.checkWritten(JSON.stringify({ prompt: mask(reply.prompt), negative: mask(reply.negative) }), { m, request: mask(o.said), brief, suggested, res });
   if (cw.used === "forge") P.kept.push(String(cw.notes[0] || "").replace(/,? so this is Forge's version\.?$/, ". Rewrite it from the brief."));
   else for (const n of cw.notes) {
     if (/^Forge checked it/.test(n) || /^The AI added /.test(n)) continue; // numbers are checked below, against the whole brief
@@ -67,6 +70,8 @@ export function checkPrompt(E, o) {
   const knowledge = JSON.stringify(m) + "\n" + String(res.flat || "") + "\n" + JSON.stringify(res.settings || []);
   const knownFlags = new Set(flagsIn(knowledge));
   const usedFlags = [...new Set(flagsIn(reply.prompt + " " + reply.settings))];
+  const orig = (reply.prompt.match(/\bforge\b/i) || ["Forge"])[0], unmask = (/** @type {string} */ t) => (theirs ? String(t).replace(/\bsmithy\b/gi, orig) : t);
+  if (theirs) { cw.prompt = unmask(cw.prompt); cw.negative = unmask(cw.negative); }
   let cleaned = cw.used === "ai" ? cw.prompt : reply.prompt;
   if (usedFlags.length && !knownFlags.size) {
     P.settings.push(name + " takes no --parameters: it would read " + usedFlags.join(", ") + " as words. Remove them; put settings under Settings instead.");
