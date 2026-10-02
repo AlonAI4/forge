@@ -5092,9 +5092,17 @@ function lookPixels(lum, w, h){
     } else { out.subject = "unsure (detail spread over the whole picture)"; out.focus = "unsure"; }
   } else { out.subject = "unsure"; out.focus = "unsure"; }
   // 2. light: which half is brighter, only when one side clearly wins
-  let L = 0, R = 0, T = 0, B = 0;
-  for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){ const v = at(x, y); if(x < w / 2) L += v; else R += v; if(y < h / 2) T += v; else B += v; }
-  const half = (w * h) / 2, dx = (R - L) / half, dy = (T - B) / half;
+  // 11.4: a bright sky or a plain yellow backdrop is not light. When the picture has enough detail, only the textured
+  // pixels vote (light shows on the surfaces it falls on); a picture with almost no detail falls back to every pixel.
+  let detailed = 0; for(let i = 0; i < g.length; i++) if(g[i] > 0) detailed++;
+  const onlyDetail = detailed > .02 * w * h;
+  let L = 0, R = 0, T = 0, B = 0, nL = 0, nR = 0, nT = 0, nB = 0;
+  for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){
+    if(onlyDetail && !(g[y * w + x] > 0)) continue;
+    const v = at(x, y); if(x < w / 2){ L += v; nL++; } else { R += v; nR++; } if(y < h / 2){ T += v; nT++; } else { B += v; nB++; }
+  }
+  const mean = (/** @type {number} */ a, /** @type {number} */ n) => (n ? a / n : 0);
+  const dx = nL && nR ? mean(R, nR) - mean(L, nL) : 0, dy = nT && nB ? mean(T, nT) - mean(B, nB) : 0;
   out.light = Math.abs(dx) >= .12 && Math.abs(dx) > Math.abs(dy) * 1.3 ? (dx > 0 ? "from the right (right side brighter)" : "from the left (left side brighter)")
     : dy >= .12 && dy > Math.abs(dx) * 1.3 ? "from above (top brighter)" : "unsure";
   // 4. text: bands of rows full of short sharp strokes, with quiet rows between them (lines of letters).

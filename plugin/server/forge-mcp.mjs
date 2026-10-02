@@ -43280,15 +43280,30 @@ function lookPixels(lum, w2, h2) {
     out.subject = "unsure";
     out.focus = "unsure";
   }
-  let L = 0, R2 = 0, T2 = 0, B = 0;
+  let detailed = 0;
+  for (let i = 0; i < g.length; i++) if (g[i] > 0) detailed++;
+  const onlyDetail = detailed > 0.02 * w2 * h2;
+  let L = 0, R2 = 0, T2 = 0, B = 0, nL = 0, nR = 0, nT = 0, nB = 0;
   for (let y = 0; y < h2; y++) for (let x = 0; x < w2; x++) {
+    if (onlyDetail && !(g[y * w2 + x] > 0)) continue;
     const v2 = at(x, y);
-    if (x < w2 / 2) L += v2;
-    else R2 += v2;
-    if (y < h2 / 2) T2 += v2;
-    else B += v2;
+    if (x < w2 / 2) {
+      L += v2;
+      nL++;
+    } else {
+      R2 += v2;
+      nR++;
+    }
+    if (y < h2 / 2) {
+      T2 += v2;
+      nT++;
+    } else {
+      B += v2;
+      nB++;
+    }
   }
-  const half = w2 * h2 / 2, dx = (R2 - L) / half, dy = (T2 - B) / half;
+  const mean = (a, n) => n ? a / n : 0;
+  const dx = nL && nR ? mean(R2, nR) - mean(L, nL) : 0, dy = nT && nB ? mean(T2, nT) - mean(B, nB) : 0;
   out.light = Math.abs(dx) >= 0.12 && Math.abs(dx) > Math.abs(dy) * 1.3 ? dx > 0 ? "from the right (right side brighter)" : "from the left (left side brighter)" : dy >= 0.12 && dy > Math.abs(dx) * 1.3 ? "from above (top brighter)" : "unsure";
   const linesIn = (x0, x1) => {
     const span = x1 - x0, rows = [];
