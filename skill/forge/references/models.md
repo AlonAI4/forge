@@ -1,6 +1,6 @@
 # Forge model catalogue
 
-57 models. Generated from the Forge engine: do not edit by hand.
+57 models. Generated from the Forge engine: do not edit by hand. Pick the AI here, then read its full guide in `models/<id>.md`.
 
 ## Image
 
@@ -18,6 +18,7 @@ V8.2 · Midjourney. Aesthetic-first diffusion. Write like you are briefing a cin
 - Watch out: Adjective spam (masterpiece, 8k, hyper detailed) is a V5-era habit that actively hurts V7/V8. Forge strips it.
 - Watch out: --stylize and --exp fight each other. If you are using --sref or a personalization profile, keep --exp at or below 25.
 - Sources (checked 2026-09-29): https://docs.midjourney.com/hc/en-us/articles/32199405667853-Version
+- Full guide: [models/midjourney.md](models/midjourney.md)
 
 ### GPT Image (`gptimage`)
 
@@ -34,6 +35,7 @@ V8.2 · Midjourney. Aesthetic-first diffusion. Write like you are briefing a cin
 - Watch out: Draft at quality: low. A dense-text render at high quality is the single biggest latency sink.
 - Not confirmed: notes and settings were written for gpt-image-2, not rechecked for 2.5
 - Sources (checked 2026-09-29): https://developers.openai.com/api/docs/guides/image-generation https://developers.openai.com/api/docs/models
+- Full guide: [models/gptimage.md](models/gptimage.md)
 
 ### Nano Banana Pro (`nanobanana`)
 
@@ -49,6 +51,7 @@ gemini-3-pro-image · Google. Reasons about the picture before it renders it. Th
 - Watch out: image_size must be written with a capital K: 1K, 2K, 4K. Lowercase 4k is ignored.
 - Watch out: Do not port Imagen calls forward. negativePrompt, sampleCount and personGeneration do not exist here: Imagen shut down 17 Aug 2026.
 - Sources (checked 2026-09-29): https://ai.google.dev/gemini-api/docs/interactions/image-generation
+- Full guide: [models/nanobanana.md](models/nanobanana.md)
 
 ### FLUX.2 (`flux`)
 
@@ -63,6 +66,7 @@ gemini-3-pro-image · Google. Reasons about the picture before it renders it. Th
 - Watch out: [pro] and [max] deliberately expose no steps and no guidance. If you need those dials you must switch to [flex].
 - Watch out: prompt_upsampling rewrites your prompt with an LLM. Leave it off once the prompt is engineered.
 - Sources (checked 2026-09-29): https://docs.bfl.ai/flux_2 https://bfl.ai/blog/flux-2
+- Full guide: [models/flux.md](models/flux.md)
 
 ### Stable Diffusion (`sdxl`)
 
@@ -78,6 +82,7 @@ SDXL / 3.5 · Stability AI. The control rig. Tag syntax, real weighting, a true 
 - Watch out: Respect the resolution buckets. Generating SDXL at 1920x1080 directly is the number one amateur mistake: render at 1344x768 and upscale.
 - Watch out: Boilerplate negatives help SDXL and genuinely hurt SD 3.5 and the Flux family. Forge only emits them for SDXL.
 - Sources (checked 2026-09-29): https://stability.ai/stable-image https://stability.ai/news-updates/introducing-stable-diffusion-3-5
+- Full guide: [models/sdxl.md](models/sdxl.md)
 
 ### Ideogram (`ideogram`)
 
@@ -89,9 +94,11 @@ SDXL / 3.5 · Stability AI. The control rig. Tag syntax, real weighting, a true 
 - Weak at: Photorealistic skin and portraits. Alpha channels and editable text layers are still roadmap.
 - Tip: Prose prompts get rewritten by Magic Prompt before generation, which is a train/inference gap. JSON does not.
 - Tip: Bounding boxes are normalised [y_min, x_min, y_max, x_max] on a 0–1000 canvas.
-- Watch out: Set magic_prompt to OFF once you are sending engineered JSON, or it rewrites your work.
-- Watch out: style_codes and style_reference_images are mutually exclusive: sending both errors.
+- Tip: Ideogram 4.0 has no negative prompt. Say the keep-outs inside the description, aimed at this design's likely mistakes: colours outside the stated palette, misspelt, extra or reordered words, a sheet of logo variants instead of one mark, and the clichés of its theme it should not drift into.
+- Watch out: Send a structured prompt as json_prompt, not pasted into text_prompt: only json_prompt turns Magic Prompt off and goes to the model as written.
+- Watch out: rendering_speed FLASH is announced but returns an error for now.
 - Sources (checked 2026-09-29): https://developer.ideogram.ai/api-reference/api-reference/generate-v4 https://docs.ideogram.ai/using-ideogram/generation-settings/available-models
+- Full guide: [models/ideogram.md](models/ideogram.md)
 
 ### Adobe Firefly (`firefly`)
 
@@ -106,6 +113,7 @@ Image 5 · Adobe. The commercially safe one. Content Credentials on every output
 - Watch out: 9:16 is not available on Image 5. If you need vertical social you must fall back to Image 4 or 4 Ultra.
 - Watch out: A prose style description that contradicts a chosen Effect preset produces mush. Pick one or the other.
 - Sources (checked 2026-09-29): https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/cm-generate-image/feature-guide
+- Full guide: [models/firefly.md](models/firefly.md)
 
 ### Recraft (`recraft`)
 
@@ -122,6 +130,7 @@ V4.1 · Recraft. The only model producing genuine editable SVG: real paths that 
 - Watch out: V4 is not a strict superset of V3. Route style-creation jobs back to V3.
 - Not confirmed: notes compare V4 with V3; not rechecked for V4.1
 - Sources (checked 2026-09-29): https://www.recraft.ai/docs/api-reference/getting-started https://www.recraft.ai/ai-models
+- Full guide: [models/recraft.md](models/recraft.md)
 
 ### Seedream (`seedream`)
 
@@ -136,6 +145,7 @@ V4.1 · Recraft. The only model producing genuine editable SVG: real paths that 
 - Watch out: 1.5K costs the same as 1K and looks better. There is no reason ever to request 1K.
 - Watch out: No seed and n locked to 1: reproducibility and cheap variation exploration are both unavailable.
 - Sources (checked 2026-09-29): https://docs.byteplus.com/en/docs/ModelArk/2582774
+- Full guide: [models/seedream.md](models/seedream.md)
 
 ### Qwen-Image (`qwenimage`)
 
@@ -150,6 +160,7 @@ V4.1 · Recraft. The only model producing genuine editable SVG: real paths that 
 - Watch out: size uses an asterisk: 1024*1024, not 1024x1024. Silent-failure class bug.
 - Watch out: prompt_extend defaults to true and will rewrite an engineered prompt. Turn it off.
 - Sources (checked 2026-09-29): https://www.alibabacloud.com/help/en/model-studio/qwen-image-3-0-pro
+- Full guide: [models/qwenimage.md](models/qwenimage.md)
 
 ### Leonardo (`leonardo`)
 
@@ -161,9 +172,11 @@ Lucid Origin · Leonardo AI / Canva. A platform as much as a model. Trainable pe
 - Weak at: Raw fidelity trails frontier models. Quality is really a function of which hosted model you selected.
 - Tip: Keep the prompt simple, then add targeted aesthetic cues: lighting, lens and mood for photoreal, medium and palette for illustration.
 - Tip: Leonardo's own recommended sweet spot is Fast mode, 1440x1440, 15 steps or fewer.
-- Watch out: Dimensions must be multiples of 8 and cap at 2496px.
+- Tip: Lucid Origin has no negative prompt. Say what you want instead of what you don't ("a plain white background", not "no clutter"), and put any must-avoid in one short line of the prompt.
+- Watch out: Dimensions must be multiples of 8, up to 3840 wide and 3616 tall.
 - Watch out: Lucid Realism is tuned as a video input frame generator. For stills, Lucid Origin is the correct default.
 - Sources (checked 2026-09-29): https://docs.leonardo.ai/docs/lucid-origin
+- Full guide: [models/leonardo.md](models/leonardo.md)
 
 ### Any other image model (`generic-image`)
 
@@ -176,6 +189,7 @@ category wildcard. Not in the rack? Forge writes a model-agnostic image prompt t
 - Tip: Two grammars are produced: prose for modern language-encoder models, comma tags for older CLIP-based ones.
 - Tip: Every 2026 model rewards a lens, a light and a grade. Almost none of them reward the word masterpiece.
 - Watch out: Check whether your model has a negative field before pasting the negative block into the main prompt.
+- Full guide: [models/generic-image.md](models/generic-image.md)
 
 ## Video
 
@@ -192,6 +206,7 @@ category wildcard. Not in the rack? Forge writes a model-agnostic image prompt t
 - Watch out: 1080p and 4K are eight-second-only. Requesting them at 4s or 6s fails or silently downgrades. Extending drops you to 720p.
 - Watch out: The prompt rewriter is on by default and will silently rewrite engineered wording. Turn it off for deterministic work.
 - Sources (checked 2026-09-29): https://ai.google.dev/gemini-api/docs/veo
+- Full guide: [models/veo.md](models/veo.md)
 
 ### Kling (`kling`)
 
@@ -203,10 +218,11 @@ category wildcard. Not in the rack? Forge writes a model-agnostic image prompt t
 - Weak at: Prompt sensitivity. It over-reads long prompts and will invent shot changes you did not ask for.
 - Tip: Kling's own formula is shot type, movement direction, duration or speed descriptor, then style elements. Forge writes one block per shot in that order.
 - Tip: Master Shots camera presets are more stable than prompted camera language. When the move matters, use the preset.
-- Tip: Bind elements. Without them, identity drifts badly past about eight seconds.
+- Tip: If they have reference images of a person or product, bind them as elements: without that, identity drifts past about eight seconds. With no references, write the prompt alone and do not ask for elements.
 - Watch out: Multi-shot auto-planning is on by default in some modes. If you want one continuous take you must say so explicitly.
 - Watch out: Audio is billed per second and on by default. Turn it off for silent b-roll or you burn about a third extra.
 - Sources (checked 2026-09-29): https://ir.kuaishou.com/news-releases/news-release-details/kling-ai-launches-30-model-ushering-era-where-everyone-can-be https://ir.kuaishou.com/news-releases/news-release-details/kling-o1-launches-worlds-first-unified-multimodal-video-model-0
+- Full guide: [models/kling.md](models/kling.md)
 
 ### Seedance (`seedance`)
 
@@ -221,6 +237,7 @@ category wildcard. Not in the rack? Forge writes a model-agnostic image prompt t
 - Watch out: In video_edit mode duration and aspect_ratio are ignored and you are billed by source length. Passing them is a silent no-op.
 - Watch out: 4K and 1080p need mode std. Fast mode caps at 720p.
 - Sources (checked 2026-09-29): https://seed.bytedance.com/en/blog/one-take-creation-flexible-referencing-introducing-seedance-2-5
+- Full guide: [models/seedance.md](models/seedance.md)
 
 ### Runway (`runway`)
 
@@ -236,6 +253,7 @@ Gen-4.5 · Runway. Best-in-class prompt adherence on sequenced instructions and 
 - Watch out: Text-to-video is locked to 16:9. For vertical you must generate a still first and go image-to-video.
 - Watch out: Prompting motion that contradicts implied motion in the source image massively increases iteration count.
 - Sources (checked 2026-09-29): https://docs.dev.runwayml.com/
+- Full guide: [models/runway.md](models/runway.md)
 
 ### Hailuo (`hailuo`)
 
@@ -245,11 +263,12 @@ MiniMax H3 · MiniMax. Facial micro-expression and natural physics, with inline 
 - Length: 60 to 180 words
 - Best at: Facial emotion and micro-expression, natural physics, text and brand rendering, motion transfer, 2K output.
 - Weak at: Aspect ratios bounded between 2:5 and 5:2. No 4K. You cannot get a clean dialogue stem.
-- Tip: H3 accepts inline bracketed camera instructions: [pan], [zoom], [static]. Forge only emits those for this model.
+- Tip: Camera moves go in brackets, using MiniMax's documented commands: [Push in], [Pull out], [Pan left], [Pan right], [Tilt up], [Tilt down], [Truck left], [Truck right], [Pedestal up], [Pedestal down], [Zoom in], [Zoom out], [Shake], [Tracking shot], [Static shot]. Up to 3 in one bracket run together, e.g. [Pan left,Pedestal up] (MiniMax docs, checked 1 Oct 2026).
 - Tip: Voice, SFX and music are jointly modelled, so the audio is cohesive but inseparable. Generate silent and dub if you need stems.
 - Watch out: Duration must be an integer. Sending 7.5 fails.
 - Watch out: The bracket syntax is model-specific. Do not paste a Hailuo prompt into another model: the brackets become literal noise.
 - Sources (checked 2026-09-29): https://platform.minimax.io/docs/guides/video-generation
+- Full guide: [models/hailuo.md](models/hailuo.md)
 
 ### Luma Ray (`luma`)
 
@@ -260,11 +279,12 @@ MiniMax H3 · MiniMax. Facial micro-expression and natural physics, with inline 
 - Best at: Professional post pipelines, precise pacing via keyframes, performance preservation, colour-critical work.
 - Weak at: Not the cheapest or fastest. Audio is not its story.
 - Tip: Ray3 has a reasoning mode that plans event sequences, so it favours narrative prose (X happens, then Y) over dense keyword stacks.
-- Tip: Sixteen keyframes is a pacing tool, not just a start-and-end tool. Place them on beat changes to lock timing.
+- Tip: Keyframes are optional images that pin moments (up to sixteen). Only use them if the person has those images; otherwise the prompt alone carries the clip.
 - Watch out: Always iterate in Draft mode and only then master. Mastering every take at 4K HDR is the biggest credit waste on the platform.
 - Watch out: Dream Machine is deprecated branding. The model is Ray3.2.
 - Not confirmed: exact API model string (ray3.2)
 - Sources (checked 2026-09-29): https://lumalabs.ai/news/introducing-ray-3-2
+- Full guide: [models/luma.md](models/luma.md)
 
 ### LTX-2 (`ltx`)
 
@@ -281,6 +301,7 @@ MiniMax H3 · MiniMax. Facial micro-expression and natural physics, with inline 
 - Watch out: Free use is capped by a revenue threshold, not by feature. Check it before commercial deployment.
 - Not confirmed: notes and durations were written for LTX-2.3
 - Sources (checked 2026-09-29): https://github.com/Lightricks/LTX-2
+- Full guide: [models/ltx.md](models/ltx.md)
 
 ### Higgsfield (`higgsfield`)
 
@@ -296,6 +317,7 @@ Cinema Studio 4.0 · Higgsfield. Sixty-three named camera presets and a prompt-a
 - Watch out: Camera presets generally need a start image.
 - Not confirmed: notes and settings were written for Cinema Studio 3.0
 - Sources (checked 2026-09-29): https://higgsfield.ai/blog/cinema-studio-4-0
+- Full guide: [models/higgsfield.md](models/higgsfield.md)
 
 ### Wan (`wan`)
 
@@ -310,6 +332,7 @@ Cinema Studio 4.0 · Higgsfield. Sixty-three named camera presets and a prompt-a
 - Watch out: Wan is no longer simply open source. 2.7 is closed-weights and API-only. Pin to 2.6 if you need local.
 - Watch out: Four-minute generations will time out synchronous request patterns. Use polling or webhooks.
 - Sources (checked 2026-09-29): https://www.alibabacloud.com/blog/alibaba-unveils-wan2-7-video-to-elevate-creators-from-executors-to-directors_603009 https://www.alibabacloud.com/press-room/alibaba-unveils-wan2-6-series-enabling-everyone
+- Full guide: [models/wan.md](models/wan.md)
 
 ### Midjourney Video (`mjvideo`)
 
@@ -324,6 +347,7 @@ V1 · Midjourney. Inherits the Midjourney look frame by frame. Motion-only promp
 - Watch out: --motion low is the default and produces near-still results. If nothing moves, that is why.
 - Watch out: --raw disables the house styling. Use it when you want the video to obey the prompt rather than Midjourney's taste.
 - Sources (checked 2026-09-29): https://docs.midjourney.com/hc/en-us/articles/37460773864589-Video https://updates.midjourney.com/introducing-our-v1-video-model/
+- Full guide: [models/mjvideo.md](models/mjvideo.md)
 
 ### Any other video model (`generic-video`)
 
@@ -337,6 +361,7 @@ category wildcard. Writes a portable cinematic prompt with every layer a video m
 - Tip: One camera move per shot. Stacking dolly, orbit and tilt produces mush everywhere.
 - Tip: Cinematic is a null token in 2026. Name the shot instead.
 - Watch out: If your model is image-to-video, delete everything that re-describes the source still and keep only what changes.
+- Full guide: [models/generic-video.md](models/generic-video.md)
 
 ## Voice & speech
 
@@ -354,6 +379,7 @@ v4 / v3 / multilingual v2 / flash v2.5 · ElevenLabs. Three different models und
 - Watch out: The phoneme tag only works on eleven_flash_v2: not on multilingual v2, not on v3. On v3 use inline IPA between forward slashes.
 - Not confirmed: voice presets not rechecked for v4
 - Sources (checked 2026-09-29): https://elevenlabs.io/docs/overview/models https://elevenlabs.io/blog/eleven-v4
+- Full guide: [models/el-tts.md](models/el-tts.md)
 
 ### ElevenLabs · Voice Design (`el-voicedesign`)
 
@@ -368,6 +394,7 @@ eleven_ttv_v3 · ElevenLabs. Invents a voice from a description. The description
 - Watch out: Never use audio-FX words like reverb, echo or delay here. Voice Design models the voice, not the acoustics. This is the opposite of Sound Effects and Music.
 - Watch out: Do not write 'accent' when you mean intonation. Name the actual dialect.
 - Sources (checked 2026-09-29): https://elevenlabs.io/docs/api-reference/text-to-voice/design
+- Full guide: [models/el-voicedesign.md](models/el-voicedesign.md)
 
 ### ElevenLabs · Dubbing (`el-dubbing`)
 
@@ -376,11 +403,12 @@ v2 · ElevenLabs. Ninety-plus languages, keeps the original voices and the backg
 - Needs: Which language and accent? Who does the voice sound like? Age, accent, manner?
 - Best at: Localising finished video without re-mixing, preserving emotional tone and the original performance.
 - Weak at: Not a script tool. If you need to change what is said, dub from an edited transcript in Dubbing Studio instead.
-- Tip: Use BCP-47 tags with the dialect, not just the language: en-AU, es-MX, pt-BR. The dialect is where the quality is.
-- Tip: Speaker similarity runs 0 to 10 and defaults to 7. Raise it when the original performance is the point.
+- Tip: source_lang and target_lang take ISO 639 codes (es, pt, en), not dialect tags like es-MX: the API rejects those. Say the dialect you want in the project notes, and check the dub by ear.
+- Tip: The dub clones each speaker's own voice by default; set disable_voice_cloning only when you want stock Voice Library voices instead. There is no similarity dial in the API (checked 1 Oct 2026).
 - Watch out: API limit is 3GB per file, 180 minutes in-app. Dubbing Studio (v1) is the editable-transcript path and caps much lower at 45 minutes.
 - Watch out: Concurrency is three jobs on self-serve. Plan batches around it.
 - Sources (checked 2026-09-29): https://elevenlabs.io/docs/eleven-creative/products/dubbing
+- Full guide: [models/el-dubbing.md](models/el-dubbing.md)
 
 ### Cartesia Sonic (`cartesia`)
 
@@ -389,18 +417,19 @@ v2 · ElevenLabs. Ninety-plus languages, keeps the original voices and the backg
 - Needs: What exactly should be said? What is the voice for? Who does the voice sound like? Age, accent, manner?
 - Best at: Realtime voice agents, telephony, code-switching, alphanumerics like order and phone numbers.
 - Weak at: Beta API, no open weights, smaller voice library than ElevenLabs.
-- Tip: Emotion, speed and volume are API parameters here rather than prompt text, which makes them deterministic.
+- Tip: Sonic 3 takes tags inside the transcript: <emotion value="excited"/>, <speed ratio="1.2"/> (0.6 to 1.5), <volume ratio="0.8"/> (0.5 to 2.0), <break time="500ms"/> and <spell>A1B2</spell>. Use them to change delivery mid-script; emotion is beta and English only (Cartesia docs, checked 1 Oct 2026).
 - Tip: Custom pronunciation dictionaries with IPA overrides are the reliable fix for brand names.
 - Watch out: Sonic-2, Sonic-turbo and older snapshots sunset after 20 October 2026. Pin to 3.6.
 - Sources (checked 2026-09-29): https://docs.cartesia.ai/build-with-cartesia/tts-models/latest https://www.cartesia.ai/blog/sonic-3.6
+- Full guide: [models/cartesia.md](models/cartesia.md)
 
 ### Hume Octave (`hume`)
 
-2 · Hume AI. Acting instructions as a first-class input, with a documented rule that shorter direction beats longer.
+1 · Hume AI. Acting instructions as a first-class input, with a documented rule that shorter direction beats longer.
 
 - Needs: What exactly should be said? Who does the voice sound like? Age, accent, manner?
 - Best at: Emotionally precise delivery, character work, direction that changes mid-line.
-- Weak at: The description field is Octave 1 only at time of writing. Verify before relying on it.
+- Weak at: Acting instructions (the description field) work on Octave 1 only; Octave 2 is a preview where they are 'coming soon'.
 - Tip: Hume's own guidance: keep acting instructions under about 100 characters. 'Frightened, rushed' beats a paragraph.
 - Tip: Precise emotions beat generic ones: melancholy and frustrated, not sad.
 - Tip: Audience context shapes delivery: 'speaking to a child', 'addressing a large crowd'.
@@ -408,6 +437,7 @@ v2 · ElevenLabs. Ninety-plus languages, keeps the original voices and the backg
 - Watch out: Limits are 5000 characters of text and 1000 characters of description per utterance.
 - Not confirmed: model id spelling 'octave-2' not found on an official page
 - Sources (checked 2026-09-29): https://www.hume.ai/blog/octave-2-launch https://dev.hume.ai/docs/text-to-speech-tts/overview
+- Full guide: [models/hume.md](models/hume.md)
 
 ### Any other voice model (`generic-voice`)
 
@@ -418,6 +448,7 @@ category wildcard. A portable TTS brief: the script marked up for prosody, a voi
 - Weak at: Nothing model-specific.
 - Tip: Punctuation is prosody on every modern engine. Ellipses hesitate, dashes clip, capitals stress.
 - Watch out: Bracketed audio tags are an ElevenLabs v3 convention. Strip them if your engine does not document them.
+- Full guide: [models/generic-voice.md](models/generic-voice.md)
 
 ## Sound effects
 
@@ -434,6 +465,7 @@ eleven_text_to_sound_v2 · ElevenLabs. One effect per generation, then layer the
 - Watch out: prompt_influence defaults to 0.3, which is deliberately loose. Raise it toward 0.8 when you need literal.
 - Watch out: Loop only works on eleven_text_to_sound_v2, and WAV at 48kHz is non-looping only.
 - Sources (checked 2026-09-29): https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert
+- Full guide: [models/el-sfx.md](models/el-sfx.md)
 
 ### Any other sound model (`generic-sfx`)
 
@@ -444,6 +476,7 @@ category wildcard. A portable sound-design brief with the source, the space, the
 - Weak at: Nothing model-specific.
 - Tip: Name the source, the material it hits, the space it happens in, and how the tail behaves. That is the whole craft.
 - Watch out: One event per generation, everywhere. Layer in a DAW.
+- Full guide: [models/generic-sfx.md](models/generic-sfx.md)
 
 ## Music
 
@@ -461,6 +494,7 @@ music_v2_5 · ElevenLabs. Studio language moves real levers here. Sidechained, c
 - Watch out: Prompt cap is 4100 characters.
 - Not confirmed: tips written for music_v2
 - Sources (checked 2026-09-29): https://elevenlabs.io/docs/overview/capabilities/music
+- Full guide: [models/el-music.md](models/el-music.md)
 
 ### Suno (`suno`)
 
@@ -476,10 +510,11 @@ v6 · Suno. Style field, lyrics field, and a dedicated Exclude Styles box that i
 - Watch out: Download caps take effect from 3 September 2026: 20 a month on Pro, 60 on Premier. Check before you plan a release.
 - Not confirmed: tips written for v5.5, not rechecked for v6
 - Sources (checked 2026-09-29): https://suno.com/release-notes
+- Full guide: [models/suno.md](models/suno.md)
 
 ### Google Lyria (`lyria`)
 
-3 Pro · Google DeepMind. Three-minute full-structure songs with timestamp prompting, and SynthID plus C2PA on everything it makes.
+3.5 · Google DeepMind. Three-minute full-structure songs with timestamp prompting, and SynthID plus C2PA on everything it makes.
 
 - Needs: What genre? What should the music feel like? Which instruments? How fast? Give a tempo in BPM.
 - Best at: Scoring to picture, vocals with timed lyrics, provenance-clean delivery, music from a reference image or PDF.
@@ -488,6 +523,7 @@ v6 · Suno. Style field, lyrics field, and a dedicated Exclude Styles box that i
 - Tip: Timestamp prompting with [MM:SS] tags assigns actions to timed segments. That is how you score to a cut.
 - Watch out: Every output carries SynthID watermarking and C2PA credentials. That is a feature for provenance and a constraint if you need a clean asset.
 - Sources (checked 2026-09-29): https://ai.google.dev/gemini-api/docs/models/lyria-3-pro-preview
+- Full guide: [models/lyria.md](models/lyria.md)
 
 ### Stable Audio (`stableaudio`)
 
@@ -501,6 +537,7 @@ v6 · Suno. Style field, lyrics field, and a dedicated Exclude Styles box that i
 - Tip: Their guidance asks for sophisticated mood words: euphoric not happy, melancholic not sad, soaring not energetic.
 - Watch out: Naming an era does real work here: '80s gated reverb', '90s grunge distortion'.
 - Sources (checked 2026-09-29): https://stability.ai/news-updates/stability-ai-introduces-stable-audio-25-the-first-audio-model-built-for-enterprise-sound-production-at-scale
+- Full guide: [models/stableaudio.md](models/stableaudio.md)
 
 ### Any other music model (`generic-music`)
 
@@ -511,6 +548,7 @@ category wildcard. A portable style line plus a structured arrangement narration
 - Weak at: Nothing model-specific.
 - Tip: BPM and key both work on the major models. State them as numbers and letters, not as 'fast' and 'sad'.
 - Watch out: Section metatags like [Chorus] are a Suno and ElevenLabs convention. Check your tool before pasting them.
+- Full guide: [models/generic-music.md](models/generic-music.md)
 
 ## Chat & reasoning
 
@@ -528,6 +566,7 @@ Opus 5.5 / Sonnet 5.5 / Fable 5.1 · Anthropic. Wants XML tags, examples, and lo
 - Watch out: Remove legacy 'verify your work' instructions on Opus 5: they cause over-verification with no quality gain.
 - Not confirmed: temperature and prompting notes were written for Sonnet 5 and Opus 5
 - Sources (checked 2026-09-29): https://platform.claude.com/docs/en/models/overview
+- Full guide: [models/claude.md](models/claude.md)
 
 ### GPT (`gpt`)
 
@@ -543,6 +582,7 @@ GPT-6 Astra / Sol / Luna · OpenAI. Prune, do not stack. OpenAI measured a 10–
 - Watch out: Above 272k input tokens you pay 2x input and 1.5x output. The 1.05M window is not uniformly priced.
 - Not confirmed: notes about reasoning settings were written for GPT-5.6
 - Sources (checked 2026-09-29): https://developers.openai.com/api/docs/models https://openai.com/index/gpt-6-astra/
+- Full guide: [models/gpt.md](models/gpt.md)
 
 ### Gemini (`gemini`)
 
@@ -558,6 +598,7 @@ GPT-6 Astra / Sol / Luna · OpenAI. Prune, do not stack. OpenAI measured a 10–
 - Watch out: Thought signatures must round-trip across calls or multi-turn reasoning continuity breaks.
 - Not confirmed: tips written for 3.7 Flash
 - Sources (checked 2026-09-29): https://ai.google.dev/gemini-api/docs/models
+- Full guide: [models/gemini.md](models/gemini.md)
 
 ### Grok (`grok`)
 
@@ -571,6 +612,7 @@ GPT-6 Astra / Sol / Luna · OpenAI. Prune, do not stack. OpenAI measured a 10–
 - Watch out: The knowledge cutoff is February 2026, so enable server-side search for anything current.
 - Not confirmed: tips written for Grok 4.6
 - Sources (checked 2026-09-29): https://docs.x.ai/developers/models
+- Full guide: [models/grok.md](models/grok.md)
 
 ### DeepSeek (`deepseek`)
 
@@ -584,6 +626,7 @@ V4 Pro / V4.1 Flash · DeepSeek. An order of magnitude cheaper than peers, MIT-l
 - Watch out: Off-peak is half price at 01:00–04:00 and 06:00–10:00 UTC. Batch scheduling is a real 50% lever.
 - Not confirmed: tips about Flash were written for V4 Flash
 - Sources (checked 2026-09-29): https://api-docs.deepseek.com/updates/ https://api-docs.deepseek.com/news/news260910/
+- Full guide: [models/deepseek.md](models/deepseek.md)
 
 ### Any other chat model (`generic-text`)
 
@@ -595,6 +638,7 @@ category wildcard. A model-agnostic prompt built on the techniques with the stro
 - Tip: Output format specification is the single strongest lever across every vendor guide. Forge always emits it.
 - Tip: Delimiters separating instructions from data reduce misattribution and prompt-injection surface everywhere.
 - Watch out: Chain-of-thought instructions are largely obsolete on 2026 frontier models. Use the model's own reasoning control instead.
+- Full guide: [models/generic-text.md](models/generic-text.md)
 
 ## Coding agents
 
@@ -611,6 +655,7 @@ current · Anthropic. Explore, plan, implement, commit. The documented prescript
 - Watch out: Keep CLAUDE.md lean. Test every line with: would removing this cause a mistake? Emphasise one thing with IMPORTANT, not five.
 - Watch out: After two failed corrections, clear the context and rewrite the prompt rather than correcting a third time.
 - Sources (checked 2026-09-29): https://code.claude.com/docs/en/permission-modes https://code.claude.com/docs/en/memory
+- Full guide: [models/claudecode.md](models/claudecode.md)
 
 ### Cursor (`cursor`)
 
@@ -624,6 +669,7 @@ Composer 2.5 + frontier models · Cursor. Four kinds of rules with a real preced
 - Watch out: Rules must be .mdc inside .cursor/rules/. A plain .md file there does nothing at all, silently.
 - Watch out: Team rules override yours and can be made non-disableable. Check the hierarchy before blaming the model.
 - Sources (checked 2026-09-29): https://cursor.com/docs/models/cursor-composer-2-5 https://cursor.com/docs/context/rules
+- Full guide: [models/cursor.md](models/cursor.md)
 
 ### GitHub Copilot (`copilot`)
 
@@ -636,6 +682,7 @@ current · GitHub. Unusually explicit about what not to put in instructions: no 
 - Watch out: Do not write instructions that require looking something up externally, mandate tone, or set word limits.
 - Watch out: Agent-file support varies by Copilot feature. Do not assume AGENTS.md is read everywhere.
 - Sources (checked 2026-09-29): https://docs.github.com/copilot/concepts/about-customizing-github-copilot-chat-responses https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions/add-repository-instructions
+- Full guide: [models/copilot.md](models/copilot.md)
 
 ### Codex (`codex`)
 
@@ -647,6 +694,7 @@ GPT-6 · OpenAI. Reads AGENTS.md and has its own effort ladder. The official rul
 - Tip: Codex will point at any model implementing Chat Completions or Responses, not only OpenAI's.
 - Watch out: Effort names differ between the API and the Codex UI. Do not map reasoning.effort to Light and Ultra one-to-one.
 - Sources (checked 2026-09-29): https://learn.chatgpt.com/docs/agent-configuration/agents-md https://learn.chatgpt.com/docs/config-file/config-reference
+- Full guide: [models/codex.md](models/codex.md)
 
 ### Devin (`devin`)
 
@@ -659,6 +707,7 @@ Cloud / Desktop · Cognition. Four components in every good Devin prompt: contex
 - Watch out: Rules files are hard-capped: 6,000 characters global, 12,000 per workspace file. A longer file silently truncates.
 - Watch out: Windsurf is now Devin Desktop. .devin/ beats .windsurf/, and leftover Windsurf configs can be shadowed.
 - Sources (checked 2026-09-29): https://docs.devin.ai/cli/extensibility/rules
+- Full guide: [models/devin.md](models/devin.md)
 
 ### Any other coding agent (`generic-code`)
 
@@ -669,6 +718,7 @@ category wildcard. The four things every coding agent needs, in the order they n
 - Weak at: Nothing tool-specific.
 - Tip: AGENTS.md is the closest thing to a cross-tool standard: Cursor, Codex, Copilot and Devin Desktop all read it.
 - Watch out: A success criterion that cannot be checked by a command is not a success criterion.
+- Full guide: [models/generic-code.md](models/generic-code.md)
 
 ## App builders
 
@@ -682,6 +732,7 @@ v2 API · Vercel. Headless as well as interactive. Each app is a chat that holds
 - Tip: Do not hard-tune prompts to a specific base model's quirks: v0 swaps them independently.
 - Watch out: Three skills per request is a hard cap.
 - Sources (checked 2026-09-29): https://vercel.com/changelog/models-api-v0-1.5-beta https://github.com/vercel/v0-sdk
+- Full guide: [models/v0.md](models/v0.md)
 
 ### Lovable (`lovable`)
 
@@ -695,6 +746,7 @@ current · Lovable. Their own words: the most common mistake is not a bad prompt
 - Watch out: Always include the leave-alone clause. Omit it and it will rewrite parts that already worked.
 - Not confirmed: that the preview toolbar is cheaper than re-prompting
 - Sources (checked 2026-09-29): https://docs.lovable.dev/features/plan-mode https://docs.lovable.dev/features/agent-mode https://docs.lovable.dev/features/design
+- Full guide: [models/lovable.md](models/lovable.md)
 
 ### Bolt (`bolt`)
 
@@ -708,6 +760,7 @@ current · StackBlitz. Bills by token, so Plan Mode and file locking are cost co
 - Watch out: Plan Mode (which replaced Discussion Mode) agrees the plan before building. Planning first is the cheapest way to avoid wasted builds.
 - Not confirmed: project system prompt setting; that Plan Mode saves the most tokens
 - Sources (checked 2026-09-29): https://support.bolt.new/docs/discussion-mode https://support.bolt.new/building/using-bolt
+- Full guide: [models/bolt.md](models/bolt.md)
 
 ### Base44 (`base44`)
 
@@ -720,6 +773,7 @@ current · Wix. Entities and data model first, then screens, then logic. Managed
 - Watch out: Treat prompt advice here as generic app-builder advice: Base44 publish no formal prompting guidance.
 - Not confirmed: the entities, screens, logic build order is not in the official docs
 - Sources (checked 2026-09-29): https://docs.base44.com/Integrations/Using-integrations https://docs.base44.com/Getting-Started/Quick-start-guide
+- Full guide: [models/base44.md](models/base44.md)
 
 ### Any other app builder (`generic-app`)
 
@@ -730,6 +784,7 @@ category wildcard. The three rules that hold across every builder: plan first, o
 - Weak at: Nothing tool-specific.
 - Tip: Every builder in this category recommends the same thing: scope the slice, name the data, and protect what already works.
 - Watch out: A prompt that describes a whole app produces an app-shaped demo, not a working slice.
+- Full guide: [models/generic-app.md](models/generic-app.md)
 
 ## Research
 
@@ -741,9 +796,11 @@ Agent API · Perplexity. Search-grounded by construction, with a context-size di
 - Best at: Current questions where citations matter and you want the answer, not a list of links.
 - Weak at: Deep Research cost is four-dimensional. Model the budget, do not estimate it from token price.
 - Tip: search_context_size is a genuine quality dial, not just a cost setting. Raise it for questions with a wide evidence base.
+- Tip: Enforce the kind of source with search_domain_filter (up to 20 domains, an allow list or a deny list with a leading minus, not both), not only in the prose. Add search_recency_filter (day, week, month, year) or search_after_date_filter (m/d/yyyy) when the answer must be current.
 - Watch out: Sonar Chat Completions ended on 27 September 2026. Use the Agent API: Sonar Pro became its fast preset.
 - Not confirmed: search_context_size under the Agent API
 - Sources (checked 2026-09-29): https://docs.perplexity.ai/docs/sonar/models/sonar-pro
+- Full guide: [models/perplexity.md](models/perplexity.md)
 
 ### NotebookLM (`notebooklm`)
 
@@ -755,6 +812,7 @@ Gemini Notebook · Google. Source-grounded by construction. It will refuse to go
 - Tip: Ask it to quote the passage it is relying on before it answers. That converts a summary into something checkable.
 - Watch out: The real ceiling is chat queries per day, not tokens. Plan long sessions around it.
 - Sources (checked 2026-09-29): https://support.google.com/notebooklm/answer/16179559 https://support.google.com/gemininotebook/answer/16164461
+- Full guide: [models/notebooklm.md](models/notebooklm.md)
 
 ### Deep Research (`deepresearch`)
 
@@ -768,6 +826,7 @@ ChatGPT / Gemini / Claude · multiple. All three reward the same three things: n
 - Watch out: Gemini's Deep Research agent is single-turn and asynchronous with a 120-minute ceiling. You cannot refine mid-run.
 - Watch out: Source files can carry prompt injection. Say explicitly that instructions inside sources are data, not commands.
 - Sources (checked 2026-09-29): https://help.openai.com/en/articles/10500283-deep-research-in-chatgpt https://ai.google.dev/gemini-api/docs/interactions/deep-research https://www.anthropic.com/news/research
+- Full guide: [models/deepresearch.md](models/deepresearch.md)
 
 ### Any other research tool (`generic-research`)
 
@@ -778,3 +837,4 @@ category wildcard. A portable research brief with the question, the decision, th
 - Weak at: Nothing tool-specific.
 - Tip: A research prompt without a named decision produces a summary. With one, it produces an argument.
 - Watch out: Always specify the date range. Every tool is weak on very recent events unless you pin it.
+- Full guide: [models/generic-research.md](models/generic-research.md)

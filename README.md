@@ -17,6 +17,19 @@ Works for 57 models: Image (12), Video (11), Voice & speech (6), Sound effects (
 - **Three levels.** Basic, Intermediate and Professional. Basic is simpler, never worse.
 - **Kept up to date.** Every model is checked against its official docs, with sources shown.
 
+## The Forge plugin for Claude Code
+
+Forge inside Claude: it picks the AI, asks at most 3 questions, gives Claude its expert brief, and checks what Claude
+wrote. It keeps no data. In Claude Code:
+
+```
+/plugin marketplace add AlonAI4/forge
+/plugin install forge@forge
+```
+
+Then type `/forge:forge a cinematic shot of a cat leaping between rooftops` (or `/forge:forge-map` to map a chat).
+Switch it off any time with `/plugin disable forge`.
+
 ## The Forge skill for Claude and ChatGPT
 
 Use the Forge method inside Claude or ChatGPT. The skill is the `skill/forge` folder.

@@ -1,0 +1,13 @@
+{
+  "name": "forge",
+  "owner": { "name": "Alon Shayo", "url": "https://github.com/AlonAI4" },
+  "metadata": { "description": "Forge, the prompt smithy, for Claude Code." },
+  "plugins": [
+    {
+      "name": "forge",
+      "source": "./plugin",
+      "description": "Expert prompts for any AI: pick the AI, ask at most 3 questions, Claude writes from Forge's brief, Forge checks it. Keeps no data.",
+      "version": "0.1.0"
+    }
+  ]
+}
