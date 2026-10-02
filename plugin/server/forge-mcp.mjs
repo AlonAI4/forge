@@ -37393,6 +37393,7 @@ __export(engine_exports, {
   matchReason: () => matchReason,
   measurePixels: () => measurePixels,
   moodClause: () => moodClause,
+  notMine: () => notMine,
   onlyVisible: () => onlyVisible,
   readChat: () => readChat,
   rebuildBrief: () => rebuildBrief,
@@ -42160,8 +42161,22 @@ function pickAspect(t, m2) {
   }
   return gap < 0.2 ? best : "";
 }
+var MINE = /\b(my|our)\s+(?:own\s+)?((?:(?:little|old|new|big|small|cute|black|white|brown|golden|fluffy|ginger|grey|gray|tabby|baby)\s+)?)(dog|cat|pupp(?:y|ies)|kitten|pet|horse|bird|parrot|hamster|rabbit|bunn(?:y|ies)|fish|pug|house|home|room|bedroom|kitchen|garden|backyard|yard|car|bike|truck|best friend|friend|brother|sister|mom|mum|dad|mother|father|family|son|daughter|baby|kid|grandma|grandpa|grandmother|grandfather|girlfriend|boyfriend|wife|husband|partner|team|school|office|shop|store|bakery|cafe|café|restaurant|band|couch|sofa|bed|street|town|city|village|farm|boat|guitar)(s|es)?\b/gi;
+function notMine(t) {
+  const found2 = [];
+  const text = String(t || "").replace(MINE, (all, who, adj, noun, pl, at, str) => {
+    if (/\bfor\s+$/i.test(str.slice(0, at))) return all;
+    found2.push(all);
+    const many = !!pl || /ies$/i.test(noun), rest = (adj || "") + noun.toLowerCase() + (pl || "");
+    const art = many ? "" : /^[aeiou]/i.test(rest) ? "an " : "a ";
+    const out = art + rest;
+    return /^[A-Z]/.test(who) && (at === 0 || /[.!?\n]\s*$/.test(str.slice(0, at))) ? cap(out) : out;
+  });
+  return { text, found: found2 };
+}
 function rebuildBrief(text, m2) {
-  const t = cleanDraft(stripBanned(text).text);
+  const t0 = cleanDraft(stripBanned(text).text);
+  const t = ["image", "video"].includes(m2.cat) ? notMine(t0).text : t0;
   const b = {};
   const suggested = [];
   const sug = (k2, v2) => {
@@ -42433,7 +42448,7 @@ function forgeFromText(text, m2, level) {
   res.score = counted.score;
   res.parts = counted.parts;
   res.ask = counted.ask;
-  const own2 = (["image", "video"].includes(m2.cat) ? deMeta(tidyRequest(stripBanned(fixed.text).text)) : stripBanned(fixed.text).text).trim();
+  const own2 = (["image", "video"].includes(m2.cat) ? notMine(deMeta(tidyRequest(stripBanned(fixed.text).text))).text : stripBanned(fixed.text).text).trim();
   const before = scoreText(own2, m2);
   if (own2 && res.score < before.total) {
     const flags = /\s--[a-z]/i.test(own2) ? "" : (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];
@@ -42451,6 +42466,13 @@ function forgeFromText(text, m2, level) {
   const reps = repeatsIn([mine.text]).filter((w2) => !res.warn.some((x) => x.startsWith("Said more than once")));
   if (reps.length) res.warn.unshift("Said more than once in your text: " + reps.join(", ") + ". Saying it once is enough, and repeats can make the AI overdo it.");
   for (const c of findClashes({ text: fixed.text }).reverse()) if (!res.warn.includes(c)) res.warn.unshift(c);
+  if (["image", "video"].includes(m2.cat)) {
+    const mine2 = notMine(fixed.text).found;
+    if (mine2.length) {
+      const was = mine2[0].toLowerCase(), now = notMine(was).text;
+      res.warn.push('Forge wrote "' + now + '" for "' + was + `": the AI can't know yours. Describe ` + (/s$/.test(now) ? "them" : "it") + " (colour, size, look) or give the AI a reference photo.");
+    }
+  }
   const media = { image: "a picture", video: "a video", music: "music", voice: "speech", sfx: "a sound" }[m2.cat];
   if (media && /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:write|explain|summari[sz]e|tell me|answer|translate|debug|list|compare|plan|research)\b/i.test(fixed.text))
     res.warn.unshift("This reads like a request for writing, not " + media + ". " + m2.n + " makes " + media + ": for writing, pick a chat AI like Claude, GPT or Gemini.");
@@ -43272,7 +43294,7 @@ function lookPixels(lum, w2, h2) {
     let inside = 0;
     for (let y = by0; y < by1; y++) for (let x = bx0; x < bx1; x++) inside += g[y * w2 + x];
     const area = (bx1 - bx0) * (by1 - by0) / (w2 * h2), packed = inside / gsum;
-    if (packed > Math.min(0.9, area * 1.8)) {
+    if (packed > Math.min(0.9, area * 3)) {
       const col = cx < 0.4 ? "left" : cx > 0.6 ? "right" : "centre", row = cy < 0.4 ? "top" : cy > 0.6 ? "bottom" : "middle";
       const third = [1 / 3, 2 / 3].some((t) => Math.abs(cx - t) < 0.07) || [1 / 3, 2 / 3].some((t) => Math.abs(cy - t) < 0.07);
       out.subject = (row === "middle" ? col : row + " " + col).replace("middle centre", "centre") + (third && col !== "centre" ? " (on a third line)" : "");
@@ -44026,6 +44048,13 @@ function checkPrompt(E2, o) {
       names.add(w2);
     }
   }
+  if (["image", "video"].includes(m2.cat)) {
+    const mine = E2.notMine(reply2.prompt).found;
+    if (mine.length) {
+      P2.invented.push('Says "' + mine[0] + '": ' + name + ` can't know whose it is. Write "` + E2.notMine(mine[0].toLowerCase()).text + '" and describe it instead.');
+      cleaned = E2.notMine(cleaned).text;
+    }
+  }
   if (names.size) P2.invented.push("Names the person never gave: " + [...names].slice(0, 5).join(", ") + ". Remove them unless the person said them.");
   const problems = [...P2.kept, ...P2.settings, ...P2.invented, ...P2.filler];
   const out = {
@@ -44338,14 +44367,24 @@ function map2(a) {
   ) : null;
   let main2 = r2.main || [];
   if (main2.length < 3) {
-    const STOP3 = new Set("that this with from have want need make what when your about there their them they then than just like some also only into over more very lets let's please yeah sure said here".split(" "));
-    const seen = (
-      /** @type {Record<string, number>} */
-      {}
-    );
-    for (const w2 of String(a.text || "").toLowerCase().match(/[a-z0-9][a-z0-9'-]{2,}/g) || []) if (!STOP3.has(w2) && !/^(you|ai|chatgpt|claude|gemini|said)$/.test(w2)) seen[w2] = (seen[w2] || 0) + 1;
-    const have = new Set(main2.map((x) => String(x.label).toLowerCase()));
-    main2 = main2.concat(Object.entries(seen).filter(([w2]) => !have.has(w2) && (w2.length >= 4 || /\d/.test(w2))).filter(([w2, n]) => n >= 2 || /\d/.test(w2) || w2.length >= 6).sort((x, y) => y[1] - x[1] || y[0].length - x[0].length).slice(0, 6 - main2.length).map(([w2]) => ({ label: w2 })));
+    const STOP3 = new Set("that this with from have want need make made what when your about there their them they then than just like some also only into over more very lets let's please yeah sure said here the and for but not are was were has had can will would should could did does done its it's our you all any each every other such much many most few lot between under above below behind beside beyond across along among around through during against within without after before since until while though although because never always often maybe really still even again already keep kept use used using add added adding get got put try want wants i'll i'm i've don't can't won't it'll that's where which who whom whose why how must might may shall help yes okay first last next one two three thing things stuff way".split(" "));
+    const DESCRIBING = /(?:al|ive|ous|ful|less|able|ible|ic|ly)$/;
+    const fam = (w2) => w2.replace(/'s$/, "").replace(/(?:ing|ed|es|s)$/, "").replace(/(.)\1$/, "$1");
+    const text = String(a.text || "").toLowerCase();
+    const have = main2.map((x) => String(x.label).toLowerCase());
+    const seen = {};
+    let at = 0;
+    for (const w2 of text.match(/[a-z0-9][a-z0-9'-]{2,}/g) || []) {
+      at++;
+      if (STOP3.has(w2) || /^(you|ai|chatgpt|claude|gemini|said)$/.test(w2) || /^\d+$/.test(w2) || /'(?!s$)|'s$/.test(w2) && STOP3.has(w2.replace(/'s$/, "")) || /^(here|there|what|that|it|he|she|let)'/.test(w2)) continue;
+      if (DESCRIBING.test(w2) && w2.length > 4) continue;
+      if (have.some((h2) => h2.split(/\s+/).includes(w2))) continue;
+      const k2 = fam(w2);
+      if (!seen[k2]) seen[k2] = { w: w2, n: 0, at };
+      seen[k2].n++;
+      if (w2.length < seen[k2].w.length) seen[k2].w = w2;
+    }
+    main2 = main2.concat(Object.values(seen).sort((x, y) => y.n - x.n || x.at - y.at).slice(0, 7 - main2.length).map((x) => ({ label: x.w })));
   }
   return { available: true, result: { summary: cc ? cc.summary : null, turns: cc ? cc.turns.length : 0, main: main2, topics: r2.topics, missing: (r2.slots || []).filter(
     /** @param {any} x */
@@ -44398,7 +44437,7 @@ function checkText(r2) {
   if (r2.negative) out.push("", "Negative prompt:", fence(r2.negative));
   if (r2.forge_draft) out.push("", "Forge's own draft (rewrite yours from the brief; do not just copy this):", fence(r2.forge_draft));
   if (r2.notes && r2.notes.length) out.push("", "Hints (worth a look, not errors):", ...r2.notes.map((n) => "- " + n));
-  out.push("", r2.ok ? "Next: show the person the final prompt in one code block, then any settings as a short list." : "Next: fix the problems above, then call forge_check again with the new prompt.");
+  out.push("", r2.ok ? "Next: show the person the final prompt in one code block, then any settings as a short list." : "Next: fix the problems above" + (r2.fixed_prompt ? " (or take the fixed prompt)" : "") + ", then call forge_check again with the new prompt. Do not show the person a prompt that has not passed.");
   return out.join("\n");
 }
 var offText = (title, r2) => "## " + title + "\n" + (r2.message || "Not available.");
@@ -44492,7 +44531,7 @@ var VERSION = "0.1.0";
 var readChatSetting = () => /^(1|true|yes|on)$/i.test(String(process.env.FORGE_READ_CHAT || "").trim());
 var INSTRUCTIONS = [
   "Forge writes expert prompts for other AIs (image, video, voice, music, chat, coding, app builders, research). Forge is the expert; you (Claude) are the writer.",
-  "The flow: forge_pick_ai (which AI fits the job) -> forge_questions (at most 3 short questions; ask the person, skip any they don't care about) -> forge_brief (Forge's full brief) -> you write the final prompt from the brief -> forge_check (fix every problem it lists, then show the person the prompt).",
+  "The flow: forge_pick_ai (which AI fits the job) -> forge_questions (at most 3 short questions; ask the person, skip any they don't care about) -> forge_brief (Forge's full brief) -> you write the final prompt from the brief -> forge_check (fix every problem it lists, then show the person the prompt). Never show a prompt that has not passed forge_check: after any fix (yours or fixed_prompt), call forge_check again. Up to 3 tries; if it still fails, show it and say plainly which problems are left.",
   "If the person already named the AI, skip forge_pick_ai. Never ask a question the person already answered.",
   "Reverse Forge (a picture the person wants more of): if you can see it, YOU describe it precisely, call forge_reverse with that description (and image_path for a PNG file in Claude Code), write the prompt from its rules, then forge_check with request = your description.",
   '"Read this chat" is OFF by default. Only when the person turns it on (they say so in this chat, or the Read this chat setting is on) may you send the conversation to forge_chat_context. Otherwise use only the request they give you.',

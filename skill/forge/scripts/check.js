@@ -121,6 +121,8 @@ export function checkPrompt(E, o) {
       names.add(w);
     }
   }
+  // 12.2: "my dog" in a picture or video prompt: the AI can't know the person's dog, so it is a problem, not a style choice
+  if (["image", "video"].includes(m.cat)) { const mine = E.notMine(reply.prompt).found; if (mine.length) { P.invented.push("Says \"" + mine[0] + "\": " + name + " can't know whose it is. Write \"" + E.notMine(mine[0].toLowerCase()).text + "\" and describe it instead."); cleaned = E.notMine(cleaned).text; } }
   if (names.size) P.invented.push("Names the person never gave: " + [...names].slice(0, 5).join(", ") + ". Remove them unless the person said them.");
 
   const problems = [...P.kept, ...P.settings, ...P.invented, ...P.filler];

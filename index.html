@@ -3951,9 +3951,27 @@ function pickAspect(t, m){
   for(const o of opts){ const r = ratioOf(o); if(!r) continue; const g = Math.abs(Math.log(r / want)); if(g < gap){ gap = g; best = o; } }
   return gap < 0.2 ? best : "";
 }
+/** 12.2: an image or video AI can't know "my dog" or "our house": it reads them as words and makes any dog.
+ *  Written as "a dog" (plural: "kids"), and the person is told a reference photo is how to get their own. */
+const MINE = /\b(my|our)\s+(?:own\s+)?((?:(?:little|old|new|big|small|cute|black|white|brown|golden|fluffy|ginger|grey|gray|tabby|baby)\s+)?)(dog|cat|pupp(?:y|ies)|kitten|pet|horse|bird|parrot|hamster|rabbit|bunn(?:y|ies)|fish|pug|house|home|room|bedroom|kitchen|garden|backyard|yard|car|bike|truck|best friend|friend|brother|sister|mom|mum|dad|mother|father|family|son|daughter|baby|kid|grandma|grandpa|grandmother|grandfather|girlfriend|boyfriend|wife|husband|partner|team|school|office|shop|store|bakery|cafe|café|restaurant|band|couch|sofa|bed|street|town|city|village|farm|boat|guitar)(s|es)?\b/gi;
+/** @param {string} t @returns {{text: string, found: string[]}} */
+function notMine(t){
+  /** @type {string[]} */
+  const found = [];
+  const text = String(t || "").replace(MINE, (all, who, adj, noun, pl, at, str) => {
+    if(/\bfor\s+$/i.test(str.slice(0, at))) return all; // "for my mom's card" is what it is for, not what is in it
+    found.push(all);
+    const many = !!pl || /ies$/i.test(noun), rest = (adj || "") + noun.toLowerCase() + (pl || "");
+    const art = many ? "" : (/^[aeiou]/i.test(rest) ? "an " : "a ");
+    const out = art + rest;
+    return /^[A-Z]/.test(who) && (at === 0 || /[.!?\n]\s*$/.test(str.slice(0, at))) ? cap(out) : out;
+  });
+  return {text, found};
+}
 /** @param {string} text @param {Model} m */
 function rebuildBrief(text, m){
-  const t = cleanDraft(stripBanned(text).text);
+  const t0 = cleanDraft(stripBanned(text).text);
+  const t = ["image","video"].includes(m.cat) ? notMine(t0).text : t0; // 12.2
   /** @type {Brief} */
   const b = {};
   /** @type {string[]} */
@@ -4229,7 +4247,7 @@ function forgeFromText(text, m, level){
   // 9.2: never hand back something that scores lower than the person's own words (Prompt Doctor showed 51 -> 47
   // and 53 -> 45). Keep their words, spelling fixed and filler cut, and say why; the questions say what to add.
   // the person's words without the talk to the AI ("make me a picture of") or filler
-  const own = (["image","video"].includes(m.cat) ? deMeta(tidyRequest(stripBanned(fixed.text).text)) : stripBanned(fixed.text).text).trim();
+  const own = (["image","video"].includes(m.cat) ? notMine(deMeta(tidyRequest(stripBanned(fixed.text).text))).text : stripBanned(fixed.text).text).trim(); // 12.2: no "my dog"
   const before = scoreText(own, m);
   if(own && res.score < before.total){
     const flags = /\s--[a-z]/i.test(own) ? "" : (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0]; // 9.11: Midjourney's --ar, --v... stay
@@ -4245,6 +4263,7 @@ function forgeFromText(text, m, level){
   const reps = repeatsIn([mine.text]).filter(w => !res.warn.some(x => x.startsWith("Said more than once")));
   if(reps.length) res.warn.unshift("Said more than once in your text: " + reps.join(", ") + ". Saying it once is enough, and repeats can make the AI overdo it.");
   for(const c of findClashes({text: fixed.text}).reverse()) if(!res.warn.includes(c)) res.warn.unshift(c);
+  if(["image","video"].includes(m.cat)){ const mine = notMine(fixed.text).found; if(mine.length){ const was = mine[0].toLowerCase(), now = notMine(was).text; res.warn.push("Forge wrote \"" + now + "\" for \"" + was + "\": the AI can't know yours. Describe " + (/s$/.test(now) ? "them" : "it") + " (colour, size, look) or give the AI a reference photo."); } } // 12.2
   // 6.1.2: say so when the text asks for the wrong kind of thing for this AI
   const media = {image:"a picture", video:"a video", music:"music", voice:"speech", sfx:"a sound"}[m.cat];
   if(media && /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:write|explain|summari[sz]e|tell me|answer|translate|debug|list|compare|plan|research)\b/i.test(fixed.text))
@@ -5086,7 +5105,9 @@ function lookPixels(lum, w, h){
     const bx0 = Math.max(0, Math.round((cx - .2) * w)), bx1 = Math.min(w, Math.round((cx + .2) * w)), by0 = Math.max(0, Math.round((cy - .2) * h)), by1 = Math.min(h, Math.round((cy + .2) * h));
     let inside = 0; for(let y = by0; y < by1; y++) for(let x = bx0; x < bx1; x++) inside += g[y * w + x];
     const area = ((bx1 - bx0) * (by1 - by0)) / (w * h), packed = inside / gsum;
-    if(packed > Math.min(.9, area * 1.8)){
+    // 12.2: was area * 1.8, which every real test photo just passed: the pug photo's knitted sweater (the most texture)
+    // was called the subject. Now the box must hold three times its fair share, or the answer is "unsure"
+    if(packed > Math.min(.9, area * 3)){
       const col = cx < .4 ? "left" : cx > .6 ? "right" : "centre", row = cy < .4 ? "top" : cy > .6 ? "bottom" : "middle";
       const third = [1/3, 2/3].some(t => Math.abs(cx - t) < .07) || [1/3, 2/3].some(t => Math.abs(cy - t) < .07);
       out.subject = (row === "middle" ? col : row + " " + col).replace("middle centre", "centre") + (third && col !== "centre" ? " (on a third line)" : "");
@@ -8030,7 +8051,7 @@ function runReverse(){
          ["Detail density", a.detail, "Edge density " + (a.dens*100).toFixed(1) + "%"],
          ["Dominant colours", a.top.slice(0,4).join("  "), "Quantised, sorted by area"],
          ["Subject", a.subject || "unsure", "Where the detail clusters"],
-         ["Light", a.light || "unsure", "Which side is clearly brighter"],
+         ["Light", a.light || "unsure", "Which side is brighter on the textured parts (skies and plain backdrops do not count)"],
          ["Focus", a.focus || "unsure", "Subject sharpness vs the rest"],
          ["Text", a.text || "unsure", "Lines of small sharp strokes"]]
         .map(r=>'<tr><td class="k">' + esc(r[0]) + '</td><td class="v">' + esc(r[1]) + '</td><td class="w">' + esc(r[2]) + '</td></tr>').join("")

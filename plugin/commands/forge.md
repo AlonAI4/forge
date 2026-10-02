@@ -13,7 +13,7 @@ If the forge skill (skills/forge in this plugin) is loaded, follow it as well; t
 2. **Ask at most 3 questions.** Call `forge_questions` with the request and the AI id. Ask the person all returned questions at once, short, and say they can skip any. Never ask something they already said. If the list is empty, skip this step.
 3. **Get the brief.** Call `forge_brief` with the request, the AI id, and their answers keyed by each question's `field` (leave out skipped ones). Do not show the brief.
 4. **Write the prompt yourself** from the brief: follow its RULES and its REPLY WITH shape.
-5. **Check it.** Call `forge_check` with the same request, AI id and answers, plus your prompt. If `ok` is false, fix every item in `problems` (or use `fixed_prompt`), then check once more. Read `notes`, but they are hints, not errors.
+5. **Check it.** Call `forge_check` with the same request, AI id and answers, plus your prompt. If `ok` is false, fix every item in `problems` (or use `fixed_prompt`). **Never show a prompt that has not passed `forge_check`: after any fix (yours or fixed_prompt), call `forge_check` again. Up to 3 tries; if it still fails, show it and say plainly which problems are left.** Read `notes`, but they are hints, not errors.
 6. **Show the result**: the final prompt in a code block, then the negative prompt and settings if there are any, then one line on what to paste where. No other commentary.
 7. **Use it now, or copy.** Always keep the code block so they can copy it. Then ask in one line if they want it used now:
    - for Claude itself (a chat, writing or coding job you can do here): when they say yes, run the prompt yourself in this chat;
