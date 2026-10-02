@@ -3766,6 +3766,8 @@ const APOSTROPHE = Object.fromEntries(("dont:don't doesnt:doesn't didnt:didn't c
 /** @param {string} text @returns {{text: string, fixes: {from: string, to: string}[]}} */
 /** 9.4: Forge's own words, trusted by spelling and used as fixes */
 const FORGE_WORDS = ["prompt", "prompts", "setting", "settings", "medieval", "plugin", "plugins", "graphify", "toggleable", "matchmaker", "extension", "context", "reverse", "doctor", "summary", "summarised", "conversation"];
+/** 12.2: an animal in the request gives whisker typos their meaning */
+const ANIMAL_WORDS = /\b(?:cats?|kittens?|kitty|dogs?|pupp(?:y|ies)|mice|mouse|rats?|tigers?|lions?|fox(?:es)?|seals?|otters?|rabbits?|bunn(?:y|ies)|leopards?|cheetahs?|lynx|walrus(?:es)?|hamsters?|pugs?)\b/i;
 /** 9.4: typos where the nearest word is the wrong one (yoru is closer to "you", agin to "gain") */
 /** @type {Record<string, string>} */
 const TYPOS = {yoru:"your", yuor:"your", agin:"again", iys:"it's", becuase:"because", becasue:"because", waht:"what", wnat:"want", jsut:"just", realy:"really", doent:"doesn't", dosent:"doesn't", donrt:"don't", dnot:"don't", inst:"isn't", gues:"guess", ouyr:"your", medivl:"medieval", quity:"quality", qaulity:"quality", buidl:"build", thier:"their", wich:"which", recieve:"receive", definately:"definitely", seperate:"separate", untill:"until", alot:"a lot"};
@@ -3844,6 +3846,8 @@ function autocorrect(text){
     if(w.length >= 2 && !/[-_]/.test(prev + next) && !/[A-Z']/.test(w.slice(1)) && !(/^[A-Z]/.test(w) && at > 0 && !/[.!?\n]\s*$/.test(all.slice(0, at))) && (!isWord(w.toLowerCase()) || (w.length >= 5 && rare(w.toLowerCase())))){
       const lw = w.toLowerCase();
       if(Object.prototype.hasOwnProperty.call(TYPOS, lw)){ const out = TYPOS[lw]; fixes.push({from:w, to:out}); return out; } // 9.4: yoru is your, agin is again
+      // 12.2: "wispers" next to a cat is whiskers, not whispers; only words that are not words get here, so a real "whispers" stays
+      if(/^wh?is+[kp]+[ae]rs?$/.test(lw)){ const out = (ANIMAL_WORDS.test(t) ? "whisker" : "whisper") + (lw.endsWith("s") ? "s" : ""); fixes.push({from:w, to:out}); return out; }
       const one = [...edits1(lw)].filter(c => c !== lw && own.has(c) && !rare(c)).sort((a, b) => b.length - a.length)[0];
       // 9.4: a longer typo up to two letters off a word they wrote elsewhere, or one of Forge's own words ("rpomtp", "grpaihfy")
       const common = isWord(lw) ? [...edits1(lw)].filter(c => c !== lw && c !== lw.slice(0, -1) && c !== lw.slice(1) && rk(c) <= 10).sort((a, b) => rk(a) - rk(b))[0] : undefined;

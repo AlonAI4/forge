@@ -5,7 +5,7 @@ description: Write, improve or fix a prompt for a specific AI tool, using the Fo
 
 # Forge: the prompt smithy
 
-Forge knows how each of 57 AI tools wants its prompts. You are the writer: Forge gives you a brief, you write the prompt, Forge checks it. (In Forge's own tests this beat Forge's template, and won 56% of matchups against a strong model writing the prompt alone.) Website: https://forge-prompt-smithy.netlify.app
+Forge knows how each of 57 AI tools wants its prompts. You are the writer: Forge gives you a brief, you write the prompt, Forge checks it. (In Forge's own tests this beat Forge's template, and won 56% of matchups against a strong model writing the prompt alone.) Website: https://alonai4.github.io/forge/
 
 Files you can use (read only what you need):
 - `references/models.md`: every model, one short entry each. Use it to pick the AI.
@@ -58,4 +58,4 @@ If you cannot run code, do the same job by hand:
 Out of 100: Covered 30 (the main things are there), Detail 20 (1st detail 8, 2nd 6, 3rd 4, 4th 2, more earns nothing), Fits 20 (the length suits this model), Clear 15 (15 if nothing clashes, 0 if anything does), Lean 15 (minus 5 per filler word, minus 3 per repeated word). `--check` prints it.
 
 ---
-Made by Alon Shayo. Free to use, not to copy: see LICENSE. Try it in your browser: https://forge-prompt-smithy.netlify.app
+Made by Alon Shayo. Free to use, not to copy: see LICENSE. Try it in your browser: https://alonai4.github.io/forge/

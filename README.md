@@ -2,7 +2,9 @@
 
 **The prompt smithy.** Forge writes prompts in each AI model's own style, with the exact settings to match.
 
-**Use it now, free: https://forge-prompt-smithy.netlify.app**
+**Use it now, free: https://alonai4.github.io/forge/**
+
+(Backup link, an older copy until it is updated: https://forge-prompt-smithy.netlify.app)
 
 Works for 57 models: Image (12), Video (11), Voice & speech (6), Sound effects (2), Music (5), Chat & reasoning (6), Coding agents (6), App builders (5), Research (4).
 

@@ -42619,6 +42619,7 @@ function bestFix(w2) {
 }
 var APOSTROPHE = Object.fromEntries("dont:don't doesnt:doesn't didnt:didn't cant:can't couldnt:couldn't shouldnt:shouldn't wouldnt:wouldn't isnt:isn't arent:aren't wasnt:wasn't werent:weren't hasnt:hasn't havent:haven't hadnt:hadn't theyre:they're youre:you're thats:that's whats:what's theres:there's heres:here's im:I'm ive:I've youve:you've weve:we've theyve:they've youll:you'll theyll:they'll itll:it'll".split(" ").map((x) => x.split(":")));
 var FORGE_WORDS = ["prompt", "prompts", "setting", "settings", "medieval", "plugin", "plugins", "graphify", "toggleable", "matchmaker", "extension", "context", "reverse", "doctor", "summary", "summarised", "conversation"];
+var ANIMAL_WORDS = /\b(?:cats?|kittens?|kitty|dogs?|pupp(?:y|ies)|mice|mouse|rats?|tigers?|lions?|fox(?:es)?|seals?|otters?|rabbits?|bunn(?:y|ies)|leopards?|cheetahs?|lynx|walrus(?:es)?|hamsters?|pugs?)\b/i;
 var TYPOS = { yoru: "your", yuor: "your", agin: "again", iys: "it's", becuase: "because", becasue: "because", waht: "what", wnat: "want", jsut: "just", realy: "really", doent: "doesn't", dosent: "doesn't", donrt: "don't", dnot: "don't", inst: "isn't", gues: "guess", ouyr: "your", medivl: "medieval", quity: "quality", qaulity: "quality", buidl: "build", thier: "their", wich: "which", recieve: "receive", definately: "definitely", seperate: "separate", untill: "until", alot: "a lot" };
 function damerau(a, b) {
   const d2 = Array.from({ length: a.length + 1 }, (_2, i) => Array.from({ length: b.length + 1 }, (_3, j2) => i ? j2 ? 0 : i : j2));
@@ -42712,6 +42713,11 @@ function autocorrect(text) {
       const lw = w2.toLowerCase();
       if (Object.prototype.hasOwnProperty.call(TYPOS, lw)) {
         const out2 = TYPOS[lw];
+        fixes.push({ from: w2, to: out2 });
+        return out2;
+      }
+      if (/^wh?is+[kp]+[ae]rs?$/.test(lw)) {
+        const out2 = (ANIMAL_WORDS.test(t) ? "whisker" : "whisper") + (lw.endsWith("s") ? "s" : "");
         fixes.push({ from: w2, to: out2 });
         return out2;
       }
