@@ -1985,7 +1985,7 @@ const lc = s => {
 };
 // 6.1.2: also drops the request in front ("make me a picture of", "create an image of", "draw"),
 // which people type all the time and which ended up inside the prompt as the subject
-const REQUEST_LEAD = /^\s*(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:(?:make|create|generate|draw|paint|render|design|produce|give|show|do)\s+(?:me\s+|us\s+)?|i\s+(?:want|need|would like|'d like)\s+)/i;
+const REQUEST_LEAD = /^\s*(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:(?:make|create|generate|draw|paint|render|design|produce|give|show|do)\s+(?:me\s+|us\s+)?|(?:i|we)(?:\s+|(?=['’]))(?:want|need|would like|['’]d like|['’]d love|am looking for|['’]m looking for|are looking for|['’]re looking for)\s+|(?:need|needs|want|wants|looking for)\s+(?=(?:a|an|the|some|two|three|\d+|foley|footage|audio|music|sound|sounds|sfx|b-roll|art|artwork|photos?|pictures?|images?|videos?)\b))/i; // 12.4: "Need a hero shot..." kept the chat talk
 // 8.8: a sensible length and shape for each kind of sound (a whoosh is not 3 seconds). [seconds, sentence]
 /** @type {Record<string, [string, string]>} */
 /** 13.7: what a sound designer says about each kind of sound: what makes it, and how it starts and dies away.
@@ -2379,7 +2379,10 @@ function imageSections(b, m){
   const subj = stripDot(b.subject) || "the subject";
   const drawn = isDrawn(b);
   // 8.5.6: the setting is left out when the subject already says it ("on a beach, a sandy beach at sunset")
-  S.push(["Subject", cap(med) + " of " + withSetting(lc(subj), b.setting) + "."]);
+  // 12.4: "Anime of an anime girl", "Pixel art of pixel art castle": when the subject already names the medium, say it once
+  const norm = (/** @type {unknown} */ x) => " " + String(x).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim() + " ";
+  const core = norm(med).replace(/ (?:illustration|painting|drawing|art|print|render|design|style|still|photo|photograph) $/, " ");
+  S.push(["Subject", (String(med).trim() && (norm(subj).includes(norm(med)) || (core.trim().length > 2 && norm(subj).includes(core))) ? cap(withSetting(lc(subj), b.setting)) : cap(med) + " of " + withSetting(lc(subj), b.setting)) + "."]);
   // 13.14: each chip with what it looks like, in sentences ("Golden hour: low, warm sun raking across...")
   const shotLook = lookOf(SHOT_LOOK, b.shot);
   const cam = camClause(b); if(cam) S.push(["Camera", cam + (shotLook ? ", " + shotLook : "") + "."]);
@@ -2419,7 +2422,8 @@ brief(b, m){
     // 12.3: "Goal: my online shop." read like a broken sentence; a place or owner gets "An image for"
     S.push(["Goal", (has(b.purpose) ? (/^(?:my|our|a|an|the|his|her|their)\b/i.test(stripDot(b.purpose)) ? "An image for " + stripDot(b.purpose) : cap(stripDot(b.purpose))) : "A single finished image") + "."]);
     const med = has(b.medium)? b.medium : defaultMedium(b);
-    S.push(["Scene", (has(b.setting) ? "" : artic(med) + " ") + (has(b.setting) ? cap(med) : med) + (has(b.setting) ? (/^(in|on|at|under|inside|outside|by|beside|near|over|above|against|across|along|through|within|from|behind|among|around)\b/i.test(String(b.setting).trim()) ? " " : " set in ") + stripDot(b.setting) : "") + "."]); // 8.7.30: not "set in on a plain white background"
+    // 12.4: the medium after "a" is lower-case (was "a Watercolour"), and "pixel art" takes no "a"
+    S.push(["Scene", (has(b.setting) ? "" : /\bart$/i.test(String(med).trim()) ? "" : artic(lc(med)) + " ") + (has(b.setting) ? cap(med) : /\bart$/i.test(String(med).trim()) ? cap(lc(med)) : lc(med)) + (has(b.setting) ? (/^(in|on|at|under|inside|outside|by|beside|near|over|above|against|across|along|through|within|from|behind|among|around)\b/i.test(String(b.setting).trim()) ? " " : " set in ") + stripDot(b.setting) : "") + "."]); // 8.7.30: not "set in on a plain white background"
     S.push(["Subject", cap(stripDot(b.subject) || "the subject") + "."]);
     const shotLook = lookOf(SHOT_LOOK, b.shot), liLook = lookOf(LIGHT_LOOK, b.light), moodLook = lookOf(MOOD_LOOK, b.mood);
     const style=[camClause(b) + (camClause(b) && shotLook ? ", " + shotLook : ""), lightClause(b) + (lightClause(b) && liLook ? ": " + liLook : ""), finishClause(b)].filter(has); // 13.14
@@ -2601,11 +2605,13 @@ sfx(b, m){
 
 music(b, m){
   const style=[];
+  // 12.4: "exclude anything with singing, no vocals allowed" listed "vocals" as an instrument: "Featuring vocals"
+  if(has(b.mInst) && instrumental(b)){ const left = arr(b.mInst).filter(x => !/\b(?:vocals?|sing(?:ing|ers?)?|lyrics?)\b/i.test(String(x))); b = {...b, mInst: left}; if(!left.length) delete b.mInst; }
   if(has(b.mGenre)) style.push(join(b.mGenre));
   if(has(b.mBpm)) style.push(b.mBpm + " BPM");
   if(has(b.mKey)) style.push("in " + b.mKey);
   if(has(b.mInst)) style.push(join(b.mInst));
-  const inst = m.id === "suno" ? sunoInstrumental(b) : instrumental(b), choir = /\bchoir|vocal|voices\b/i.test(join(b.mInst));
+  const inst = m.id === "suno" ? sunoInstrumental(b) : instrumental(b), choir = /\bchoir|voices\b/i.test(join(b.mInst));
   if(has(b.mVocal) || inst) style.push(inst ? (choir ? "wordless voices, no lyrics" : "instrumental") : lc(join(b.mVocal)) + (/vocal/i.test(join(b.mVocal)) ? "" : " vocals"));
   if(has(b.mProd)) style.push(join(b.mProd));
   if(has(b.mMood)) style.push(join(b.mMood));
@@ -2627,7 +2633,7 @@ music(b, m){
     else if(has(b.mVocal) && b.mVocal !== "Instrumental") flat += "\n\nLyrics: leave the box empty and Suno writes them, or paste your own with [Verse] and [Chorus] tags.";
   } else {
     const maxLen = /** @type {Record<string, number>} */ ({"el-music":600, lyria:180, stableaudio:190})[m.id] || 1e9;
-    const first = [has(b.mGenre) ? cap(join(b.mGenre)) : "", has(b.mBpm) ? "at " + b.mBpm + " BPM" : "", has(b.mKey) ? "in " + b.mKey : ""].filter(has).join(" ");
+    const first = [has(b.mGenre) ? cap(join(b.mGenre)) : "", has(b.mBpm) ? (has(b.mGenre) ? "at " : "") + b.mBpm + " BPM" : "", has(b.mKey) ? "in " + b.mKey : ""].filter(has).join(" "); // 12.4: "at 128 BPM." with no genre
     flat = [
       first ? first + "." : "",
       has(b.mInst) ? "Featuring " + join(b.mInst) + "." : "",
@@ -3107,7 +3113,8 @@ const FIND = {
   useCase: t => found(t, WORDS.useCase()).join(" ") || firstMatch(t, PURPOSE),
   voiceChar: t => found(t, WORDS.voiceChar()).join(", "), // 8.5.2: not the bare word "voice"
   vArch: t => found(t, WORDS.vArch())[0] || "",
-  lang: t => found(t, WORDS.lang())[0] || firstMatch(t, /\b(\w+ accent|\w+ dialect)\b/i),
+  // 12.4: "dub my english video to spanish" gave English: a language after "into" or "to" is the one wanted
+  lang: t => { const L = WORDS.lang(), to = String(t).toLowerCase().match(new RegExp("\\b(?:into|to|in)\\s+(" + L.join("|") + ")\\b")); return to ? cap(to[1]) : found(t, L)[0] || firstMatch(t, /\b(\w+ accent|\w+ dialect)\b/i); },
   sound: t => found(t, WORDS.sound()).length ? cleanDraft(t) : "",
   sfxKind: t => found(t, WORDS.sfxKind())[0] || ""
 };
@@ -3269,7 +3276,7 @@ function notMine(t){
 /** @param {string} text @param {Model} m */
 function rebuildBrief(text, m){
   const t0 = cleanDraft(stripBanned(text).text);
-  const t = ["image","video"].includes(m.cat) ? notMine(t0).text : t0; // 12.2
+  const t = ["image","video"].includes(m.cat) ? notMine(t0).text : ["sfx","music"].includes(m.cat) ? cap(t0.replace(REQUEST_LEAD, "")) : t0; // 12.2; 12.4: a sound AI hears "Need a" too
   /** @type {Brief} */
   const b = {};
   /** @type {string[]} */
@@ -3338,7 +3345,22 @@ function rebuildBrief(text, m){
       const rest = parts.filter(x => x !== moodPart);
       if(rest.length) b.extra = [has(b.extra) ? stripDot(join(b.extra)) : "", cap(rest.join(", "))].filter(Boolean).join(". ");
     }
-    if(b.medium){ const o = opts("medium").find(x=>x.includes(b.medium.toLowerCase()) || b.medium.toLowerCase().includes(x)); if(o) b.medium = (F.medium.o||[]).find(x=>x.toLowerCase()===o); }
+    // 12.4: a "gaming setup" with nothing named on the screen got Zelda with a garbled title (image test, Gemini). When a
+    // screen or wall art is in the picture and no title is named, it shows original art: no real games, logos or titles
+    if(["image","video"].includes(m.cat) && /\b(gaming (?:setup|room|station|desk|corner|den|pc|rig)|battle ?station|monitors?|screens?|tvs?|televisions?|laptops?|computers?|arcade|cinema|movie theat(?:er|re)|billboards?|phones?|tablets?)\b/i.test(t)
+      && !/\b(?:for|on|as)\s+(?:my|our|a|the|your)?\s*(?:\w+\s+)?(?:screens?|phones?|laptops?|computers?|desktops?|tablets?|monitors?|banner|wallpaper|lock ?screen|home ?screen|background)\b/i.test(t) // the destination, not something in the picture
+      && !/["“][^"”]+["”]|\b(?:showing|playing|plays|displaying|of)\s+[A-Z][\w'’:-]+/.test(t)){
+      const line = "Screens show original made-up art with no real game titles or logos"; // no commas: extras are split at commas
+      b.extra = [has(b.extra) ? stripDot(join(b.extra)) : "", line].filter(Boolean).join(". ");
+    }
+    // 12.4: a generic word ("illustration") matched the first preset that contains it, so every illustration became a gouache one
+    if(b.medium){ const bm = String(b.medium).toLowerCase().trim(), generic = /^(?:an? )?(?:illustration|painting|drawing|render|art|artwork|print|design|still|study|sketch)$/i.test(bm);
+      const o = opts("medium").find(x => x === bm || bm.includes(x) || (!generic && x.includes(bm))); if(o) b.medium = (F.medium.o||[]).find(x=>x.toLowerCase()===o); }
+    { // 12.4: "a vaporwave city" became "Photograph of a vaporwave city": a named style that is not a photo sets the medium Forge would guess
+      const st = RECIPES.filter(r => r.kind === "style" && r.medium && (!r.for || r.for === m.cat) && r.when.test(t)).sort((x, y) => (t.match(y.when) || [""])[0].length - (t.match(x.when) || [""])[0].length)[0];
+      if(st && !has(b.medium)) sug("medium", st.medium); // Forge's pick, so the checker never demands it back
+      else if(st && st.medium && st.medium.toLowerCase().includes(String(b.medium).toLowerCase().trim())) b.medium = st.medium; // "illustration" + isometric = isometric illustration
+    }
     // 8.5.2: photo defaults (50mm, f/2.8, softbox) only for photos; a logo, chart or painting got them too
     const graphic = /\b(graphics?|geometric|abstract|flat (?:design|colou?rs?|shapes?)|designs?|panels?|murals?|decals?|wraps?|patterns?|logos?|icons?|stickers?|posters?|flyers?|charts?|diagrams?|infographics?|illustrations?|illustrated|paintings?|painted|vectors?|cartoons?|anime|drawings?|drawn|sketch\w*|watercolou?rs?|pixel art|3d renders?|clip ?art|emblems?|badges?|banners?|cards?|maps?|labels?|mascots?|book|storybook|invitations?|loading screens?|game art|concept art|fantasy|character art|comic|manga|children'?s|brackets?|storyboards?|leaderboards?|flowcharts?|timelines?|wireframes?|mockups?)\b/i.test(t); // 12.3: a tournament bracket became a photograph
     // 8.5.12: studio-photo guesses (50mm, f/2.8, softbox, grade) only when the draft reads like a photo
@@ -3397,7 +3419,8 @@ function rebuildBrief(text, m){
   } else if(m.cat==="music"){
     // v2.4: no guessed "ambient, calm, 100 BPM", and no "Instrumental" on a song people sing (writers fixed it on 8 of 16 songs)
     if(/\binstrumental\b|\bno (vocals|singing|lyrics)\b/i.test(t)) b.mVocal = "Instrumental";
-    else if(/\b(song|sing|sings|sung|singer|lyrics?|vocals?|chorus|verse|rap|rapper|anthem|jingle|duet|lullaby|ballad)\b/i.test(t)) b.mVocal = "Vocals";
+    // 12.4: "name our group The Dice Chasers", "mention 10 years": a name said in the music needs a voice (the judges caught "no vocals")
+    else if(/\b(song|sing|sings|sung|singer|lyrics?|vocals?|chorus|verse|rap|rapper|anthem|jingle|duet|lullaby|ballad|mention(?:s|ing)?|shout[\s-]?outs?)\b|\b(?:name|say|says)\s+(?:our|my|the|his|her|their)\b/i.test(t)) b.mVocal = "Vocals";
     // 3.6.3: only an actual arrangement goes in Arrangement, otherwise the text appears twice
     if(/\b(start with|starts with|then|build|builds|drop|intro|outro|verse|chorus|bridge|breakdown|fade)\b/i.test(t)) b.mStruct = t;
   } else if(m.cat==="sfx"){
@@ -3576,13 +3599,36 @@ function forgeFromText(text, m, level){
   // 9.2: never hand back something that scores lower than the person's own words (Prompt Doctor showed 51 -> 47
   // and 53 -> 45). Keep their words, spelling fixed and filler cut, and say why; the questions say what to add.
   // the person's words without the talk to the AI ("make me a picture of") or filler
-  const own = (["image","video"].includes(m.cat) ? notMine(deMeta(tidyRequest(stripBanned(fixed.text).text))).text : stripBanned(fixed.text).text).trim(); // 12.2: no "my dog"
+  // 12.4: sound and music AIs hear every word too, so "Need a phone ringtone loop" loses "Need" there as well
+  const own = (["image","video"].includes(m.cat) ? notMine(deMeta(tidyRequest(stripBanned(fixed.text).text))).text
+    : ["sfx","music"].includes(m.cat) ? String(stripBanned(fixed.text).text).replace(REQUEST_LEAD, "") : stripBanned(fixed.text).text).trim(); // 12.2: no "my dog"
   const before = scoreText(own, m);
   if(own && res.score < before.total){
     const flags = /\s--[a-z]/i.test(own) ? "" : (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0]; // 9.11: Midjourney's --ar, --v... stay
-    res.flat = own + flags; res.blocks = [["Prompt", res.flat]]; res.keptYours = true;
+    res.flat = cap(own) + flags; res.blocks = [["Prompt", res.flat]]; res.keptYours = true; // 12.4: "a hyper-detailed..." started lower-case once "Need" was cut
+    applyStyle(res, brief, m, text, true); // 12.4: the style lines were lost with Forge's rewrite (the keep-out is already in the flags)
     res.score = before.total; res.parts = before.parts;
     res.notes = ["Forge's rewrite scored lower than your prompt, so this keeps your words" + (fixed.fixes.length ? " with the spelling fixed" : "") + ". Answer the questions below to make it better.", ...(res.notes || [])];
+  }
+  // 12.4: the music and voice-design writers kept only the words that fit their boxes: "weird glitchy electronic thing for
+  // my art project, experimental" became "Instrumental, no vocals." When the rewrite keeps under half of their own
+  // content words, their words lead (chat talk cut) and Forge's additions follow. Never a script read out loud.
+  if(!res.keptYours && ["sfx","music","voice"].includes(m.cat) && !(m.core || []).includes("script") && !/dub/i.test(m.id) && !/^\s*[{\[]/.test(String(res.flat))){
+    const stemW = (/** @type {string} */ w) => w.replace(/(ing|ed|es|s|ly)$/, "");
+    const theirs = (own.toLowerCase().match(/[a-z']{4,}/g) || []).filter(w => isWord(w) && !STOP_WORDS.has(w) && !TALK_WORDS.has(w));
+    const flatW = new Set((String(res.flat).toLowerCase().match(/[a-z']{3,}/g) || []).map(stemW));
+    const kept = theirs.filter(w => flatW.has(stemW(w))).length;
+    if(theirs.length >= 3 && kept / theirs.length < 0.5){
+      const lead = cap(stripDot(own.replace(REQUEST_LEAD, "")
+        .replace(/,?\s*\b(?:i |we )?(?:want|need|would like|['’]d like)\s+(?:that|this|it)\s+(?=for|in|on)/gi, ", ") // "..., want that for our diner" -> "..., for our diner"
+        .replace(/\b(?:i |we )?(?:want|need|would like|['’]d like)\s+(?=(?:a|an|the|some)\b)/gi, "") // "want an elegant voice" -> "an elegant voice"
+        .replace(/\s+,/g, ",").replace(/,\s*,/g, ",").replace(/\s{2,}/g, " ").trim()));
+      const at = String(res.flat).search(/\s--[a-z]/);
+      res.flat = lead + ". " + String(res.flat).trim();
+      res.blocks = [["Prompt", res.flat]];
+      res.notes = [...(res.notes || []), "Forge kept your own words first: its tidy version had lost most of them."];
+      void at;
+    }
   }
   res.suggested = suggested.map(k=>({f:k, what:(F[k] ? F[k].l : k) + ": " + join(brief[k])}));
   res.fixes = fixed.fixes;
@@ -4162,7 +4208,7 @@ const STOP_WORDS = new Set("the and for with from into that this these those its
 function defaultMedium(b){
   const t = [b.subject, b.purpose, b.setting, b.extra].filter(has).map(v => join(v)).join(" ").toLowerCase();
   // 6.2.1: only when the THING is a graphic ("a logo", "a sign"); a dog on a beach FOR a card is still a photo
-  if(/\b(logos?|icons?|stickers?|signs?|posters?|flyers?|cards?|invitations?|menus?|labels?|badges?|banners?|infographics?|charts?|diagrams?|packaging|designs?|panels?|murals?|patterns?|wraps?|decals?|t-?shirts?|merch)\b/.test(join(b.subject).toLowerCase())) return "clean graphic design";
+  if(/\b(logos?|icons?|stickers?|signs?|posters?|flyers?|cards?|invitations?|menus?|labels?|badges?|banners?|infographics?|charts?|diagrams?|packaging|designs?|panels?|murals?|patterns?|wraps?|decals?|t-?shirts?|merch|brackets?|storyboards?|leaderboards?|flowcharts?|timelines?|wireframes?|thumbnails?|book covers?|covers?)\b/.test(join(b.subject).toLowerCase())) return "clean graphic design";
   if(/\b(storybook|children'?s book|fantasy|dragon|wizard|fairy|cartoon|comic|mascot|character art|concept art|game art|illustrat\w*)\b/.test(t)) return "illustration";
   return "photograph";
 }
@@ -4227,8 +4273,8 @@ function matchReason(top, query, second){
     + (second && second.m && second.m.id !== top.m.id && second.m.cat === top.m.cat && (/** @type {any} */ (top).s - /** @type {any} */ (second).s) <= 6 ? " Second choice: " + second.m.n + (second.m.sub ? " " + second.m.sub : "") + ", for " + lc(firstSentence(whyFor(second.m, query))) + "." : "");
 }
 /** 8.5: the "Anything else?" box, added in the style of the finished prompt. Not counted in the score.
- *  @param {Result} res @param {Model} m @param {Value} extra */
-function addExtra(res, m, extra){
+ *  @param {Result} res @param {Model} m @param {Value} extra @param {boolean=} keepAny 12.4: keep a part with even one new word */
+function addExtra(res, m, extra, keepAny){
   const x = stripDot(String(extra || "").trim());
   if(!x) return;
   if((m.core || []).includes("script")){ // text to speech: the prompt IS what gets read aloud
@@ -4265,7 +4311,7 @@ function addExtra(res, m, extra){
     // 8.5.18 (after the final round): a repeat only when it adds under two new words; "a pint on a bar with a
     // chalkboard blurry in the background" was dropped because "pint" and "bar" were already said
     const fresh = words.filter(w => !saidWords.has(stem(w)));
-    if(words.length && (fresh.length === 0 || (fresh.length < 2 && fresh.length / words.length < 0.5))) continue;
+    if(words.length && (fresh.length === 0 || (!keepAny && fresh.length < 2 && fresh.length / words.length < 0.5))) continue;
     // 13.8: in a structured prompt (app, code, writing) a part that is mostly said already is a repeat: judges marked
     // "the trailing 'Also' line just repeats the data fields" again and again
     if(!media && words.length >= 3 && fresh.length / words.length < 0.4) continue;
@@ -4832,6 +4878,7 @@ function findRecipes(main, notes, m, medium, job){
   const PHOTO = /\b(lens|film grain|grain|shot on|depth of field|available light|f\/\d|bokeh|halation|camera|35mm|85mm|50mm)\b/i;
   return RECIPES.filter(r => r.kind === kind && (!r.for || kind !== "sound" || r.for === m.cat) && r.when.test(all) && !(r.unless && r.unless.test(all)))
     .filter(r => !(drawn && ["image", "video"].includes(kind) && r.add.filter(a => PHOTO.test(a)).length >= 2))
+    .filter(r => !(kind === "image" && /\b(posters?|flyers?|leaflets?|invitations?|invites?|greeting cards?|thumbnails?|banners?|book covers?|menus?)\b/i.test(String(main || "")) && /photo/.test(r.id))) // 12.4: a designed poster is not a photo shoot
     .map(r => ({ r, score: (r.when.test(String(main || "")) ? 2 : 0) + (r.when.test(String(notes || "")) ? 1 : 0), len: (all.match(r.when) || [""])[0].length }))
     // 10.4: a recipe whose lines share nothing with what they said is a false match ("whiskey" fired a pour shot
     // on a slow pan past barrels); it stays only when its trigger was a phrase of two or more words
@@ -4840,6 +4887,32 @@ function findRecipes(main, notes, m, medium, job){
       const trig = m0.toLowerCase().replace(/(ing|ed|es|s)$/, "");
       return (x.r.add.join(" ").toLowerCase().match(/[a-z]{4,}/g) || []).some(w => { const st = w.replace(/(ing|ed|es|s)$/, ""); return st !== trig && !RECIPE_COMMON.has(st) && said.has(st); }); })
     .sort((a, b) => b.score - a.score || b.len - a.len).filter((x, i) => i === 0 || x.score >= 2).slice(0, 2).map(x => x.r);
+}
+/** 12.4: the boxes a style is read from (their own words, not the shot, lens or light buttons). When Forge has their
+ *  request text, the medium box is skipped: it holds Forge's guess ("flat vector" for a gradient 3D number), not theirs */
+const STYLE_FROM = ["subject", "setting", "extra", "medium", "purpose", "action", "imgtext"];
+/** 12.4 (doc for applyStyle below): the person named a style ("anime", "watercolour", "product photo", "film noir"): add the 2 or 3 markers that make
+ *  a picture read as that style, and one known failure as a keep-out where the AI has a keep-out field. Only HOW it
+ *  looks, never new things in it (the image test: added cookies lost both posters). From docs/STYLES-RESEARCH.md.
+ *  @param {Result} res @param {Brief} b @param {Model} m */
+/** @param {Result} res @param {Brief} b @param {Model} m @param {string=} said0 @param {boolean=} linesOnly */
+function applyStyle(res, b, m, said0, linesOnly){
+  if(!["image","video"].includes(m.cat)) return;
+  // the person's own words too: the cleaner cuts "product photo of", which names the style
+  // only what they wrote in their own words: a shot or lens button ("extreme close-up", 14mm) already says exactly how
+  const text = STYLE_FROM.filter(k => !(k === "medium" && has(said0))).map(k => b[k]).filter(has).map(v => join(v)).join(" ") + " " + String(said0 || "");
+  let hits = RECIPES.filter(r => r.kind === "style" && (!r.for || r.for === m.cat) && r.when.test(text) && !(r.unless && r.unless.test(text)));
+  if(hits.some(r => !/^style:photo-/.test(r.id))) hits = hits.filter(r => !/^style:photo-/.test(r.id)); // "anime portrait" is anime, not a portrait photo
+  if(!hits.length) return;
+  const best = hits.map(r => ({ r, len: (text.match(r.when) || [""])[0].length })).sort((x, y) => y.len - x.len)[0].r;
+  const said = (res.flat + " " + res.negative).toLowerCase();
+  const lines = best.add.filter(a => (a.toLowerCase().match(/[a-z]{4,}/g) || []).filter(w => !said.includes(w)).length >= 2);
+  const keepOut = !linesOnly && m.neg && ["field","flag"].includes(m.neg.mode) && best.avoid && best.avoid[0] ? ["no " + best.avoid[0].replace(/^no\s+/i, "")] : [];
+  if(!lines.length && !keepOut.length) return;
+  res.style = best.id.replace(/^style:/, "");
+  const named = ((text.match(best.when) || [""])[0]).trim();
+  if(named && !said.includes(named.toLowerCase()) && !new RegExp("\\b" + named.split(/[\s-]+/)[0].replace(/[^a-z0-9]/gi, "") + "\\b", "i").test(said)) lines.unshift(cap(named.replace(/\s+style$/i, "")) + " style"); // 12.4: Kling cut "anime style shot of"
+  addExtra(res, m, [...lines, ...keepOut].map(x => stripDot(x).replace(/,/g, " and")).join(". "));
 }
 /** @param {Result} res @param {Brief} b @param {Model} m */
 function applyRecipes(res, b, m){
@@ -4963,6 +5036,12 @@ function forge(b, m, level, opts){
   // 13.2: the text they pasted into the request itself ("turn these notes into bullets: pt in bed 4...", a quoted
   // clause) goes in as the material; judges: "asks to re-paste notes that were already given in full"
   if(m.cat === "sfx" && has(opts.said)) b = {...b, _said: String(opts.said)}; // 13.7: the sound designer reads their words too
+  let styleFromNote = false; // 12.4: the medium came from their note, so the note must not then count as "already said"
+  if(["image","video"].includes(m.cat) && !has(b.medium)){ // 12.4: "flat vector sticker look" with no medium chosen was a "Photograph of a red fox"
+    const all = STYLE_FROM.filter(k => !(k === "medium" && has(opts.said))).map(k => b[k]).filter(has).map(v => join(v)).join(" ") + " " + String(opts.said || ""); // with their words in hand, a medium is Forge's guess
+    const st = RECIPES.filter(r => r.kind === "style" && r.medium && (!r.for || r.for === m.cat) && r.when.test(all)).sort((x, y) => (all.match(y.when) || [""])[0].length - (all.match(x.when) || [""])[0].length)[0];
+    if(st){ b = {...b, medium: st.medium}; if(st.when.test(String(b.extra || ""))) styleFromNote = true; }
+  }
   if(m.cat === "text" && has(opts.said) && !has(b.pasted)){
     const first = String(opts.said).split("\n")[0], inBrief = JSON.stringify(b).toLowerCase();
     const q = first.match(/["\u201c]([^"\u201d]{30,})["\u201d]/) || first.match(/(?:^|[\s:])['\u2018]([^\u2019]{30,}?)['\u2019](?=\s|$|[.,;!?])/), c0 = first.match(/^([^:]{4,400}?):\s*(\S[\s\S]{50,})$/), col = c0 && (/\b(?:these|this|my|our|the following|her|his)\s+(?:[\w-]+\s+){0,2}?(?:notes?|clause|paragraph|memo|draft|email|text|message|bio|post|fragments?|list|lyrics|script|review|description|bullets?|points|minutes|feedback|answers?|paper|essay|letter)\b/i.test(c0[1]) || /\b(these|this|my|the|our|following|here|below|it is|notes?|clause|paragraph|memo|draft|email|text|message|bio|post|fragments?|list|lyrics|script|review)\s*$/i.test(c0[1].slice(-60))) ? [c0[0], c0[2]] : null;
@@ -5027,8 +5106,9 @@ function forge(b, m, level, opts){
   if(!opts.noRecipes) applyRecipes(res, b, m); // 10.3
   addBackground(res, m, opts.context);
   useOwnImage(res, m, b);
-  if(defaultNeg){ const before = res.negative; res.negative = ""; addExtra(res, m, b.extra); if(!res.negative) res.negative = before; } // their own keep-outs replace the defaults
-  else addExtra(res, m, b.extra);
+  if(defaultNeg){ const before = res.negative; res.negative = ""; addExtra(res, m, b.extra, styleFromNote); if(!res.negative) res.negative = before; } // their own keep-outs replace the defaults
+  else addExtra(res, m, b.extra, styleFromNote);
+  if(!opts.noRecipes) applyStyle(res, b, m, opts.said, false); // 12.4: after their own words
   const hi = (m.len||[0,0])[1];
   if(hi && sc.words > hi) res.warn.push("About " + (sc.words - hi) + " words over the " + m.len[0] + " to " + hi + " word range for " + m.n + ". Cut the least important part yourself: Forge does not cut your sentences, because that can change what you meant.");
   return res;

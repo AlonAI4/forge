@@ -37580,7 +37580,7 @@ var RECIPES = [
   { id: "image:product-hero-ad", kind: "image", when: /(hero|key visual|campaign|launch|print ad|\bad\b|rebrand).{0,60}(watch|bottle|perfume|serum|sneaker|shoe|can\b|whiskey|backpack|phone|smartwatch|candle|headphones|product)|(watch|bottle|perfume|serum|sneaker|shoe|whiskey|smartwatch|backpack|energy drink).{0,60}(hero|campaign|launch|\bad\b|premium|luxury|expensive)/i, add: ["controlled studio light with a rim light tracing the product's edges", "one hero product at a slightly low angle, open negative space for copy", "deliberate highlights on glass and metal; backlight glowing through any liquid", "crisp focus on the product, background softly out of focus"], avoid: ["clutter competing with the product", "invented brand names on the product"] },
   { id: "image:flat-lay", kind: "image", when: /flat ?lay|top[- ]down|from directly overhead|overhead shot/i, unless: /token|\bmap\b|top down circular/i, add: ["shot directly overhead, camera parallel to the surface", "objects arranged with even spacing and breathing room", "soft diffused light with short gentle shadows", "textured base surface such as linen, marble or wood"], avoid: ["perspective tilt", "overcrowded arrangement"] },
   { id: "image:food-photo", kind: "image", when: /food|pizza|burger|cake|cupcake|sushi|ramen|pasta|steak|taco|croissant|pancakes|cinnamon roll|cookies?|sourdough|loaf|dessert|signature dish|plate of|latte|granola|\bpie\b|tasting menu|cheese/i, unless: /\blogo\b|\bicon\b|menu board|\blist\b|\bcard\b|\bsign\b|label|chart|calendar|nutrition|banner|can design|wrap design/i, add: ["soft side or back light raking across the food to show texture and gloss", "camera angle matched to the dish: overhead for flat, eye level for tall", "fresh garnish, a few crumbs or drips, light steam if hot", "neutral surface and simple props, shallow depth of field"], avoid: ["plastic-looking oversaturated food", "cluttered table"] },
-  { id: "image:real-estate-photo", kind: "image", when: /real estate|listing (photo|pic|shot|mockup)|for (the|a|our) (rental )?listing|listing photos|airbnb|vacation rental|realtor|living room|bathroom|bedroom|hotel lobby|lobby photo|interior (photo|shot)|showroom|curb appeal|farmhouse|house pic|front of (the |our |my )?house|just listed/i, unless: /\b(take|turn) (my|our|the|this)|my .{0,20}photo|actual .{0,20}photo|virtually stage|floor plan|yard sign|skyline|color scheme|poster|chart|diagram|schedule|\bmap\b|handshake|agent/i, add: ["wide lens at chest height with perfectly vertical lines", "bright balanced exposure, window views visible, lights switched on", "tidy staged space, neutral decor, no people or cars", "soft daylight, or warm dusk glow for exteriors"], avoid: ["fisheye distortion", "blown-out windows"] },
+  { id: "image:real-estate-photo", kind: "image", when: /real estate|listing (photo|pic|shot|mockup)|for (the|a|our) (rental )?listing|listing photos|airbnb|vacation rental|realtor|living room|bathroom|bedroom|hotel lobby|lobby photo|interior (photo|shot)|showroom|curb appeal|farmhouse|house pic|front of (the |our |my )?house|just listed/i, unless: /\b(take|turn) (my|our|the|this)|my .{0,20}photo|actual .{0,20}photo|virtually stage|floor plan|yard sign|skyline|color scheme|poster|chart|diagram|schedule|\bmap\b|handshake|agent|gaming|gamer|desk setup|battle ?station|neon/i, add: ["wide lens at chest height with perfectly vertical lines", "bright balanced exposure, window views visible, lights switched on", "tidy staged space, neutral decor, no people or cars", "soft daylight, or warm dusk glow for exteriors"], avoid: ["fisheye distortion", "blown-out windows"] },
   { id: "image:venue-interior-photo", kind: "image", when: /^(?=.*\b(interior|inside|dining room|taproom|lobby|storefront)\b)(?=.*\b(photo|photorealistic|realistic|shot|pic|picture)\b)(?=.*\b(cafe|coffee shop|restaurant|bar|taproom|bookstore|gym|hotel|salon|spa|bakery|brewery|office|shop|boutique|library|studio)\b)/i, unless: /\b(take|turn) (my|our|the|this)|actual .{0,20}photo|virtually stage|renovat|logo|sign\b|menu board|illustrat|cartoon/i, add: ["eye-level view from a seated customer's position, wide-normal lens", "warm practical lights in frame: pendant lamps, candles or string lights", "soft window daylight balancing the warm interior glow", "lived-in details on tables and shelves, shallow depth of field"], avoid: ["sterile empty showroom look", "warped furniture lines"] },
   { id: "image:architecture-render", kind: "image", when: /architect|render of (a|an|the) .{0,30}(house|building)|building we designed|studio crit|isometric city/i, add: ["two-point perspective at human eye height, verticals perfectly straight", "honest materials: glass reflections, concrete texture, wood grain", "low late-afternoon sun casting long clean shadows", "a few small human figures for scale, simple landscaping"], avoid: ["fantasy lighting effects", "warped geometry"] },
   { id: "image:staging-renovation-preview", kind: "image", when: /virtual(ly)? stag|renovat|remodel|redesign(ed)? (room|kitchen|bathroom|bedroom)|before ?(\/|and|&) ?after|landscaped|painted (a |in )?\w+ (green|blue|grey|gray|white)|home gym|set up like|reorganized/i, unless: /physique|muscular|teeth|smile|posture|furniture restoration/i, add: ["same room shape, windows, doors and camera position as the original photo", "new furniture scaled to the room, shadows touching the floor", "realistic finishes, light matching the existing windows", "neutral, uncluttered styling"], avoid: ["moved walls or windows", "floating furniture"], ask: ["What must stay exactly the same in the photo?"] },
@@ -37752,6 +37752,56 @@ var RECIPES = [
   { id: "sound:music-western", kind: "sound", for: "music", when: /\b(?:western|cowboy|saloon|wild west|old west|pioneers?|frontier|honky[- ]?tonk)\b/i, add: ["acoustic guitar, banjo and fiddle over a loping, galloping rhythm", "twangy reverb guitar and harmonica over open, wide chords", "dusty, vintage recording warmth"], avoid: ["modern drums", "synths"] },
   { id: "sound:music-campfire-singalong", kind: "sound", for: "music", when: /\b(?:campfire|sing-?along|scouts?|scout troop|summer camp)\b/i, unless: /\bretirement|\bsenior/i, add: ["strummed acoustic guitar, banjo and simple hand percussion", "an easy repeating chorus with a narrow melody anyone can sing", "warm, loose group vocals like friends singing together"], avoid: ["polished studio pop", "complex lyrics"] },
   { id: "sound:music-lullaby", kind: "sound", for: "music", when: /\blullab\w*|\bnewborn|\bbedtime|\bput (?:the )?baby to sleep/i, add: ["slow, gentle swaying triple-meter rhythm", "soft music box, celesta or fingerpicked guitar", "hushed, breathy vocal close to the mic, or no vocal at all", "no drums, no sudden changes, a quiet fading ending"], avoid: ["percussion", "bright loud instruments"] },
+  { id: "style:photo-product", kind: "style", for: "image", when: /\b(?:e[\s-]?commerce[\s-]?photo|product[\s-]?photo|product[\s-]?shot|packshot)\b/i, add: ["seamless clean backdrop with soft even light", "crisp silhouette, no edge fringing", "true-to-life colour and sharp label detail"], avoid: ["props", "warped or garbled label text"] },
+  { id: "style:photo-food", kind: "style", for: "image", when: /\b(?:food[\s-]?photography|food[\s-]?photo|food[\s-]?shot)\b/i, add: ["soft natural window light from one side", "shallow depth of field, sharp focus on the dish", "simple clean background that complements the food"], avoid: ["plastic-looking food", "cluttered props stealing focus"] },
+  { id: "style:photo-portrait", kind: "style", when: /\b(?:portrait[\s-]?photography|portrait[\s-]?photo|profile[\s-]?photo|headshot)\b/i, add: ["soft key light with gentle fill", "85mm look, shallow depth of field, blurred background", "sharp eyes, natural skin texture"], avoid: ["over-smoothed plastic skin", "distorted hands or uneven eyes"] },
+  { id: "style:photo-street", kind: "style", when: /\b(?:street[\s-]?photography|candid[\s-]?street|street[\s-]?photo)\b/i, add: ["candid unposed moment in public space", "35mm wide-angle perspective", "available light with natural contrast"], avoid: ["posed subjects", "clean studio lighting on a street scene"] },
+  { id: "style:photo-cinematic", kind: "style", when: /\b(?:cinematic[\s-]?still|cinematic[\s-]?photo|cinematic[\s-]?shot|movie[\s-]?still|film[\s-]?still)\b/i, add: ["shallow depth of field with soft background bokeh", "motivated lighting with muted, graded colour"], avoid: ["flat even lighting", "stock-photo look instead of film look"] },
+  { id: "style:photo-noir", kind: "style", when: /\b(?:noir[\s-]?style|film[\s-]?noir|noir)\b/i, add: ["black and white, high contrast", "low-key lighting with hard shadows", "unbalanced tilted compositions"], avoid: ["soft even lighting", "colour leaking into a monochrome image"] },
+  { id: "style:photo-documentary", kind: "style", when: /\b(?:documentary[\s-]?photo|photojournalism|press[\s-]?photo|reportage)\b/i, add: ["candid unposed moment", "available light, natural uneven exposure", "honest unretouched look"], avoid: ["staged polished look", "heavy colour grading"] },
+  { id: "style:photo-macro", kind: "style", when: /\b(?:macro[\s-]?photography|macro[\s-]?photo)\b/i, add: ["extreme close-up with razor-thin focus plane", "soft creamy out-of-focus background", "even soft light showing fine texture"], avoid: ["blurry subject", "sharpness fading to mush on the focal edge"] },
+  { id: "style:photo-longexposure", kind: "style", when: /\b(?:long[\s-]?exposure|light[\s-]?trails|silky[\s-]?water|star[\s-]?trails)\b/i, add: ["moving elements as smooth streaks", "stationary elements perfectly sharp"], avoid: ["blur across the whole frame", "ghosted static objects"] },
+  { id: "style:photo-aerial", kind: "style", when: /\b(?:aerial[\s-]?(?:photo|photograph|view|shot|image)|bird\'?s[\s-]?eye[\s-]?view|top[\s-]?down[\s-]?aerial)\b/i, unless: /\bfpv\b/i, add: ["high vantage point looking down", "map-like patterns and scale", "wide view with deep sharp focus"], avoid: ["tilted horizon", "toy-like miniature blur"] },
+  { id: "style:photo-architecture", kind: "style", when: /\b(?:architectural[\s-]?photography|interior[\s-]?design[\s-]?photo|architecture[\s-]?photo|real[\s-]?estate[\s-]?photo|interior[\s-]?photo)\b/i, add: ["straight parallel vertical lines", "wide-angle view with deep focus", "balanced natural and artificial light"], avoid: ["converging leaning walls", "warped impossible geometry"] },
+  { id: "style:photo-fashion", kind: "style", when: /\b(?:fashion[\s-]?editorial|editorial[\s-]?photo|fashion[\s-]?shoot|fashion[\s-]?photo)\b/i, add: ["deliberate styled lighting and pose", "clothing is the visual focus", "clean composed framing"], avoid: ["melted clothing details", "generic catalogue look"] },
+  { id: "style:photo-sports", kind: "style", when: /\b(?:sports[\s-]?photography|sports[\s-]?action|sports[\s-]?photo|action[\s-]?shot)\b/i, add: ["fast shutter, frozen peak action", "telephoto compression, blurred background", "panning blur behind a sharp athlete"], avoid: ["distorted limbs", "motion blur on the subject itself"] },
+  { id: "style:photo-goldenhour", kind: "style", when: /\b(?:sunrise[\s-]?landscape|sunset[\s-]?landscape|landscape[\s-]?photo|golden[\s-]?hour)\b/i, add: ["warm low-angle sunlight with long shadows", "soft diffuse low-contrast light", "warm tones against cooler shadows"], avoid: ["harsh midday light", "oversaturated fake-looking sky"] },
+  { id: "style:photo-nightcity", kind: "style", when: /\b(?:neon[\s-]?night[\s-]?photo|city[\s-]?at[\s-]?night|night[\s-]?city|neon[\s-]?city)\b/i, add: ["artificial neon and street-light glow", "reflections on wet surfaces"], avoid: ["daylight", "muddy noise instead of clean glow"] },
+  { id: "style:art-anime", kind: "style", when: /\b(?:toon[\s-]?shading|anime[\s-]?style|cel[\s-]?shaded|cel[\s-]?shaded|anime)\b/i, add: ["flat colour blocks with hard-edged shadows", "clean bold outlines", "limited smooth shading, no gradients"], medium: "anime illustration", avoid: ["photoreal skin", "soft airbrushed gradients"] },
+  { id: "style:art-manga", kind: "style", when: /\b(?:black[\s-]?and[\s-]?white[\s-]?manga|manga[\s-]?panel|manga[\s-]?ink|manga)\b/i, add: ["black and white ink line work", "screentone shading"], medium: "manga ink drawing", avoid: ["colour", "garbled speech bubble text"] },
+  { id: "style:art-childrensbook", kind: "style", when: /\b(?:childrens[\s-]?book[\s-]?illustration|storybook[\s-]?illustration|children's[\s-]?book|picture[\s-]?book)\b/i, add: ["soft watercolour washes", "gentle rounded shapes and warm palette", "simple readable character shapes"], medium: "children's book illustration", avoid: ["scary details", "inconsistent character look"] },
+  { id: "style:art-watercolour", kind: "style", when: /\b(?:watercolour[\s-]?painting|wash[\s-]?painting|watercolour|watercolor)\b/i, add: ["transparent washes with paper showing through", "soft bleeding wet-on-wet edges", "visible paper texture"], medium: "watercolour painting", avoid: ["opaque digital-looking fills", "hard vector edges"] },
+  { id: "style:art-oil", kind: "style", when: /\b(?:oil[\s-]?painting|oil[\s-]?paint|painterly)\b/i, add: ["visible thick brushstrokes", "rich dense colour with layered glazes", "canvas texture"], medium: "oil painting", avoid: ["smooth airbrushed digital finish", "plastic photo look"] },
+  { id: "style:art-gouache", kind: "style", when: /\b(?:gouache[\s-]?painting|gouache)\b/i, add: ["opaque matte flat colour", "visible brush marks", "solid poster-like colour shapes"], medium: "gouache illustration", avoid: ["glassy transparent washes", "digital gradients"] },
+  { id: "style:art-pencil", kind: "style", when: /\b(?:graphite[\s-]?drawing|pencil[\s-]?drawing|pencil[\s-]?sketch)\b/i, add: ["graphite line and hatching", "soft grey tonal shading", "paper grain showing"], medium: "pencil drawing", avoid: ["colour", "smooth digital shading"] },
+  { id: "style:art-inkline", kind: "style", when: /\b(?:outline[\s-]?drawing|ink[\s-]?line[\s-]?art|ink[\s-]?drawing|pen[\s-]?and[\s-]?ink|line[\s-]?art)\b/i, add: ["clean contour lines, no fills or gradients", "varied line weight", "plain background"], medium: "ink line art", avoid: ["grey shading", "broken or doubled lines"] },
+  { id: "style:art-comic", kind: "style", when: /\b(?:graphic[\s-]?novel|comic[\s-]?style|comic[\s-]?panel|comic[\s-]?book)\b/i, add: ["bold inked outlines", "flat colour with halftone shading"], medium: "comic book illustration", avoid: ["garbled lettering", "soft painterly rendering"] },
+  { id: "style:art-pixel", kind: "style", when: /\b(?:pixel[\s-]?art|pixelated|16[\s-]?bit|sprite|8[\s-]?bit)\b/i, add: ["visible individual square pixels", "restricted colour palette", "hard edges, no blur or anti-aliasing"], medium: "pixel art", avoid: ["smooth blurry gradients", "inconsistent pixel size"] },
+  { id: "style:3d-lowpoly", kind: "style", when: /\b(?:faceted[\s-]?3d|low[\s-]?poly|low[\s-]?poly)\b/i, add: ["flat-shaded triangular facets", "simple blocky forms with few polygons", "clean minimal shading"], medium: "low-poly 3D render", avoid: ["smooth high-poly surfaces", "photoreal textures"] },
+  { id: "style:art-isometric", kind: "style", when: /\b(?:isometric[\s-]?illustration|isometric[\s-]?view|isometric[\s-]?3d|isometric)\b/i, add: ["parallel projection, no perspective", "equal 30 degree axes", "miniature diorama feel"], medium: "isometric illustration", avoid: ["converging perspective lines", "inconsistent angles between objects"] },
+  { id: "style:3d-clay", kind: "style", when: /\b(?:clay[\s-]?animation|claymation|clay[\s-]?style|plasticine)\b/i, add: ["tactile clay surface with fingerprints", "soft rounded handmade forms", "stop-motion look with soft studio light"], medium: "claymation-style 3D", avoid: ["smooth plastic CGI sheen", "perfectly clean machine surfaces"] },
+  { id: "style:3d-render", kind: "style", when: /\b(?:cute[\s-]?3d[\s-]?character|3d[\s-]?illustration|stylized[\s-]?3d|stylised[\s-]?3d|3d[\s-]?render)\b/i, add: ["soft rounded forms with smooth materials", "soft studio lighting with gentle shadows", "colourful tactile finish"], medium: "stylised 3D render", avoid: ["uncanny realism", "harsh noisy shadows"] },
+  { id: "style:art-vector", kind: "style", when: /\b(?:flat[\s-]?illustration|flat[\s-]?design|flat[\s-]?vector|vector[\s-]?art)\b/i, add: ["solid flat colour shapes", "simple geometric forms, bold palette"], medium: "flat vector illustration", avoid: ["gradients and soft shadows", "over-detailed texture"] },
+  { id: "style:print-risograph", kind: "style", when: /\b(?:riso[\s-]?print|riso[\s-]?style|risograph)\b/i, add: ["limited spot-ink colours", "grainy textured ink", "slight misregistered overlapping layers"], medium: "risograph print", avoid: ["smooth full-colour photo look", "perfect digital gradients"] },
+  { id: "style:print-linocut", kind: "style", when: /\b(?:relief[\s-]?print|block[\s-]?print|linocut|woodcut)\b/i, add: ["bold carved knife marks", "solid flat ink areas", "limited colours, rough print texture"], medium: "linocut print", avoid: ["smooth digital gradients", "fine photographic detail"] },
+  { id: "style:art-ukiyoe", kind: "style", when: /\b(?:japanese[\s-]?woodblock|woodblock[\s-]?print|ukiyo[\s-]?e|ukiyoe)\b/i, add: ["bold flat colour with outlined forms", "woodblock print texture", "composition and atmosphere over realism"], medium: "woodblock print", avoid: ["photoreal shading", "western perspective rendering"] },
+  { id: "style:art-artnouveau", kind: "style", when: /\b(?:nouveau[\s-]?style|art[\s-]?nouveau)\b/i, add: ["sinuous whiplash curves", "flowing lettering woven into the art"], medium: "art nouveau illustration", avoid: ["rigid symmetry", "straight geometric ornament"] },
+  { id: "style:art-artdeco", kind: "style", when: /\b(?:deco[\s-]?style|1920s[\s-]?deco|art[\s-]?deco)\b/i, add: ["bold geometry and strict symmetry", "gold, black and bright accent colours"], medium: "art deco illustration", avoid: ["organic flowing curves", "muddy modern minimalism"] },
+  { id: "style:design-bauhaus", kind: "style", for: "image", when: /\b(?:international[\s-]?typographic[\s-]?style|swiss[\s-]?poster|swiss[\s-]?style|bauhaus)\b/i, add: ["modular grid, asymmetric layout", "geometric shapes and primary colours", "sans-serif type with generous whitespace"], medium: "Swiss-style graphic design", avoid: ["ornamental decoration", "crowded centred layouts"] },
+  { id: "style:art-vaporwave", kind: "style", when: /\b(?:vaporwave|retrowave|synthwave|80s[\s-]?neon|outrun)\b/i, add: ["neon pink and cyan gradients", "retro 80s and 90s digital look"], medium: "retro digital art", avoid: ["muted realistic palette", "modern flat minimal look"] },
+  { id: "style:art-cyberpunk", kind: "style", when: /\b(?:neon[\s-]?dystopia|cyber[\s-]?punk|cyberpunk)\b/i, add: ["neon light against deep shadows", "rain-slick reflective surfaces"], avoid: ["bright cheerful daylight", "clean utopian look"] },
+  { id: "style:art-steampunk", kind: "style", when: /\b(?:steam[\s-]?punk|steampunk)\b/i, add: ["polished brass and copper tones", "Victorian iron, wood and leather materials"], avoid: ["modern plastic and chrome", "neon sci-fi look"] },
+  { id: "style:art-fantasyconcept", kind: "style", when: /\b(?:fantasy[\s-]?concept[\s-]?art|game[\s-]?concept[\s-]?art|fantasy[\s-]?art|concept[\s-]?art)\b/i, add: ["painterly digital rendering", "dramatic atmospheric lighting", "strong readable silhouettes"], medium: "digital concept painting", avoid: ["flat stock-photo lighting", "cluttered unreadable detail"] },
+  { id: "style:art-tattooflash", kind: "style", for: "image", when: /\b(?:traditional[\s-]?tattoo|tattoo[\s-]?design|tattoo[\s-]?flash)\b/i, add: ["bold black outlines", "limited colour palette", "minimal shading, flat fills"], medium: "tattoo flash illustration", avoid: ["photographic skin", "soft gradients"] },
+  { id: "style:design-sticker", kind: "style", for: "image", when: /\b(?:die[\s-]?cut[\s-]?sticker|die[\s-]?cut[\s-]?sticker|sticker[\s-]?design|sticker)\b/i, add: ["thick white border around the shape", "bold simple artwork with clear outline", "plain neutral background"], medium: "sticker illustration", avoid: ["busy background", "fine detail lost at small size"] },
+  { id: "style:design-logo", kind: "style", for: "image", when: /\b(?:logo[\s-]?design|brand[\s-]?mark|app[\s-]?icon|logo)\b/i, unless: /\bmock[\s-]?ups?\b|\b(?:on|onto) (?:a |an |the |our |my )?(?:mug|shirt|t-?shirt|hoodie|cap|hat|bag|tote|sign|truck|van|storefront|box|package|bottle|label)\b/i, add: ["simple bold shape with strong silhouette", "solid colours, balanced negative space", "scales cleanly to small sizes"], medium: "logo design", avoid: ["extra lettering", "garbled or extra lettering"] },
+  { id: "style:design-poster", kind: "style", for: "image", when: /\b(?:concert[\s-]?poster|event[\s-]?poster|gig[\s-]?poster)\b/i, add: ["one dominant headline with clear hierarchy", "strong central image with bold colour", "large legible text from a distance"], avoid: ["garbled lettering", "too much small text"] },
+  { id: "style:design-bookcover", kind: "style", for: "image", when: /\b(?:novel[\s-]?cover|book[\s-]?cover|cover[\s-]?art)\b/i, add: ["title as the clear dominant element", "single strong cover image", "consistent typography hierarchy"], avoid: ["misspelled title", "text over a busy image"] },
+  { id: "style:design-thumbnail", kind: "style", for: "image", when: /\b(?:youtube[\s-]?thumbnail|video[\s-]?thumbnail)\b/i, add: ["one clear focal subject", "very short bold high-contrast text, readable when small"], avoid: ["long text", "small text that vanishes when shrunk"] },
+  { id: "style:design-infographic", kind: "style", for: "image", when: /\b(?:info[\s-]?graphic|data[\s-]?graphic|infographic)\b/i, add: ["clear sections with strong visual hierarchy", "consistent palette and spacing"], avoid: ["invented numbers", "dense tiny unreadable text"] },
+  { id: "style:design-menu", kind: "style", for: "image", when: /\b(?:restaurant[\s-]?menu|menu[\s-]?design|cafe[\s-]?menu)\b/i, add: ["clear sections for each course type", "name and price in aligned rows", "restrained typography, generous spacing"], avoid: ["garbled prices", "dense unreadable columns"] },
+  { id: "style:design-social", kind: "style", for: "image", when: /\b(?:social[\s-]?media[\s-]?post|instagram[\s-]?post|post[\s-]?graphic|social[\s-]?post)\b/i, add: ["one clear focal subject", "short bold headline, high contrast", "safe margins for the platform crop"], avoid: ["long text", "important content near the crop edge"] },
+  { id: "style:design-card", kind: "style", for: "image", when: /\b(?:thank[\s-]?you[\s-]?card|greeting[\s-]?card|birthday[\s-]?card|holiday[\s-]?card|card[\s-]?design)\b/i, add: ["warm balanced layout with clear margins", "short message in clear lettering"], avoid: ["misspelled text", "text crowded against the edge"] },
   { id: "text:complaint-letter", kind: "text", when: /\b(complain(t|ts|ing)?|refunds?|compensation|runaround|chargeback|firmer email)\b|\bmissed (my )?connection\b/i, unless: /\b(review|yelp|landlord|hoa|tenants?|neighbou?rs?|complaints about|guy in \d+\w?)\b|\b(reply|respond) to (a|an|the|this|our) (upset |angry )?(customer|client)\b|\b(customer|client)s? (is |who'?s |whos )?(upset|mad|angry)\b|\bsupport macros?\b/i, add: ["State the problem, the dates and what was promised in the first two sentences.", "List each incident or earlier contact as a short dated timeline with order or ticket numbers.", "Ask for one specific remedy, such as a refund, credit or repair, and a reply deadline.", "Name the next step if unresolved, like a regulator complaint or card dispute, calmly and without threats.", "Keep it firm and factual: no sarcasm, insults or all caps."], avoid: ["long venting paragraphs that bury the request", "legal threats the writer cannot back up"], ask: ["What exactly do you want them to do: refund, credit, repair or something else?", "Do you have dates and order or ticket numbers to include?"], role: "a consumer advocate who writes complaint letters that get results" },
   { id: "text:landlord-repair-request", kind: "text", when: /\blandlord\b[\s\S]*\b(mold|mould|repairs?|fix|broken|leak\w*|heat(ing)?|heater|ac|a\/c|air ?con\w*|pests?|roach\w*|mice)\b|\b(mold|mould|leak\w*|broken|repairs?)\b[\s\S]*\blandlord\b/i, add: ["Open with the problem, when it started, and the dates of earlier requests.", "Describe the health or safety impact plainly and factually.", "Request the repair by a specific date and ask for the plan in writing.", "Keep it polite and dated so it works as a paper trail later.", "Mention tenant rights only in general terms, since repair and rent-withholding rules vary by location."], avoid: ["advising rent withholding without checking local law", "angry or sarcastic tone"], ask: ["How many times, and on what dates, have you already asked?"], role: "a tenant rights advocate" },
   { id: "text:neighbor-dispute", kind: "text", when: /\b(hoa|homeowners'? association)\b|\bneighbou?r'?s?\b[\s\S]{0,60}\b(tree|branch|fence|dog|music|noise|parking)\b|\bguy in \d{1,2}[a-z]\b|\b(notice|reminder) (for|to) (my |our |the )?(apartment|building|tenants|residents)\b|\bmy tenants?\b/i, add: ["Cite the exact rule, bylaw section or lease clause involved.", "Stick to observable facts with dates and times; attach photos or measurements if available.", "Make one specific request with a reasonable deadline, and say what happens next if ignored.", "Keep the tone neighborly, since the relationship continues after this.", "In notices about complaints, don't name the people who complained."], avoid: ["accusations about motives or character", "threats beyond what the rules allow"], ask: ["Which rule or agreement applies, and what have you already tried directly?"], role: "a calm neighbor-dispute mediator and experienced property manager" },
@@ -41000,7 +41050,7 @@ var lc = (s) => {
   const looksProper = /^[A-Z][a-z]+ [A-Z]/.test(s);
   return DET.test(s) || /^[A-Z][a-z]/.test(s) && !looksProper ? s.charAt(0).toLowerCase() + s.slice(1) : s;
 };
-var REQUEST_LEAD = /^\s*(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:(?:make|create|generate|draw|paint|render|design|produce|give|show|do)\s+(?:me\s+|us\s+)?|i\s+(?:want|need|would like|'d like)\s+)/i;
+var REQUEST_LEAD = /^\s*(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:(?:make|create|generate|draw|paint|render|design|produce|give|show|do)\s+(?:me\s+|us\s+)?|(?:i|we)(?:\s+|(?=['’]))(?:want|need|would like|['’]d like|['’]d love|am looking for|['’]m looking for|are looking for|['’]re looking for)\s+|(?:need|needs|want|wants|looking for)\s+(?=(?:a|an|the|some|two|three|\d+|foley|footage|audio|music|sound|sounds|sfx|b-roll|art|artwork|photos?|pictures?|images?|videos?)\b))/i;
 var SFX_DESIGN = [
   [/\bbraam|trailer hit|cinematic hit\b/i, "low brass and sub-bass layered into one wide, heavy blast", "hard attack, then a long low swell that decays over a few seconds"],
   [/\brecord scratch|vinyl scratch\b/i, "a vinyl record dragged under the needle", "a quick back-and-forth scrape that stops dead"],
@@ -41361,7 +41411,9 @@ function imageSections(b, m2) {
   const med = has(b.medium) ? b.medium : defaultMedium(b);
   const subj = stripDot(b.subject) || "the subject";
   const drawn = isDrawn(b);
-  S.push(["Subject", cap(med) + " of " + withSetting(lc(subj), b.setting) + "."]);
+  const norm = (x) => " " + String(x).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim() + " ";
+  const core = norm(med).replace(/ (?:illustration|painting|drawing|art|print|render|design|style|still|photo|photograph) $/, " ");
+  S.push(["Subject", (String(med).trim() && (norm(subj).includes(norm(med)) || core.trim().length > 2 && norm(subj).includes(core)) ? cap(withSetting(lc(subj), b.setting)) : cap(med) + " of " + withSetting(lc(subj), b.setting)) + "."]);
   const shotLook = lookOf(SHOT_LOOK, b.shot);
   const cam = camClause(b);
   if (cam) S.push(["Camera", cam + (shotLook ? ", " + shotLook : "") + "."]);
@@ -41399,7 +41451,7 @@ var COMPOSE = {
     if (m2.cat === "image") {
       S.push(["Goal", (has(b.purpose) ? /^(?:my|our|a|an|the|his|her|their)\b/i.test(stripDot(b.purpose)) ? "An image for " + stripDot(b.purpose) : cap(stripDot(b.purpose)) : "A single finished image") + "."]);
       const med = has(b.medium) ? b.medium : defaultMedium(b);
-      S.push(["Scene", (has(b.setting) ? "" : artic(med) + " ") + (has(b.setting) ? cap(med) : med) + (has(b.setting) ? (/^(in|on|at|under|inside|outside|by|beside|near|over|above|against|across|along|through|within|from|behind|among|around)\b/i.test(String(b.setting).trim()) ? " " : " set in ") + stripDot(b.setting) : "") + "."]);
+      S.push(["Scene", (has(b.setting) ? "" : /\bart$/i.test(String(med).trim()) ? "" : artic(lc(med)) + " ") + (has(b.setting) ? cap(med) : /\bart$/i.test(String(med).trim()) ? cap(lc(med)) : lc(med)) + (has(b.setting) ? (/^(in|on|at|under|inside|outside|by|beside|near|over|above|against|across|along|through|within|from|behind|among|around)\b/i.test(String(b.setting).trim()) ? " " : " set in ") + stripDot(b.setting) : "") + "."]);
       S.push(["Subject", cap(stripDot(b.subject) || "the subject") + "."]);
       const shotLook = lookOf(SHOT_LOOK, b.shot), liLook = lookOf(LIGHT_LOOK, b.light), moodLook = lookOf(MOOD_LOOK, b.mood);
       const style = [camClause(b) + (camClause(b) && shotLook ? ", " + shotLook : ""), lightClause(b) + (lightClause(b) && liLook ? ": " + liLook : ""), finishClause(b)].filter(has);
@@ -41572,11 +41624,16 @@ var COMPOSE = {
   },
   music(b, m2) {
     const style = [];
+    if (has(b.mInst) && instrumental(b)) {
+      const left = arr(b.mInst).filter((x) => !/\b(?:vocals?|sing(?:ing|ers?)?|lyrics?)\b/i.test(String(x)));
+      b = { ...b, mInst: left };
+      if (!left.length) delete b.mInst;
+    }
     if (has(b.mGenre)) style.push(join(b.mGenre));
     if (has(b.mBpm)) style.push(b.mBpm + " BPM");
     if (has(b.mKey)) style.push("in " + b.mKey);
     if (has(b.mInst)) style.push(join(b.mInst));
-    const inst = m2.id === "suno" ? sunoInstrumental(b) : instrumental(b), choir = /\bchoir|vocal|voices\b/i.test(join(b.mInst));
+    const inst = m2.id === "suno" ? sunoInstrumental(b) : instrumental(b), choir = /\bchoir|voices\b/i.test(join(b.mInst));
     if (has(b.mVocal) || inst) style.push(inst ? choir ? "wordless voices, no lyrics" : "instrumental" : lc(join(b.mVocal)) + (/vocal/i.test(join(b.mVocal)) ? "" : " vocals"));
     if (has(b.mProd)) style.push(join(b.mProd));
     if (has(b.mMood)) style.push(join(b.mMood));
@@ -41597,7 +41654,7 @@ var COMPOSE = {
         /** @type {Record<string, number>} */
         { "el-music": 600, lyria: 180, stableaudio: 190 }[m2.id] || 1e9
       );
-      const first = [has(b.mGenre) ? cap(join(b.mGenre)) : "", has(b.mBpm) ? "at " + b.mBpm + " BPM" : "", has(b.mKey) ? "in " + b.mKey : ""].filter(has).join(" ");
+      const first = [has(b.mGenre) ? cap(join(b.mGenre)) : "", has(b.mBpm) ? (has(b.mGenre) ? "at " : "") + b.mBpm + " BPM" : "", has(b.mKey) ? "in " + b.mKey : ""].filter(has).join(" ");
       flat = [
         first ? first + "." : "",
         has(b.mInst) ? "Featuring " + join(b.mInst) + "." : "",
@@ -42037,7 +42094,11 @@ var FIND = {
   voiceChar: (t) => found(t, WORDS.voiceChar()).join(", "),
   // 8.5.2: not the bare word "voice"
   vArch: (t) => found(t, WORDS.vArch())[0] || "",
-  lang: (t) => found(t, WORDS.lang())[0] || firstMatch(t, /\b(\w+ accent|\w+ dialect)\b/i),
+  // 12.4: "dub my english video to spanish" gave English: a language after "into" or "to" is the one wanted
+  lang: (t) => {
+    const L = WORDS.lang(), to = String(t).toLowerCase().match(new RegExp("\\b(?:into|to|in)\\s+(" + L.join("|") + ")\\b"));
+    return to ? cap(to[1]) : found(t, L)[0] || firstMatch(t, /\b(\w+ accent|\w+ dialect)\b/i);
+  },
   sound: (t) => found(t, WORDS.sound()).length ? cleanDraft(t) : "",
   sfxKind: (t) => found(t, WORDS.sfxKind())[0] || ""
 };
@@ -42187,7 +42248,7 @@ function notMine(t) {
 }
 function rebuildBrief(text, m2) {
   const t0 = cleanDraft(stripBanned(text).text);
-  const t = ["image", "video"].includes(m2.cat) ? notMine(t0).text : t0;
+  const t = ["image", "video"].includes(m2.cat) ? notMine(t0).text : ["sfx", "music"].includes(m2.cat) ? cap(t0.replace(REQUEST_LEAD, "")) : t0;
   const b = {};
   const suggested = [];
   const sug = (k2, v2) => {
@@ -42252,9 +42313,19 @@ function rebuildBrief(text, m2) {
       const rest = parts.filter((x) => x !== moodPart);
       if (rest.length) b.extra = [has(b.extra) ? stripDot(join(b.extra)) : "", cap(rest.join(", "))].filter(Boolean).join(". ");
     }
+    if (["image", "video"].includes(m2.cat) && /\b(gaming (?:setup|room|station|desk|corner|den|pc|rig)|battle ?station|monitors?|screens?|tvs?|televisions?|laptops?|computers?|arcade|cinema|movie theat(?:er|re)|billboards?|phones?|tablets?)\b/i.test(t) && !/\b(?:for|on|as)\s+(?:my|our|a|the|your)?\s*(?:\w+\s+)?(?:screens?|phones?|laptops?|computers?|desktops?|tablets?|monitors?|banner|wallpaper|lock ?screen|home ?screen|background)\b/i.test(t) && !/["“][^"”]+["”]|\b(?:showing|playing|plays|displaying|of)\s+[A-Z][\w'’:-]+/.test(t)) {
+      const line = "Screens show original made-up art with no real game titles or logos";
+      b.extra = [has(b.extra) ? stripDot(join(b.extra)) : "", line].filter(Boolean).join(". ");
+    }
     if (b.medium) {
-      const o = opts("medium").find((x) => x.includes(b.medium.toLowerCase()) || b.medium.toLowerCase().includes(x));
+      const bm = String(b.medium).toLowerCase().trim(), generic = /^(?:an? )?(?:illustration|painting|drawing|render|art|artwork|print|design|still|study|sketch)$/i.test(bm);
+      const o = opts("medium").find((x) => x === bm || bm.includes(x) || !generic && x.includes(bm));
       if (o) b.medium = (F.medium.o || []).find((x) => x.toLowerCase() === o);
+    }
+    {
+      const st = RECIPES.filter((r2) => r2.kind === "style" && r2.medium && (!r2.for || r2.for === m2.cat) && r2.when.test(t)).sort((x, y) => (t.match(y.when) || [""])[0].length - (t.match(x.when) || [""])[0].length)[0];
+      if (st && !has(b.medium)) sug("medium", st.medium);
+      else if (st && st.medium && st.medium.toLowerCase().includes(String(b.medium).toLowerCase().trim())) b.medium = st.medium;
     }
     const graphic = /\b(graphics?|geometric|abstract|flat (?:design|colou?rs?|shapes?)|designs?|panels?|murals?|decals?|wraps?|patterns?|logos?|icons?|stickers?|posters?|flyers?|charts?|diagrams?|infographics?|illustrations?|illustrated|paintings?|painted|vectors?|cartoons?|anime|drawings?|drawn|sketch\w*|watercolou?rs?|pixel art|3d renders?|clip ?art|emblems?|badges?|banners?|cards?|maps?|labels?|mascots?|book|storybook|invitations?|loading screens?|game art|concept art|fantasy|character art|comic|manga|children'?s|brackets?|storyboards?|leaderboards?|flowcharts?|timelines?|wireframes?|mockups?)\b/i.test(t);
     const outdoor = /\b(outdoor|outside|street|market|candid|sky|beach|forest|mountain|park|city|field|garden|night|sunset|sunrise|landscape|overcast|rain|desert|farm|nature|lake|ocean|sea|prairie|dawn|dusk|cliff|snow|river|trail|road|harbou?r|rooftop)\b/i.test(t);
@@ -42326,7 +42397,7 @@ function rebuildBrief(text, m2) {
     if (b.lang) b.lang = cap(b.lang);
   } else if (m2.cat === "music") {
     if (/\binstrumental\b|\bno (vocals|singing|lyrics)\b/i.test(t)) b.mVocal = "Instrumental";
-    else if (/\b(song|sing|sings|sung|singer|lyrics?|vocals?|chorus|verse|rap|rapper|anthem|jingle|duet|lullaby|ballad)\b/i.test(t)) b.mVocal = "Vocals";
+    else if (/\b(song|sing|sings|sung|singer|lyrics?|vocals?|chorus|verse|rap|rapper|anthem|jingle|duet|lullaby|ballad|mention(?:s|ing)?|shout[\s-]?outs?)\b|\b(?:name|say|says)\s+(?:our|my|the|his|her|their)\b/i.test(t)) b.mVocal = "Vocals";
     if (/\b(start with|starts with|then|build|builds|drop|intro|outro|verse|chorus|bridge|breakdown|fade)\b/i.test(t)) b.mStruct = t;
   } else if (m2.cat === "sfx") {
     if (!b.sound) b.sound = tidyRequest(t).replace(/\.$/, "");
@@ -42484,16 +42555,31 @@ function forgeFromText(text, m2, level) {
   res.score = counted.score;
   res.parts = counted.parts;
   res.ask = counted.ask;
-  const own2 = (["image", "video"].includes(m2.cat) ? notMine(deMeta(tidyRequest(stripBanned(fixed.text).text))).text : stripBanned(fixed.text).text).trim();
+  const own2 = (["image", "video"].includes(m2.cat) ? notMine(deMeta(tidyRequest(stripBanned(fixed.text).text))).text : ["sfx", "music"].includes(m2.cat) ? String(stripBanned(fixed.text).text).replace(REQUEST_LEAD, "") : stripBanned(fixed.text).text).trim();
   const before = scoreText(own2, m2);
   if (own2 && res.score < before.total) {
     const flags = /\s--[a-z]/i.test(own2) ? "" : (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];
-    res.flat = own2 + flags;
+    res.flat = cap(own2) + flags;
     res.blocks = [["Prompt", res.flat]];
     res.keptYours = true;
+    applyStyle(res, brief2, m2, text, true);
     res.score = before.total;
     res.parts = before.parts;
     res.notes = ["Forge's rewrite scored lower than your prompt, so this keeps your words" + (fixed.fixes.length ? " with the spelling fixed" : "") + ". Answer the questions below to make it better.", ...res.notes || []];
+  }
+  if (!res.keptYours && ["sfx", "music", "voice"].includes(m2.cat) && !(m2.core || []).includes("script") && !/dub/i.test(m2.id) && !/^\s*[{\[]/.test(String(res.flat))) {
+    const stemW = (w2) => w2.replace(/(ing|ed|es|s|ly)$/, "");
+    const theirs = (own2.toLowerCase().match(/[a-z']{4,}/g) || []).filter((w2) => isWord(w2) && !STOP_WORDS.has(w2) && !TALK_WORDS.has(w2));
+    const flatW = new Set((String(res.flat).toLowerCase().match(/[a-z']{3,}/g) || []).map(stemW));
+    const kept = theirs.filter((w2) => flatW.has(stemW(w2))).length;
+    if (theirs.length >= 3 && kept / theirs.length < 0.5) {
+      const lead = cap(stripDot(own2.replace(REQUEST_LEAD, "").replace(/,?\s*\b(?:i |we )?(?:want|need|would like|['’]d like)\s+(?:that|this|it)\s+(?=for|in|on)/gi, ", ").replace(/\b(?:i |we )?(?:want|need|would like|['’]d like)\s+(?=(?:a|an|the|some)\b)/gi, "").replace(/\s+,/g, ",").replace(/,\s*,/g, ",").replace(/\s{2,}/g, " ").trim()));
+      const at = String(res.flat).search(/\s--[a-z]/);
+      res.flat = lead + ". " + String(res.flat).trim();
+      res.blocks = [["Prompt", res.flat]];
+      res.notes = [...res.notes || [], "Forge kept your own words first: its tidy version had lost most of them."];
+      void at;
+    }
   }
   res.suggested = suggested.map((k2) => ({ f: k2, what: (F[k2] ? F[k2].l : k2) + ": " + join(brief2[k2]) }));
   res.fixes = fixed.fixes;
@@ -43088,7 +43174,7 @@ function matchModels(query, priorities, kind) {
 var STOP_WORDS = new Set("the and for with from into that this these those its their there they them was were are is be been very just really also some any more most not our your you she her his him who what when where which how than then too want wants like need needs make made feel look sound".split(" "));
 function defaultMedium(b) {
   const t = [b.subject, b.purpose, b.setting, b.extra].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
-  if (/\b(logos?|icons?|stickers?|signs?|posters?|flyers?|cards?|invitations?|menus?|labels?|badges?|banners?|infographics?|charts?|diagrams?|packaging|designs?|panels?|murals?|patterns?|wraps?|decals?|t-?shirts?|merch)\b/.test(join(b.subject).toLowerCase())) return "clean graphic design";
+  if (/\b(logos?|icons?|stickers?|signs?|posters?|flyers?|cards?|invitations?|menus?|labels?|badges?|banners?|infographics?|charts?|diagrams?|packaging|designs?|panels?|murals?|patterns?|wraps?|decals?|t-?shirts?|merch|brackets?|storyboards?|leaderboards?|flowcharts?|timelines?|wireframes?|thumbnails?|book covers?|covers?)\b/.test(join(b.subject).toLowerCase())) return "clean graphic design";
   if (/\b(storybook|children'?s book|fantasy|dragon|wizard|fairy|cartoon|comic|mascot|character art|concept art|game art|illustrat\w*)\b/.test(t)) return "illustration";
   return "photograph";
 }
@@ -43148,7 +43234,7 @@ function matchReason(top, query, second) {
   top.s - /** @type {any} */
   second.s <= 6 ? " Second choice: " + second.m.n + (second.m.sub ? " " + second.m.sub : "") + ", for " + lc(firstSentence(whyFor(second.m, query))) + "." : "");
 }
-function addExtra(res, m2, extra) {
+function addExtra(res, m2, extra, keepAny) {
   const x = stripDot(String(extra || "").trim());
   if (!x) return;
   if ((m2.core || []).includes("script")) {
@@ -43175,7 +43261,7 @@ function addExtra(res, m2, extra) {
       (w2) => w2.replace(/(ing|ed|es|s|ly)$/, "")
     );
     const fresh = words2.filter((w2) => !saidWords.has(stem2(w2)));
-    if (words2.length && (fresh.length === 0 || fresh.length < 2 && fresh.length / words2.length < 0.5)) continue;
+    if (words2.length && (fresh.length === 0 || !keepAny && fresh.length < 2 && fresh.length / words2.length < 0.5)) continue;
     if (!media && words2.length >= 3 && fresh.length / words2.length < 0.4) continue;
     const FEEL = /^(cold|warm|cool|hot|soft|hard|rich|deep|light|dark|bright|muted|moody|feel|feels|feeling|colour|color|colours|colors|tone|toned|tones|vibe|vibes|look|looks|palette|part|section|overall)$/i;
     if (words2.length && fresh.length && fresh.every((w2) => FEEL.test(w2)) && /\b(mood|grade|graded|hour|light|lighting|lit|tone|toned|palette|monochrome|desaturated|pastel)\b/.test(said)) continue;
@@ -43777,7 +43863,7 @@ function findRecipes(main2, notes, m2, medium, job) {
   const kind = recipeKind(m2), all = String(main2 || "") + " " + String(notes || "");
   const drawn = /\b(ink|line ?art|illustrat\w*|vector|flat|watercolou?r|painting|painted|drawing|sketch|cartoon|anime|pixel|3d render|render|clay|paper ?cut|woodcut|linocut|risograph|logo|icon|sticker)\b/i.test(String(medium || "")) || /\b(tattoo|logo|icon|sticker|line ?art|vector|coloring page)\b/i.test(String(main2 || ""));
   const PHOTO = /\b(lens|film grain|grain|shot on|depth of field|available light|f\/\d|bokeh|halation|camera|35mm|85mm|50mm)\b/i;
-  return RECIPES.filter((r2) => r2.kind === kind && (!r2.for || kind !== "sound" || r2.for === m2.cat) && r2.when.test(all) && !(r2.unless && r2.unless.test(all))).filter((r2) => !(drawn && ["image", "video"].includes(kind) && r2.add.filter((a) => PHOTO.test(a)).length >= 2)).map((r2) => ({ r: r2, score: (r2.when.test(String(main2 || "")) ? 2 : 0) + (r2.when.test(String(notes || "")) ? 1 : 0), len: (all.match(r2.when) || [""])[0].length })).filter((x) => {
+  return RECIPES.filter((r2) => r2.kind === kind && (!r2.for || kind !== "sound" || r2.for === m2.cat) && r2.when.test(all) && !(r2.unless && r2.unless.test(all))).filter((r2) => !(drawn && ["image", "video"].includes(kind) && r2.add.filter((a) => PHOTO.test(a)).length >= 2)).filter((r2) => !(kind === "image" && /\b(posters?|flyers?|leaflets?|invitations?|invites?|greeting cards?|thumbnails?|banners?|book covers?|menus?)\b/i.test(String(main2 || "")) && /photo/.test(r2.id))).map((r2) => ({ r: r2, score: (r2.when.test(String(main2 || "")) ? 2 : 0) + (r2.when.test(String(notes || "")) ? 1 : 0), len: (all.match(r2.when) || [""])[0].length })).filter((x) => {
     const m0 = (all.match(x.r.when) || [""])[0];
     if (/\s/.test(m0.trim()) || x.r.when.test(String(job || ""))) return true;
     const said = new Set((all.toLowerCase().match(/[a-z]{4,}/g) || []).map((w2) => w2.replace(/(ing|ed|es|s)$/, "")));
@@ -43787,6 +43873,23 @@ function findRecipes(main2, notes, m2, medium, job) {
       return st !== trig && !RECIPE_COMMON.has(st) && said.has(st);
     });
   }).sort((a, b) => b.score - a.score || b.len - a.len).filter((x, i) => i === 0 || x.score >= 2).slice(0, 2).map((x) => x.r);
+}
+var STYLE_FROM = ["subject", "setting", "extra", "medium", "purpose", "action", "imgtext"];
+function applyStyle(res, b, m2, said0, linesOnly) {
+  if (!["image", "video"].includes(m2.cat)) return;
+  const text = STYLE_FROM.filter((k2) => !(k2 === "medium" && has(said0))).map((k2) => b[k2]).filter(has).map((v2) => join(v2)).join(" ") + " " + String(said0 || "");
+  let hits = RECIPES.filter((r2) => r2.kind === "style" && (!r2.for || r2.for === m2.cat) && r2.when.test(text) && !(r2.unless && r2.unless.test(text)));
+  if (hits.some((r2) => !/^style:photo-/.test(r2.id))) hits = hits.filter((r2) => !/^style:photo-/.test(r2.id));
+  if (!hits.length) return;
+  const best = hits.map((r2) => ({ r: r2, len: (text.match(r2.when) || [""])[0].length })).sort((x, y) => y.len - x.len)[0].r;
+  const said = (res.flat + " " + res.negative).toLowerCase();
+  const lines = best.add.filter((a) => (a.toLowerCase().match(/[a-z]{4,}/g) || []).filter((w2) => !said.includes(w2)).length >= 2);
+  const keepOut = !linesOnly && m2.neg && ["field", "flag"].includes(m2.neg.mode) && best.avoid && best.avoid[0] ? ["no " + best.avoid[0].replace(/^no\s+/i, "")] : [];
+  if (!lines.length && !keepOut.length) return;
+  res.style = best.id.replace(/^style:/, "");
+  const named = (text.match(best.when) || [""])[0].trim();
+  if (named && !said.includes(named.toLowerCase()) && !new RegExp("\\b" + named.split(/[\s-]+/)[0].replace(/[^a-z0-9]/gi, "") + "\\b", "i").test(said)) lines.unshift(cap(named.replace(/\s+style$/i, "")) + " style");
+  addExtra(res, m2, [...lines, ...keepOut].map((x) => stripDot(x).replace(/,/g, " and")).join(". "));
 }
 function applyRecipes(res, b, m2) {
   const flat = (v2) => Array.isArray(v2) ? v2.join(" ") : String(v2 || "");
@@ -43909,6 +44012,15 @@ function forge(b, m2, level, opts2) {
   b = trustTheirWords(cutting.brief, opts2.said);
   b = noDoubles(b);
   if (m2.cat === "sfx" && has(opts2.said)) b = { ...b, _said: String(opts2.said) };
+  let styleFromNote = false;
+  if (["image", "video"].includes(m2.cat) && !has(b.medium)) {
+    const all = STYLE_FROM.filter((k2) => !(k2 === "medium" && has(opts2.said))).map((k2) => b[k2]).filter(has).map((v2) => join(v2)).join(" ") + " " + String(opts2.said || "");
+    const st = RECIPES.filter((r2) => r2.kind === "style" && r2.medium && (!r2.for || r2.for === m2.cat) && r2.when.test(all)).sort((x, y) => (all.match(y.when) || [""])[0].length - (all.match(x.when) || [""])[0].length)[0];
+    if (st) {
+      b = { ...b, medium: st.medium };
+      if (st.when.test(String(b.extra || ""))) styleFromNote = true;
+    }
+  }
   if (m2.cat === "text" && has(opts2.said) && !has(b.pasted)) {
     const first = String(opts2.said).split("\n")[0], inBrief = JSON.stringify(b).toLowerCase();
     const q = first.match(/["\u201c]([^"\u201d]{30,})["\u201d]/) || first.match(/(?:^|[\s:])['\u2018]([^\u2019]{30,}?)['\u2019](?=\s|$|[.,;!?])/), c0 = first.match(/^([^:]{4,400}?):\s*(\S[\s\S]{50,})$/), col = c0 && (/\b(?:these|this|my|our|the following|her|his)\s+(?:[\w-]+\s+){0,2}?(?:notes?|clause|paragraph|memo|draft|email|text|message|bio|post|fragments?|list|lyrics|script|review|description|bullets?|points|minutes|feedback|answers?|paper|essay|letter)\b/i.test(c0[1]) || /\b(these|this|my|the|our|following|here|below|it is|notes?|clause|paragraph|memo|draft|email|text|message|bio|post|fragments?|list|lyrics|script|review)\s*$/i.test(c0[1].slice(-60))) ? [c0[0], c0[2]] : null;
@@ -43984,9 +44096,10 @@ function forge(b, m2, level, opts2) {
   if (defaultNeg) {
     const before = res.negative;
     res.negative = "";
-    addExtra(res, m2, b.extra);
+    addExtra(res, m2, b.extra, styleFromNote);
     if (!res.negative) res.negative = before;
-  } else addExtra(res, m2, b.extra);
+  } else addExtra(res, m2, b.extra, styleFromNote);
+  if (!opts2.noRecipes) applyStyle(res, b, m2, opts2.said, false);
   const hi = (m2.len || [0, 0])[1];
   if (hi && sc.words > hi) res.warn.push("About " + (sc.words - hi) + " words over the " + m2.len[0] + " to " + hi + " word range for " + m2.n + ". Cut the least important part yourself: Forge does not cut your sentences, because that can change what you meant.");
   return res;
