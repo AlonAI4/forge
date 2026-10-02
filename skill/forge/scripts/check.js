@@ -39,8 +39,8 @@ const flagsIn = (t) => (String(t).match(/(?:^|\s)--[a-z][a-z0-9-]*/gi) || []).ma
 export function checkPrompt(E, o) {
   const { m, res } = o, name = m.n + (m.sub ? " " + m.sub : "");
   const reply = splitReply(o.prompt);
-  /** @type {{kept: string[], settings: string[], invented: string[], other: string[]}} */
-  const P = { kept: [], settings: [], invented: [], other: [] };
+  /** @type {{kept: string[], settings: string[], invented: string[], filler: string[], other: string[]}} */
+  const P = { kept: [], settings: [], invented: [], filler: [], other: [] };
 
   // --- the engine's own check (filler, the person's words, parameters, keep-outs) ---
   // The engine treats the word "Forge" in a prompt as the writer talking about its instructions. When the person's
@@ -48,10 +48,11 @@ export function checkPrompt(E, o) {
   const theirs = /\bforge\b/i.test(o.said), mask = (/** @type {string} */ t) => (theirs ? String(t).replace(/\bforge\b/gi, "smithy") : t);
   const fixed = E.autocorrect(mask(o.said));
   const { brief, suggested } = E.rebuildBrief(fixed.text, m);
-  const cw = E.checkWritten(JSON.stringify({ prompt: mask(reply.prompt), negative: mask(reply.negative) }), { m, request: mask(o.said), brief, suggested, res });
+  const cw = E.checkWritten(JSON.stringify({ prompt: mask(reply.prompt), negative: mask(reply.negative) }), { m, request: mask(fixed.text), brief, suggested, res }); // 11.4: the spell-fixed words, not the typos
   if (cw.used === "forge") P.kept.push(String(cw.notes[0] || "").replace(/,? so this is Forge's version\.?$/, ". Rewrite it from the brief."));
   else for (const n of cw.notes) {
-    if (/^Forge checked it/.test(n) || /^The AI added /.test(n)) continue; // numbers are checked below, against the whole brief
+    if (/^Forge checked it/.test(n) || /^The AI added /.test(n)) continue;
+    if (/^Forge cut filler/i.test(n)) { P.filler.push(n.replace(/^Forge cut filler/i, "Filler that steers nothing").replace(/[.\s]*$/, "") + ". Take it out."); continue; } // 11.4: was only a hint, so it stayed in // numbers are checked below, against the whole brief
     if (/if (it|they) matters?\.?$/i.test(n)) P.other.push(n); // a soft hint, not a lost fact
     else if (/left out|put back/i.test(n)) P.kept.push(n);
     else if (/parameters/i.test(n)) P.settings.push(n);
@@ -114,7 +115,7 @@ export function checkPrompt(E, o) {
   }
   if (names.size) P.invented.push("Names the person never gave: " + [...names].slice(0, 5).join(", ") + ". Remove them unless the person said them.");
 
-  const problems = [...P.kept, ...P.settings, ...P.invented];
+  const problems = [...P.kept, ...P.settings, ...P.invented, ...P.filler];
   /** @type {ReturnType<typeof checkPrompt>} */
   const out = {
     ok: problems.length === 0,

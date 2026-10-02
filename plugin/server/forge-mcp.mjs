@@ -38044,7 +38044,11 @@ function glParseChat(text) {
   const fromJson = glFromJson(t);
   if (fromJson) return fromJson;
   const heads = [...t.matchAll(/^[ \t]*#{1,4}[ \t]*(you|user|human|me|assistant|claude|chatgpt|gpt|gemini|ai)[ \t]*$/gim)];
-  const marks = heads.length >= 2 ? heads : [...t.matchAll(GL_WHO)];
+  let marks = heads.length >= 2 ? heads : [...t.matchAll(GL_WHO)];
+  if (marks.length < 2) {
+    const inline = [...t.matchAll(/(?:^|\s)(you|user|human|me|assistant|claude|chatgpt|gpt|gemini|ai)(?: said)?\s*:\s*/gi)];
+    if (inline.length >= 2 && inline.some((x) => /^(you|user|human|me)$/i.test(x[1])) && inline.some((x) => !/^(you|user|human|me)$/i.test(x[1]))) marks = inline;
+  }
   if (!marks.length) {
     const out = [];
     for (const x of t.split(/\n\s*\n/).map((y) => y.trim()).filter(Boolean)) {
@@ -42999,6 +43003,14 @@ function matchModels(query, priorities, kind) {
     if (m2.id === "recraft" && /\b(photo\w*|realistic|photoreal\w*)\b/.test(q)) s -= 26;
     if (m2.cat === "image" && /\b(video|clip|animat\w*|moving)\b/.test(q) && !/\bnot (a |the )?(video|clip)\b/.test(q)) s -= 15;
     if (/vertical|9:16|tiktok|reel|short/.test(q) && ["kling", "seedance", "veo", "higgsfield"].includes(m2.id)) s += 8;
+    {
+      const want = (q.match(/\b(\d{1,3})\s*(?:s|sec|secs|second|seconds)\b/) || [])[1];
+      const most = Math.max(0, ...(m2.durations || []).map((d2) => parseInt(String(d2), 10) || 0));
+      if (m2.cat === "video" && want && most && Number(want) > most) {
+        s -= 20;
+        why.push("makes at most " + most + "s");
+      }
+    }
     return { m: m2, s, tagHits, why: [...new Set(why)] };
   }).sort((a, b) => b.s - a.s || b.tagHits - a.tagHits || b.why.length - a.why.length);
   return { cats, guessed, catScore, scored };
@@ -43441,7 +43453,7 @@ function stemOf(w2) {
   x = x.replace(/e$/, "");
   return x.length > 4 ? x.replace(/([b-df-hj-kmnp-rtv-z])\1$/, "$1") : x;
 }
-var TALK_WORDS = new Set("seen saw say says said love like likes include includes show shows type final specific caught right look looks looking want wants need needs needed thing things stuff idea maybe probably also even still keep feel feels full sure kind sort theres there here ive gonna kinda wanna basically actually literally honestly working putting together whole last time trend take takes committing getting doing trying".split(" "));
+var TALK_WORDS = new Set("skip skipped question questions second seconds minute minutes seen saw say says said love like likes include includes show shows type final specific caught right look looks looking want wants need needs needed thing things stuff idea maybe probably also even still keep feel feels full sure kind sort theres there here ive gonna kinda wanna basically actually literally honestly working putting together whole last time trend take takes committing getting doing trying".split(" "));
 function sections(t) {
   return (String(t).match(/^\s*(<[a-z_]+>|#{1,3} \S|[A-Z][A-Z ]{2,}$|[A-Z][A-Za-z ]{2,30}:\s)/gm) || []).length;
 }
@@ -43486,7 +43498,7 @@ function checkWritten(raw, o) {
     /** @type {Record<string, string>} */
     {}
   );
-  const said = (String(o.request || "").toLowerCase().match(/[a-z0-9']{4,}/g) || []).filter((w2) => !STOP_WORDS.has(w2) && !TALK_WORDS.has(w2.replace(/'/g, "")) && !stripBanned(w2).removed.length && !/^(want|need|make|like|please|something|really|just|some|could|would|should|write|create|give|help|good|nice|cool|pic|picture|image|photo|video|clip|song|prompt)$/.test(w2)).map((w2) => {
+  const said = (String(o.request || "").toLowerCase().match(/[a-z0-9']{4,}/g) || []).filter((w2) => isWord(w2) && !STOP_WORDS.has(w2) && !TALK_WORDS.has(w2.replace(/'/g, "")) && !stripBanned(w2).removed.length && !/^(want|need|make|like|please|something|really|just|some|could|would|should|write|create|give|help|good|nice|cool|pic|picture|image|photo|video|clip|song|prompt)$/.test(w2)).map((w2) => {
     const st = stemOf(w2);
     plain[st] = plain[st] || w2.replace(/'s$/, "");
     return st;
@@ -43920,14 +43932,18 @@ var flagsIn = (t) => (String(t).match(/(?:^|\s)--[a-z][a-z0-9-]*/gi) || []).map(
 function checkPrompt(E2, o) {
   const { m: m2, res } = o, name = m2.n + (m2.sub ? " " + m2.sub : "");
   const reply2 = splitReply(o.prompt);
-  const P2 = { kept: [], settings: [], invented: [], other: [] };
+  const P2 = { kept: [], settings: [], invented: [], filler: [], other: [] };
   const theirs = /\bforge\b/i.test(o.said), mask = (t) => theirs ? String(t).replace(/\bforge\b/gi, "smithy") : t;
   const fixed = E2.autocorrect(mask(o.said));
   const { brief: brief2, suggested } = E2.rebuildBrief(fixed.text, m2);
-  const cw = E2.checkWritten(JSON.stringify({ prompt: mask(reply2.prompt), negative: mask(reply2.negative) }), { m: m2, request: mask(o.said), brief: brief2, suggested, res });
+  const cw = E2.checkWritten(JSON.stringify({ prompt: mask(reply2.prompt), negative: mask(reply2.negative) }), { m: m2, request: mask(fixed.text), brief: brief2, suggested, res });
   if (cw.used === "forge") P2.kept.push(String(cw.notes[0] || "").replace(/,? so this is Forge's version\.?$/, ". Rewrite it from the brief."));
   else for (const n of cw.notes) {
     if (/^Forge checked it/.test(n) || /^The AI added /.test(n)) continue;
+    if (/^Forge cut filler/i.test(n)) {
+      P2.filler.push(n.replace(/^Forge cut filler/i, "Filler that steers nothing").replace(/[.\s]*$/, "") + ". Take it out.");
+      continue;
+    }
     if (/if (it|they) matters?\.?$/i.test(n)) P2.other.push(n);
     else if (/left out|put back/i.test(n)) P2.kept.push(n);
     else if (/parameters/i.test(n)) P2.settings.push(n);
@@ -43985,7 +44001,7 @@ function checkPrompt(E2, o) {
     }
   }
   if (names.size) P2.invented.push("Names the person never gave: " + [...names].slice(0, 5).join(", ") + ". Remove them unless the person said them.");
-  const problems = [...P2.kept, ...P2.settings, ...P2.invented];
+  const problems = [...P2.kept, ...P2.settings, ...P2.invented, ...P2.filler];
   const out = {
     ok: problems.length === 0,
     checks: { kept_facts: !P2.kept.length, settings_real: !P2.settings.length, nothing_invented: !P2.invented.length },
@@ -44289,7 +44305,23 @@ function map2(a) {
   );
   if (typeof fn !== "function") return { available: false, message: "Forge Map is " + COMING };
   const r2 = fn(String(a.text || ""), { budget: 120, topics: 8 });
-  return { available: true, result: { main: r2.main, topics: r2.topics, missing: (r2.slots || []).filter(
+  const cc = typeof /** @type {any} */
+  engine_default["chatContext"] === "function" ? (
+    /** @type {any} */
+    engine_default.chatContext(String(a.text || ""))
+  ) : null;
+  let main2 = r2.main || [];
+  if (main2.length < 3) {
+    const STOP3 = new Set("that this with from have want need make what when your about there their them they then than just like some also only into over more very lets let's please yeah sure said here".split(" "));
+    const seen = (
+      /** @type {Record<string, number>} */
+      {}
+    );
+    for (const w2 of String(a.text || "").toLowerCase().match(/[a-z0-9][a-z0-9'-]{2,}/g) || []) if (!STOP3.has(w2) && !/^(you|ai|chatgpt|claude|gemini|said)$/.test(w2)) seen[w2] = (seen[w2] || 0) + 1;
+    const have = new Set(main2.map((x) => String(x.label).toLowerCase()));
+    main2 = main2.concat(Object.entries(seen).filter(([w2]) => !have.has(w2)).filter(([w2, n]) => n >= 2 || /\d/.test(w2) || w2.length >= 6).sort((x, y) => y[1] - x[1] || y[0].length - x[0].length).slice(0, 6 - main2.length).map(([w2]) => ({ label: w2 })));
+  }
+  return { available: true, result: { summary: cc ? cc.summary : null, turns: cc ? cc.turns.length : 0, main: main2, topics: r2.topics, missing: (r2.slots || []).filter(
     /** @param {any} x */
     (x) => !x.filled
   ).map(
@@ -44358,11 +44390,17 @@ function mapText(r2) {
   if (!r2.available) return offText("Forge Map is not in this build", r2);
   const m2 = r2.result || {};
   const out = ["## Forge Map"];
+  const S = m2.summary;
+  if (S) {
+    if (S.goal) out.push("**Goal:** " + S.goal);
+    for (const [k2, l] of [["decisions", "Decided"], ["rules", "Rules and limits"], ["done", "Done"], ["open", "Open questions"]]) if (Array.isArray(S[k2]) && S[k2].length) out.push("**" + l + ":** " + S[k2].join("; "));
+    if (S.latest) out.push("**Latest ask:** " + S.latest);
+  }
   const main2 = (m2.main || []).map((x) => x.label).filter(Boolean);
   out.push("**Main topics:** " + (main2.length ? main2.join(", ") : "none found yet"));
   if (Array.isArray(m2.topics) && m2.topics.length) out.push("**Groups:**", ...m2.topics.map((t) => "- " + t.name + ": " + (t.members || []).join(", ")));
-  if (Array.isArray(m2.missing) && m2.missing.length) out.push("**Still missing:** " + m2.missing.join(", "));
-  if (Array.isArray(m2.questions) && m2.questions.length) out.push("**Worth asking:**", ...m2.questions.map((q, i) => i + 1 + ". " + q.q));
+  if (!S && Array.isArray(m2.missing) && m2.missing.length) out.push("**Still missing:** " + m2.missing.join(", "));
+  if (!S && Array.isArray(m2.questions) && m2.questions.length) out.push("**Worth asking:**", ...m2.questions.map((q, i) => i + 1 + ". " + q.q));
   if (m2.context) out.push("", "Context:", fence(m2.context));
   return out.join("\n");
 }

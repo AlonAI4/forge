@@ -69,7 +69,9 @@ function glParseChat(text){
   const fromJson = glFromJson(t); if(fromJson) return fromJson;
   // 9.7: "## User" / "### Assistant" headings with no colon (Markdown exports)
   const heads = [...t.matchAll(/^[ \t]*#{1,4}[ \t]*(you|user|human|me|assistant|claude|chatgpt|gpt|gemini|ai)[ \t]*$/gim)];
-  const marks = heads.length >= 2 ? heads : [...t.matchAll(GL_WHO)];
+  let marks = heads.length >= 2 ? heads : [...t.matchAll(GL_WHO)];
+  // 11.4: a chat pasted on one line ("You: ... AI: ... You: ...") has its labels mid-line
+  if(marks.length < 2){ const inline = [...t.matchAll(/(?:^|\s)(you|user|human|me|assistant|claude|chatgpt|gpt|gemini|ai)(?: said)?\s*:\s*/gi)]; if(inline.length >= 2 && inline.some(x => /^(you|user|human|me)$/i.test(x[1])) && inline.some(x => !/^(you|user|human|me)$/i.test(x[1]))) marks = inline; }
   // 9.7: no labels at all (a copied page): long answers with lists, code or headings are the AI's, short ones yours
   if(!marks.length){
     /** @type {Turn[]} */
