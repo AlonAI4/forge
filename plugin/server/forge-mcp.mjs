@@ -41159,7 +41159,7 @@ function finishClause(b) {
   return bits.length ? cap(bits.join(", ")) : "";
 }
 function wantsText(b) {
-  return /\b(text|says|saying|words?|letter(?:s|ing)?|titles?|headlines?|labels?|labell?ed|signs?|signage|menus?|captions?|typograph\w*|written|slogans?|names? on|logo with|quotes?|charts?|diagrams?|infographics?|tables?|cards?|posters?|flyers?|maps?|score ?sheets?|scoreboards?|schedules?|calendars?|timetables?|prices?|thumbnails?|covers?|memes?|comics?|speech bubbles?|certificates?|invitations?|tickets?|recipes?|checklists?|worksheets?|name tags?|infographics?)\b/i.test([b.subject, b.setting, b.purpose, b.extra, b.medium, b.action, b.imgtext].filter(has).map((v2) => join(v2)).join(" "));
+  return /\b(text|says|saying|words?|letter(?:s|ing)?|titles?|headlines?|labels?|labell?ed|signs?|signage|menus?|captions?|typograph\w*|written|slogans?|names? on|logo with|quotes?|charts?|diagrams?|infographics?|tables?|cards?|posters?|flyers?|maps?|score ?sheets?|scoreboards?|schedules?|calendars?|timetables?|prices?|thumbnails?|covers?|memes?|comics?|speech bubbles?|certificates?|invitations?|tickets?|recipes?|checklists?|worksheets?|name tags?|infographics?|brackets?|storyboards?|leaderboards?|bracket sheets?|seating charts?|org charts?|flowcharts?|timelines?|forms?)\b/i.test([b.subject, b.setting, b.purpose, b.extra, b.medium, b.action, b.imgtext].filter(has).map((v2) => join(v2)).join(" "));
 }
 function literalText(t) {
   const x = stripDot(t);
@@ -41249,7 +41249,16 @@ function positiveScope(v2, task) {
   return /\bonly\b|^just\b|\bthis pass\b|^(focus|stick) (on|to)\b/.test(x) || !!task && saidIn(task, x);
 }
 function moodClause(b) {
-  return has(b.mood) ? cap(join(b.mood)) + " mood" : "";
+  return has(b.mood) ? cap(moodWord(b)) : "";
+}
+function moodWord(b) {
+  const v2 = join(b.mood);
+  return /\bmood|y$/i.test(v2.trim()) && !/\b(?:happy|easy|busy|heavy)$/i.test(v2.trim()) ? v2 : v2 + " mood";
+}
+function moodWithLook(b, look) {
+  const v2 = join(b.mood).toLowerCase().trim();
+  if (look && v2 && new RegExp("\\b" + v2.replace(/[^a-z ]/g, "") + "\\b").test(look.toLowerCase())) return look;
+  return moodWord(b) + (look ? ", " + look : "");
 }
 function saidIn(whole, part) {
   const w2 = String(whole || "").toLowerCase(), ws = String(part || "").toLowerCase().match(/[a-z0-9]{3,}/g) || [];
@@ -41329,7 +41338,9 @@ var SUBJECT_LOOK = [
   [/\b(drink|coffee|latte|cocktail|beer|wine|smoothie|juice|soda)\b/i, "condensation and clear, glowing liquid, with the glass or cup sharp"],
   [/\b(product|bottle|packaging|watch|sneakers?|shoes?|phone|headphones|perfume|jar|box)\b/i, "the product crisp and sharp, with clean edges and soft, controlled reflections"],
   [/\b(portrait|headshot|face|person|woman|man|girl|boy|kid|child|couple|family|team)\b/i, "natural skin texture and genuine expressions, with the eyes sharp"],
-  [/\b(dog|cat|puppy|kitten|pet|horse|bird)\b/i, "fur or feather texture in fine detail and bright, alive eyes"],
+  [/\b(bird|parrot|owl|eagle|hawk|chicken|duck|swan|pigeon|crow|robin|penguin|feathers?)\b/i, "feather texture in fine detail and bright, alive eyes"],
+  // 12.3: was "fur or feather" for every animal
+  [/\b(dog|cat|puppy|kitten|pet|horse|fox|rabbit|bunny|bear|lion|tiger|wolf|hamster|pug)\b/i, "fur texture in fine detail and bright, alive eyes"],
   [/\b(house|home|room|kitchen|interior|living room|bedroom|office|cafe|café|restaurant|shop)\b/i, "straight vertical lines and a tidy, lived-in space"],
   [/\b(landscape|mountain|beach|forest|lake|ocean|desert|valley|summit|field|sky)\b/i, "depth from foreground to horizon, with layers that lead the eye in"]
 ];
@@ -41358,11 +41369,11 @@ function imageSections(b, m2) {
   if (li) S.push(["Light", li + (liLook ? ": " + liLook : "") + "."]);
   const fin = finishClause(b);
   if (fin) S.push(["Finish", fin + "."]);
+  const moodLook = lookOf(MOOD_LOOK, b.mood);
   const comp = [];
   if (has(b.comp)) comp.push(b.comp);
-  if (has(b.mood)) comp.push(join(b.mood) + " mood");
-  const moodLook = lookOf(MOOD_LOOK, b.mood);
-  if (comp.length) S.push(["Composition & mood", cap(comp.join(", ")) + (moodLook ? ", " + moodLook : "") + "."]);
+  if (has(b.mood)) comp.push(moodWithLook(b, moodLook));
+  if (comp.length) S.push(["Composition & mood", cap(comp.join(", ")) + "."]);
   const kindLook = drawn || isDrawn({ medium: med }) ? "" : lookOf(SUBJECT_LOOK, join(b.subject));
   if (kindLook && !String(b.subject).toLowerCase().includes(kindLook.split(/[:,]/)[0].toLowerCase())) S.push(["Detail", cap(kindLook) + "."]);
   if (has(b.imgtext)) S.push(["In-image text", literalText(b.imgtext) ? 'The words "' + stripDot(b.imgtext) + '" rendered cleanly, high contrast against the background, correctly spelled.' : textLayout(b.imgtext)]);
@@ -41386,7 +41397,7 @@ var COMPOSE = {
   brief(b, m2) {
     const S = [];
     if (m2.cat === "image") {
-      S.push(["Goal", (has(b.purpose) ? stripDot(b.purpose) : "A single finished image") + "."]);
+      S.push(["Goal", (has(b.purpose) ? /^(?:my|our|a|an|the|his|her|their)\b/i.test(stripDot(b.purpose)) ? "An image for " + stripDot(b.purpose) : cap(stripDot(b.purpose)) : "A single finished image") + "."]);
       const med = has(b.medium) ? b.medium : defaultMedium(b);
       S.push(["Scene", (has(b.setting) ? "" : artic(med) + " ") + (has(b.setting) ? cap(med) : med) + (has(b.setting) ? (/^(in|on|at|under|inside|outside|by|beside|near|over|above|against|across|along|through|within|from|behind|among|around)\b/i.test(String(b.setting).trim()) ? " " : " set in ") + stripDot(b.setting) : "") + "."]);
       S.push(["Subject", cap(stripDot(b.subject) || "the subject") + "."]);
@@ -41395,7 +41406,7 @@ var COMPOSE = {
       if (style.length) S.push(["Style", sentences(style) + "."]);
       const det = [];
       if (has(b.comp)) det.push(b.comp);
-      if (has(b.mood)) det.push(join(b.mood) + " mood" + (moodLook ? ", " + moodLook : ""));
+      if (has(b.mood)) det.push(moodWithLook(b, moodLook));
       if (has(b.ref)) det.push("in the register of " + stripDot(b.ref));
       const kindLook = isDrawn({ medium: med }) ? "" : lookOf(SUBJECT_LOOK, join(b.subject));
       if (kindLook) det.push(kindLook);
@@ -42216,11 +42227,36 @@ function rebuildBrief(text, m2) {
       const rest = t.split(/(?<=[.!?\n])\s+|\s+\.\s+/).map((x) => x.trim().replace(/^[.,;\s]+|[.,;\s]+$/g, "")).slice(1).filter((x) => x.split(/\s+/).length >= 4 && !saidIn(String(b.subject), x) && !/^(?:for|on|to post)\b/i.test(x));
       if (rest.length) b.extra = rest.map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(". ");
     }
+    if (m2.cat === "image" && !has(b.imgtext)) {
+      const pm = t.match(/\b(?:posters?|flyers?|signs?|banners?|invitations?|invites?|leaflets?)\s+(?:for|about|announcing)\s+(?:(?:my|our|a|an|the)\s+)?([^,.\n]{4,80})/i);
+      if (pm && /\b(?:sale|party|fair|show|night|day|club|game|match|concert|festival|meeting|event|launch|opening|market|camp|class|birthday|wedding|fundraiser|drive|tryouts?|auditions?|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}\s*(?:am|pm)|\d{1,2}:\d\d)\b/i.test(pm[1])) {
+        const kind = (pm[0].match(/^\w+/) || ["poster"])[0].toLowerCase().replace(/s$/, "");
+        const whole = pm[1].trim().replace(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, (w2) => cap(w2.toLowerCase())).replace(/\b(\d{1,2})\s*(am|pm)\b/gi, (x, n, ap) => n + " " + ap.toUpperCase());
+        const ev = whole.split(/\s+(?=(?:on\s+)?(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|\d{1,2}(?::\d\d)?\s*(?:AM|PM)|\d{1,2}:\d\d|in the|at the)\b)/)[0];
+        const details = whole.slice(ev.length).trim().split(/\s+(?=(?:in|at) the\b)/).filter(Boolean).map((x) => cap(x));
+        const title = ev.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+        b.imgtext = [title, ...details].join(" \xB7 ");
+        if (has(b.purpose) && saidIn(pm[1], String(join(b.purpose)))) delete b.purpose;
+        if (has(b.setting) && saidIn(pm[1], String(join(b.setting)))) delete b.setting;
+        b.subject = "A " + kind + " for " + (/s$/i.test(ev.trim()) ? "" : "a ") + ev.toLowerCase();
+      }
+    }
+    if (m2.cat === "image") {
+      const firstSentence = t.split(/(?<=[.!?\n])\s+/)[0] || "";
+      const known = [b.subject, b.setting, b.purpose, b.extra, b.medium, b.imgtext, b.mood, b.light, b.palette].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
+      const purp = has(b.purpose) ? stripDot(join(b.purpose)).toLowerCase() : "";
+      const parts = firstSentence.split(/,\s*/).slice(1).map((x) => x.trim().replace(/[.!?;\s]+$/, "")).map((x) => purp && x.toLowerCase().includes(purp) ? x.slice(0, x.toLowerCase().indexOf(purp)).replace(/\s+(?:for|to|in|on)?\s*(?:my|our|a|the)?\s*$/i, "").trim() : x).filter((x) => x && (x.toLowerCase().match(/[a-z]{3,}/g) || []).some((w2) => !STOP_WORDS.has(w2) && !known.includes(w2)));
+      const MOODS = /^(?:moody|dark|calm|cozy|cosy|eerie|creepy|spooky|dreamy|happy|sad|gloomy|cheerful|peaceful|dramatic|epic|mysterious|romantic|nostalgic|melancholic|playful|serene|tense|lonely|warm|cold|fun)$/i;
+      const moodPart = parts.find((x) => MOODS.test(x));
+      if (moodPart && !has(b.mood)) b.mood = moodPart.toLowerCase();
+      const rest = parts.filter((x) => x !== moodPart);
+      if (rest.length) b.extra = [has(b.extra) ? stripDot(join(b.extra)) : "", cap(rest.join(", "))].filter(Boolean).join(". ");
+    }
     if (b.medium) {
       const o = opts("medium").find((x) => x.includes(b.medium.toLowerCase()) || b.medium.toLowerCase().includes(x));
       if (o) b.medium = (F.medium.o || []).find((x) => x.toLowerCase() === o);
     }
-    const graphic = /\b(graphics?|geometric|abstract|flat (?:design|colou?rs?|shapes?)|designs?|panels?|murals?|decals?|wraps?|patterns?|logos?|icons?|stickers?|posters?|flyers?|charts?|diagrams?|infographics?|illustrations?|illustrated|paintings?|painted|vectors?|cartoons?|anime|drawings?|drawn|sketch\w*|watercolou?rs?|pixel art|3d renders?|clip ?art|emblems?|badges?|banners?|cards?|maps?|labels?|mascots?|book|storybook|invitations?|loading screens?|game art|concept art|fantasy|character art|comic|manga|children'?s)\b/i.test(t);
+    const graphic = /\b(graphics?|geometric|abstract|flat (?:design|colou?rs?|shapes?)|designs?|panels?|murals?|decals?|wraps?|patterns?|logos?|icons?|stickers?|posters?|flyers?|charts?|diagrams?|infographics?|illustrations?|illustrated|paintings?|painted|vectors?|cartoons?|anime|drawings?|drawn|sketch\w*|watercolou?rs?|pixel art|3d renders?|clip ?art|emblems?|badges?|banners?|cards?|maps?|labels?|mascots?|book|storybook|invitations?|loading screens?|game art|concept art|fantasy|character art|comic|manga|children'?s|brackets?|storyboards?|leaderboards?|flowcharts?|timelines?|wireframes?|mockups?)\b/i.test(t);
     const outdoor = /\b(outdoor|outside|street|market|candid|sky|beach|forest|mountain|park|city|field|garden|night|sunset|sunrise|landscape|overcast|rain|desert|farm|nature|lake|ocean|sea|prairie|dawn|dusk|cliff|snow|river|trail|road|harbou?r|rooftop)\b/i.test(t);
     const editing = /\b(my|our|his|her|their|this) (?:[a-z'-]+ ){0,3}(photo|picture|pic|image|selfie|headshot)s?\b/i.test(t) && /\b(edit|change|replace|remove|swap|restyle|retouch|fix|add|put|make)\w*\b/i.test(t);
     const photoish = !graphic && !editing && /\b(photo\w*|realistic|real|camera|portrait|headshot|product shot|dslr|film|cinematic|shot on|lens|stock)\b/i.test(t);
@@ -42787,7 +42823,13 @@ function autocorrect(text) {
       return v2 + " off " + d2 + " ";
     }
   );
-  return { text: off.replace(/\u0000(\d+)\u0000/g, (m2, n) => shielded[Number(n)]), fixes };
+  const an = off.replace(/\b([Aa]) ([aeiou][a-z]+)\b/g, (all, a, w2, at, str) => {
+    if (/^(?:uni|use|usu|uti|ura|eu|ewe|one|once|ufo)/i.test(w2) || !isWord(w2.toLowerCase())) return all;
+    if (a === "A" && at > 0 && !/[.!?\n]\s*$/.test(str.slice(0, at))) return all;
+    fixes.push({ from: a + " " + w2, to: a + "n " + w2 });
+    return a + "n " + w2;
+  });
+  return { text: an.replace(/\u0000(\d+)\u0000/g, (m2, n) => shielded[Number(n)]), fixes };
 }
 var READS_BACKGROUND = ["text", "code", "app", "research"];
 function addBackground(res, m2, context) {
@@ -43189,6 +43231,8 @@ function addExtra(res, m2, extra) {
   if (READS_BACKGROUND.includes(m2.cat)) {
     const block = /<[a-z_]+>/.test(f2) ? "<notes>\n" + line + "\n</notes>" : /^## /m.test(f2) ? "## Notes\n" + line : /^[A-Z][A-Z ]{2,}$/m.test(f2) ? "NOTES\n" + line : "Also: " + line;
     res.flat = f2 + "\n\n" + block;
+  } else if (/^Subject: /m.test(f2) && /^(?:Goal|Scene): /m.test(f2)) {
+    res.flat = /^Details: /m.test(f2) ? f2.replace(/^(Details: .*?)\s*$/m, (_a3, d2) => d2 + " " + line) : f2.replace(/^(Subject: .*)$/m, (_a3, sj) => sj + "\nDetails: " + line);
   } else {
     const at = f2.search(/\s--[a-z]/);
     res.flat = at > 0 ? f2.slice(0, at) + " " + line + f2.slice(at) : f2.replace(/\s*$/, "") + " " + line;

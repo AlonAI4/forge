@@ -2178,7 +2178,7 @@ function finishClause(b){
 // 8.5.7: nor when the kind of image is made of words: a chore chart, a labelled diagram, a poster, a card
 /** @param {Brief} b */
 function wantsText(b){
-  return /\b(text|says|saying|words?|letter(?:s|ing)?|titles?|headlines?|labels?|labell?ed|signs?|signage|menus?|captions?|typograph\w*|written|slogans?|names? on|logo with|quotes?|charts?|diagrams?|infographics?|tables?|cards?|posters?|flyers?|maps?|score ?sheets?|scoreboards?|schedules?|calendars?|timetables?|prices?|thumbnails?|covers?|memes?|comics?|speech bubbles?|certificates?|invitations?|tickets?|recipes?|checklists?|worksheets?|name tags?|infographics?)\b/i
+  return /\b(text|says|saying|words?|letter(?:s|ing)?|titles?|headlines?|labels?|labell?ed|signs?|signage|menus?|captions?|typograph\w*|written|slogans?|names? on|logo with|quotes?|charts?|diagrams?|infographics?|tables?|cards?|posters?|flyers?|maps?|score ?sheets?|scoreboards?|schedules?|calendars?|timetables?|prices?|thumbnails?|covers?|memes?|comics?|speech bubbles?|certificates?|invitations?|tickets?|recipes?|checklists?|worksheets?|name tags?|infographics?|brackets?|storyboards?|leaderboards?|bracket sheets?|seating charts?|org charts?|flowcharts?|timelines?|forms?)\b/i
     .test([b.subject, b.setting, b.purpose, b.extra, b.medium, b.action, b.imgtext].filter(has).map(v => join(v)).join(" "));
 }
 /** 8.5.7: words to copy exactly, or a description of the text ("8 labeled features")? @param {Value} t */
@@ -2255,7 +2255,15 @@ function stillish(b){ const t = [b.action, b.motion, b.extra, b.pacing, b.subjec
 function positiveScope(v, task){ const x = String(v || "").toLowerCase().trim(); if(/^(do not|don'?t|no|never|leave|avoid|without|except)\b|\b(untouched|alone|protected|as is|as-is)\b/.test(x)) return false;
   return /\bonly\b|^just\b|\bthis pass\b|^(focus|stick) (on|to)\b/.test(x) || (!!task && saidIn(task, x)); } // 8.7.23: "onboarding docs accuracy" is the job itself, not a thing to leave alone
 /** @param {Brief} b */
-function moodClause(b){ return has(b.mood) ? cap(join(b.mood)) + " mood" : ""; }
+function moodClause(b){ return has(b.mood) ? cap(moodWord(b)) : ""; }
+/** 12.3: "moody" is already a mood ("Moody mood" read badly) @param {Brief} b */
+function moodWord(b){ const v = join(b.mood); return /\bmood|y$/i.test(v.trim()) && !/\b(?:happy|easy|busy|heavy)$/i.test(v.trim()) ? v : v + " mood"; }
+/** 12.3: the mood with its look, without saying it twice ("moody mood, a moody, mysterious feel") @param {Brief} b @param {string} look */
+function moodWithLook(b, look){
+  const v = join(b.mood).toLowerCase().trim();
+  if(look && v && new RegExp("\\b" + v.replace(/[^a-z ]/g, "") + "\\b").test(look.toLowerCase())) return look;
+  return moodWord(b) + (look ? ", " + look : "");
+}
 /** True when most words of `part` are already in `whole`. @param {Value} whole @param {Value} part */
 function saidIn(whole, part){
   const w = String(whole || "").toLowerCase(), ws = String(part || "").toLowerCase().match(/[a-z0-9]{3,}/g) || [];
@@ -2355,7 +2363,8 @@ const SUBJECT_LOOK = [
   [/\b(drink|coffee|latte|cocktail|beer|wine|smoothie|juice|soda)\b/i, "condensation and clear, glowing liquid, with the glass or cup sharp"],
   [/\b(product|bottle|packaging|watch|sneakers?|shoes?|phone|headphones|perfume|jar|box)\b/i, "the product crisp and sharp, with clean edges and soft, controlled reflections"],
   [/\b(portrait|headshot|face|person|woman|man|girl|boy|kid|child|couple|family|team)\b/i, "natural skin texture and genuine expressions, with the eyes sharp"],
-  [/\b(dog|cat|puppy|kitten|pet|horse|bird)\b/i, "fur or feather texture in fine detail and bright, alive eyes"],
+  [/\b(bird|parrot|owl|eagle|hawk|chicken|duck|swan|pigeon|crow|robin|penguin|feathers?)\b/i, "feather texture in fine detail and bright, alive eyes"], // 12.3: was "fur or feather" for every animal
+  [/\b(dog|cat|puppy|kitten|pet|horse|fox|rabbit|bunny|bear|lion|tiger|wolf|hamster|pug)\b/i, "fur texture in fine detail and bright, alive eyes"],
   [/\b(house|home|room|kitchen|interior|living room|bedroom|office|cafe|café|restaurant|shop)\b/i, "straight vertical lines and a tidy, lived-in space"],
   [/\b(landscape|mountain|beach|forest|lake|ocean|desert|valley|summit|field|sky)\b/i, "depth from foreground to horizon, with layers that lead the eye in"]
 ];
@@ -2376,9 +2385,9 @@ function imageSections(b, m){
   const cam = camClause(b); if(cam) S.push(["Camera", cam + (shotLook ? ", " + shotLook : "") + "."]);
   const li = lightClause(b), liLook = lookOf(LIGHT_LOOK, b.light); if(li) S.push(["Light", li + (liLook ? ": " + liLook : "") + "."]);
   const fin = finishClause(b); if(fin) S.push(["Finish", fin + "."]);
-  const comp=[]; if(has(b.comp)) comp.push(b.comp); if(has(b.mood)) comp.push(join(b.mood)+" mood"); // 8.5.6: was "calm in feeling"
   const moodLook = lookOf(MOOD_LOOK, b.mood);
-  if(comp.length) S.push(["Composition & mood", cap(comp.join(", ")) + (moodLook ? ", " + moodLook : "") + "."]);
+  const comp=[]; if(has(b.comp)) comp.push(b.comp); if(has(b.mood)) comp.push(moodWithLook(b, moodLook)); // 8.5.6: was "calm in feeling"
+  if(comp.length) S.push(["Composition & mood", cap(comp.join(", ")) + "."]);
   const kindLook = drawn || isDrawn({medium: med}) ? "" : lookOf(SUBJECT_LOOK, join(b.subject)); // 13.23: the subject only ("a CSA box newsletter" made squash a product shot)
   if(kindLook && !String(b.subject).toLowerCase().includes(kindLook.split(/[:,]/)[0].toLowerCase())) S.push(["Detail", cap(kindLook) + "."]);
   if(has(b.imgtext)) S.push(["In-image text", literalText(b.imgtext) ? 'The words "' + stripDot(b.imgtext) + '" rendered cleanly, high contrast against the background, correctly spelled.' : textLayout(b.imgtext)]);
@@ -2407,14 +2416,15 @@ prose(b, m){
 brief(b, m){
   const S=[];
   if(m.cat==="image"){
-    S.push(["Goal", (has(b.purpose)? stripDot(b.purpose) : "A single finished image") + "."]);
+    // 12.3: "Goal: my online shop." read like a broken sentence; a place or owner gets "An image for"
+    S.push(["Goal", (has(b.purpose) ? (/^(?:my|our|a|an|the|his|her|their)\b/i.test(stripDot(b.purpose)) ? "An image for " + stripDot(b.purpose) : cap(stripDot(b.purpose))) : "A single finished image") + "."]);
     const med = has(b.medium)? b.medium : defaultMedium(b);
     S.push(["Scene", (has(b.setting) ? "" : artic(med) + " ") + (has(b.setting) ? cap(med) : med) + (has(b.setting) ? (/^(in|on|at|under|inside|outside|by|beside|near|over|above|against|across|along|through|within|from|behind|among|around)\b/i.test(String(b.setting).trim()) ? " " : " set in ") + stripDot(b.setting) : "") + "."]); // 8.7.30: not "set in on a plain white background"
     S.push(["Subject", cap(stripDot(b.subject) || "the subject") + "."]);
     const shotLook = lookOf(SHOT_LOOK, b.shot), liLook = lookOf(LIGHT_LOOK, b.light), moodLook = lookOf(MOOD_LOOK, b.mood);
     const style=[camClause(b) + (camClause(b) && shotLook ? ", " + shotLook : ""), lightClause(b) + (lightClause(b) && liLook ? ": " + liLook : ""), finishClause(b)].filter(has); // 13.14
     if(style.length) S.push(["Style", sentences(style) + "."]);
-    const det=[]; if(has(b.comp)) det.push(b.comp); if(has(b.mood)) det.push(join(b.mood)+" mood" + (moodLook ? ", " + moodLook : "")); if(has(b.ref)) det.push("in the register of "+stripDot(b.ref));
+    const det=[]; if(has(b.comp)) det.push(b.comp); if(has(b.mood)) det.push(moodWithLook(b, moodLook)); if(has(b.ref)) det.push("in the register of "+stripDot(b.ref));
     const kindLook = isDrawn({medium: med}) ? "" : lookOf(SUBJECT_LOOK, join(b.subject)); if(kindLook) det.push(kindLook);
     if(det.length) S.push(["Details", cap(det.join(", ")) + "."]);
     if(has(b.imgtext)) S.push(["Text", literalText(b.imgtext) ? 'Render exactly: "' + stripDot(b.imgtext) + '". Correct spelling, high contrast' + (wantsText(b) ? "." : ", no other text anywhere in frame.") : textLayout(b.imgtext)]);
@@ -3297,9 +3307,40 @@ function rebuildBrief(text, m){
         .filter(x => x.split(/\s+/).length >= 4 && !saidIn(String(b.subject), x) && !/^(?:for|on|to post)\b/i.test(x));
       if(rest.length) b.extra = rest.map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(". ");
     }
+    // 12.3: a poster, flyer, sign or invite "for my school bake sale friday 3pm in the gym": that is the words to print on it,
+    // not where it will be used, and "in the gym" is not where the picture happens
+    if(m.cat === "image" && !has(b.imgtext)){
+      const pm = t.match(/\b(?:posters?|flyers?|signs?|banners?|invitations?|invites?|leaflets?)\s+(?:for|about|announcing)\s+(?:(?:my|our|a|an|the)\s+)?([^,.\n]{4,80})/i);
+      if(pm && /\b(?:sale|party|fair|show|night|day|club|game|match|concert|festival|meeting|event|launch|opening|market|camp|class|birthday|wedding|fundraiser|drive|tryouts?|auditions?|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}\s*(?:am|pm)|\d{1,2}:\d\d)\b/i.test(pm[1])){
+        const kind = (pm[0].match(/^\w+/) || ["poster"])[0].toLowerCase().replace(/s$/, "");
+        const whole = pm[1].trim().replace(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, w => cap(w.toLowerCase())).replace(/\b(\d{1,2})\s*(am|pm)\b/gi, (x, n, ap) => n + " " + ap.toUpperCase());
+        // the event is the headline; the day, time and place are the details under it
+        const ev = whole.split(/\s+(?=(?:on\s+)?(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|\d{1,2}(?::\d\d)?\s*(?:AM|PM)|\d{1,2}:\d\d|in the|at the)\b)/)[0];
+        const details = whole.slice(ev.length).trim().split(/\s+(?=(?:in|at) the\b)/).filter(Boolean).map(x => cap(x));
+        const title = ev.replace(/\b[a-z]/g, c => c.toUpperCase());
+        b.imgtext = [title, ...details].join(" · ");
+        if(has(b.purpose) && saidIn(pm[1], String(join(b.purpose)))) delete b.purpose;
+        if(has(b.setting) && saidIn(pm[1], String(join(b.setting)))) delete b.setting;
+        b.subject = "A " + kind + " for " + (/s$/i.test(ev.trim()) ? "" : "a ") + ev.toLowerCase(); // "a soccer tryouts" read wrong
+      }
+    }
+    // 12.3: "..., cupcakes, fun colours" and "..., moody": the other parts of the first sentence were dropped (only sentences were kept)
+    if(m.cat === "image"){
+      const firstSentence = t.split(/(?<=[.!?\n])\s+/)[0] || "";
+      const known = [b.subject, b.setting, b.purpose, b.extra, b.medium, b.imgtext, b.mood, b.light, b.palette].filter(has).map(v => join(v)).join(" ").toLowerCase();
+      const purp = has(b.purpose) ? stripDot(join(b.purpose)).toLowerCase() : "";
+      const parts = firstSentence.split(/,\s*/).slice(1).map(x => x.trim().replace(/[.!?;\s]+$/, ""))
+        .map(x => purp && x.toLowerCase().includes(purp) ? x.slice(0, x.toLowerCase().indexOf(purp)).replace(/\s+(?:for|to|in|on)?\s*(?:my|our|a|the)?\s*$/i, "").trim() : x) // the goal is said once
+        .filter(x => x && (x.toLowerCase().match(/[a-z]{3,}/g) || []).some(w => !STOP_WORDS.has(w) && !known.includes(w)));
+      const MOODS = /^(?:moody|dark|calm|cozy|cosy|eerie|creepy|spooky|dreamy|happy|sad|gloomy|cheerful|peaceful|dramatic|epic|mysterious|romantic|nostalgic|melancholic|playful|serene|tense|lonely|warm|cold|fun)$/i;
+      const moodPart = parts.find(x => MOODS.test(x));
+      if(moodPart && !has(b.mood)) b.mood = moodPart.toLowerCase();
+      const rest = parts.filter(x => x !== moodPart);
+      if(rest.length) b.extra = [has(b.extra) ? stripDot(join(b.extra)) : "", cap(rest.join(", "))].filter(Boolean).join(". ");
+    }
     if(b.medium){ const o = opts("medium").find(x=>x.includes(b.medium.toLowerCase()) || b.medium.toLowerCase().includes(x)); if(o) b.medium = (F.medium.o||[]).find(x=>x.toLowerCase()===o); }
     // 8.5.2: photo defaults (50mm, f/2.8, softbox) only for photos; a logo, chart or painting got them too
-    const graphic = /\b(graphics?|geometric|abstract|flat (?:design|colou?rs?|shapes?)|designs?|panels?|murals?|decals?|wraps?|patterns?|logos?|icons?|stickers?|posters?|flyers?|charts?|diagrams?|infographics?|illustrations?|illustrated|paintings?|painted|vectors?|cartoons?|anime|drawings?|drawn|sketch\w*|watercolou?rs?|pixel art|3d renders?|clip ?art|emblems?|badges?|banners?|cards?|maps?|labels?|mascots?|book|storybook|invitations?|loading screens?|game art|concept art|fantasy|character art|comic|manga|children'?s)\b/i.test(t);
+    const graphic = /\b(graphics?|geometric|abstract|flat (?:design|colou?rs?|shapes?)|designs?|panels?|murals?|decals?|wraps?|patterns?|logos?|icons?|stickers?|posters?|flyers?|charts?|diagrams?|infographics?|illustrations?|illustrated|paintings?|painted|vectors?|cartoons?|anime|drawings?|drawn|sketch\w*|watercolou?rs?|pixel art|3d renders?|clip ?art|emblems?|badges?|banners?|cards?|maps?|labels?|mascots?|book|storybook|invitations?|loading screens?|game art|concept art|fantasy|character art|comic|manga|children'?s|brackets?|storyboards?|leaderboards?|flowcharts?|timelines?|wireframes?|mockups?)\b/i.test(t); // 12.3: a tournament bracket became a photograph
     // 8.5.12: studio-photo guesses (50mm, f/2.8, softbox, grade) only when the draft reads like a photo
     const outdoor = /\b(outdoor|outside|street|market|candid|sky|beach|forest|mountain|park|city|field|garden|night|sunset|sunrise|landscape|overcast|rain|desert|farm|nature|lake|ocean|sea|prairie|dawn|dusk|cliff|snow|river|trail|road|harbou?r|rooftop)\b/i.test(t);
     const editing = /\b(my|our|his|her|their|this) (?:[a-z'-]+ ){0,3}(photo|picture|pic|image|selfie|headshot)s?\b/i.test(t) && /\b(edit|change|replace|remove|swap|restyle|retouch|fix|add|put|make)\w*\b/i.test(t); // 8.5.16: no lens guesses for an edit // 8.5.15: no studio light outdoors
@@ -3904,7 +3945,13 @@ function autocorrect(text){
   // 9.3: "leaping of a building" means off ("of" after a moving word, before a place)
   const off = fixed.replace(/\b((?:leap|jump|fall|hop|step|slid|climb|dive|div|swing|swung|fell|roll)(?:s|ed|ing|t)?) of (a|an|the|his|her|their|my|our) (?=(?:\w+ ){0,2}(?:roof\w*|building|ledge|wall|cliff|bridge|edge|table|chair|bed|boat|bus|train|car|plane|tree|branch|stage|balcony|platform|bench|step|stairs|horse|bike|board|couch|sofa|shelf)\b)/gi,
     (all, v, d) => { fixes.push({from: v + " of", to: v + " off"}); return v + " off " + d + " "; });
-  return {text: off.replace(/\u0000(\d+)\u0000/g, (m, n) => shielded[Number(n)]), fixes};
+  // 12.3: "a old fisherman" is "an old fisherman" (not before a "you" sound: a uniform, a user, a one-off, a euro)
+  const an = off.replace(/\b([Aa]) ([aeiou][a-z]+)\b/g, (all, a, w, at, str) => {
+    if(/^(?:uni|use|usu|uti|ura|eu|ewe|one|once|ufo)/i.test(w) || !isWord(w.toLowerCase())) return all; // names and unknown words are left alone
+    if(a === "A" && at > 0 && !/[.!?\n]\s*$/.test(str.slice(0, at))) return all; // "plan A is fine": a letter, not the word
+    fixes.push({from: a + " " + w, to: a + "n " + w}); return a + "n " + w;
+  });
+  return {text: an.replace(/\u0000(\d+)\u0000/g, (m, n) => shielded[Number(n)]), fixes};
 }
 
 /* --- the strike --- */
@@ -4271,6 +4318,10 @@ function addExtra(res, m, extra){
   if(READS_BACKGROUND.includes(m.cat)){
     const block = /<[a-z_]+>/.test(f) ? "<notes>\n" + line + "\n</notes>" : /^## /m.test(f) ? "## Notes\n" + line : /^[A-Z][A-Z ]{2,}$/m.test(f) ? "NOTES\n" + line : "Also: " + line;
     res.flat = f + "\n\n" + block;
+  } else if(/^Subject: /m.test(f) && /^(?:Goal|Scene): /m.test(f)){
+    // 12.3: a prompt in labelled lines (GPT Image): the extra went on the end of the last line, so "Cupcakes" sat in
+    // "Text: Render exactly ..." (it could be printed on the poster) and the cat's leap sat in "Constraints"
+    res.flat = /^Details: /m.test(f) ? f.replace(/^(Details: .*?)\s*$/m, (_a, d) => d + " " + line) : f.replace(/^(Subject: .*)$/m, (_a, sj) => sj + "\nDetails: " + line);
   } else {
     const at = f.search(/\s--[a-z]/); // Midjourney-style parameters stay at the very end
     res.flat = at > 0 ? f.slice(0, at) + " " + line + f.slice(at) : f.replace(/\s*$/, "") + " " + line;
