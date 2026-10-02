@@ -38642,7 +38642,7 @@ var V = {
   production: ["close-mic'd", "bone-dry", "sidechained", "tape saturation", "plate reverb", "gated reverb", "lo-fi bedroom", "pristine studio", "analog console warmth", "vinyl crackle"],
   llmFormat: ["Plain prose", "Markdown with headings", "Bulleted list", "Numbered steps", "JSON matching a schema", "Markdown table", "CSV", "XML tags", "Code only, no commentary"],
   llmRole: ["senior editor", "staff engineer", "research analyst", "product manager", "teacher explaining to a beginner", "sceptical reviewer", "copywriter", "data analyst"],
-  banned: ["masterpiece", "best quality", "8k", "ultra detailed", "ultra-detailed", "award winning", "award-winning", "trending on artstation", "hyper realistic", "hyperrealistic", "stunning", "beautiful", "very detailed", "highly detailed", "super detailed", "extremely detailed", "insanely detailed", "photorealistic 4k", "amazing", "perfect", "intricate details", "high image quality", "high quality image", "high quality", "good quality", "great quality", "good sharpness", "high resolution", "high res"]
+  banned: ["masterpiece", "best quality", "8k", "ultra detailed", "ultra-detailed", "award winning", "award-winning", "trending on artstation", "hyper realistic", "hyperrealistic", "stunning", "beautiful", "very detailed", "highly detailed", "super detailed", "extremely detailed", "insanely detailed", "photorealistic 4k", "amazing", "perfect", "intricate details", "high image quality", "high quality image", "high quality", "good quality", "great quality", "good sharpness", "high resolution", "high res", "high-quality", "high-resolution", "high-res", "good-quality"]
 };
 var HEAT = [
   [0, "Cold iron", "nothing here is steering the model"],
@@ -43486,7 +43486,7 @@ function checkWritten(raw, o) {
     text = text.replace(/\s*$/, "") + " " + params.trim();
     notes.push("Forge put back the parameters: " + params.trim());
   }
-  const out = new Set((text.toLowerCase().match(/[a-z0-9']+/g) || []).map(stemOf));
+  const out = new Set(((text + (m2.neg && m2.neg.mode === "field" ? " " + neg : "")).toLowerCase().match(/[a-z0-9']+/g) || []).map(stemOf));
   const lost = Object.entries(o.brief || {}).filter(([k2, v2]) => has(v2) && !sug.includes(k2) && !["aspect", "duration", "shots", "sfxLen", "mLen", "effort", "level"].includes(k2)).filter(([, v2]) => {
     const ws = (join(v2).toLowerCase().match(/[a-z0-9']{3,}/g) || []).filter((w2) => !STOP_WORDS.has(w2)).map(stemOf);
     return ws.length && ws.filter((w2) => out.has(w2)).length / ws.length < 0.5;
@@ -43934,8 +43934,11 @@ function checkPrompt(E2, o) {
   const reply2 = splitReply(o.prompt);
   const P2 = { kept: [], settings: [], invented: [], filler: [], other: [] };
   const theirs = /\bforge\b/i.test(o.said), mask = (t) => theirs ? String(t).replace(/\bforge\b/gi, "smithy") : t;
-  const fixed = E2.autocorrect(mask(o.said));
+  const said = String(o.said || "").replace(/(^|[\n.;]\s*)[A-Z][A-Za-z]{2,15}(?: (?:and |& )?[a-z]{2,10})?:[ \t]+/g, "$1");
+  const fixed = E2.autocorrect(mask(said));
   const { brief: brief2, suggested } = E2.rebuildBrief(fixed.text, m2);
+  const setFlags = /\s--[a-z]/.test(" " + reply2.prompt) ? [] : String(reply2.settings || "").match(/--[a-z][a-z0-9-]*(?:[ \t]+(?!--)[^\s-][^\s]*)*/gi) || [];
+  if (setFlags.length) reply2.prompt = reply2.prompt.replace(/\s*$/, "") + " " + setFlags.join(" ");
   const cw = E2.checkWritten(JSON.stringify({ prompt: mask(reply2.prompt), negative: mask(reply2.negative) }), { m: m2, request: mask(fixed.text), brief: brief2, suggested, res });
   if (cw.used === "forge") P2.kept.push(String(cw.notes[0] || "").replace(/,? so this is Forge's version\.?$/, ". Rewrite it from the brief."));
   else for (const n of cw.notes) {
@@ -43957,6 +43960,7 @@ function checkPrompt(E2, o) {
   }
   const knowledge = JSON.stringify(m2) + "\n" + String(res.flat || "") + "\n" + JSON.stringify(res.settings || []);
   const knownFlags = new Set(flagsIn(knowledge));
+  for (const f2 of flagsIn(" " + String(m2.neg && m2.neg.label || "") + " " + String(m2.neg && m2.neg.note || ""))) knownFlags.add(f2);
   const usedFlags = [...new Set(flagsIn(reply2.prompt + " " + reply2.settings))];
   const orig = (reply2.prompt.match(/\bforge\b/i) || ["Forge"])[0], unmask = (t) => theirs ? String(t).replace(/\bsmithy\b/gi, orig) : t;
   if (theirs) {
@@ -43995,6 +43999,7 @@ function checkPrompt(E2, o) {
     for (let i = 0; i < ws.length; i++) {
       const w2 = ws[i].replace(/^[("'“]+|[)"'”.,;!?]+$/g, "");
       if (!/^[A-Z][a-zA-Z'-]+$/.test(w2)) continue;
+      if (/^[A-Z]-[a-z]/.test(w2)) continue;
       const lw = w2.toLowerCase().replace(/'s$/, "");
       if (known.includes(lw) || E2.isWord && E2.isWord(lw)) continue;
       names.add(w2);
@@ -44319,7 +44324,7 @@ function map2(a) {
     );
     for (const w2 of String(a.text || "").toLowerCase().match(/[a-z0-9][a-z0-9'-]{2,}/g) || []) if (!STOP3.has(w2) && !/^(you|ai|chatgpt|claude|gemini|said)$/.test(w2)) seen[w2] = (seen[w2] || 0) + 1;
     const have = new Set(main2.map((x) => String(x.label).toLowerCase()));
-    main2 = main2.concat(Object.entries(seen).filter(([w2]) => !have.has(w2)).filter(([w2, n]) => n >= 2 || /\d/.test(w2) || w2.length >= 6).sort((x, y) => y[1] - x[1] || y[0].length - x[0].length).slice(0, 6 - main2.length).map(([w2]) => ({ label: w2 })));
+    main2 = main2.concat(Object.entries(seen).filter(([w2]) => !have.has(w2) && (w2.length >= 4 || /\d/.test(w2))).filter(([w2, n]) => n >= 2 || /\d/.test(w2) || w2.length >= 6).sort((x, y) => y[1] - x[1] || y[0].length - x[0].length).slice(0, 6 - main2.length).map(([w2]) => ({ label: w2 })));
   }
   return { available: true, result: { summary: cc ? cc.summary : null, turns: cc ? cc.turns.length : 0, main: main2, topics: r2.topics, missing: (r2.slots || []).filter(
     /** @param {any} x */

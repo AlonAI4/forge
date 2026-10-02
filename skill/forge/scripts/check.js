@@ -46,8 +46,13 @@ export function checkPrompt(E, o) {
   // The engine treats the word "Forge" in a prompt as the writer talking about its instructions. When the person's
   // own words have it (a screenshot of Forge, a blacksmith's forge), it is a fact, not chat talk: hide it from that test.
   const theirs = /\bforge\b/i.test(o.said), mask = (/** @type {string} */ t) => (theirs ? String(t).replace(/\bforge\b/gi, "smithy") : t);
-  const fixed = E.autocorrect(mask(o.said));
+  // 11.4: "Subject:", "Action:", "Light and mood:" are labels in Claude's picture description, not words to keep
+  const said = String(o.said || "").replace(/(^|[\n.;]\s*)[A-Z][A-Za-z]{2,15}(?: (?:and |& )?[a-z]{2,10})?:[ \t]+/g, "$1");
+  const fixed = E.autocorrect(mask(said));
   const { brief, suggested } = E.rebuildBrief(fixed.text, m);
+  // 11.4: --flags written under Settings are the prompt's own; without this Forge appended its default --ar 1:1 over a measured 3:2
+  const setFlags = /\s--[a-z]/.test(" " + reply.prompt) ? [] : String(reply.settings || "").match(/--[a-z][a-z0-9-]*(?:[ \t]+(?!--)[^\s-][^\s]*)*/gi) || [];
+  if (setFlags.length) reply.prompt = reply.prompt.replace(/\s*$/, "") + " " + setFlags.join(" ");
   const cw = E.checkWritten(JSON.stringify({ prompt: mask(reply.prompt), negative: mask(reply.negative) }), { m, request: mask(fixed.text), brief, suggested, res }); // 11.4: the spell-fixed words, not the typos
   if (cw.used === "forge") P.kept.push(String(cw.notes[0] || "").replace(/,? so this is Forge's version\.?$/, ". Rewrite it from the brief."));
   else for (const n of cw.notes) {
@@ -70,6 +75,8 @@ export function checkPrompt(E, o) {
   // --- 2. settings real for this AI ---
   const knowledge = JSON.stringify(m) + "\n" + String(res.flat || "") + "\n" + JSON.stringify(res.settings || []);
   const knownFlags = new Set(flagsIn(knowledge));
+  // 11.4: the keep-out flag lives in m.neg.label ("--no"), which the text scan above cannot see inside the JSON
+  for (const f of flagsIn(" " + String((m.neg && m.neg.label) || "") + " " + String((m.neg && m.neg.note) || ""))) knownFlags.add(f);
   const usedFlags = [...new Set(flagsIn(reply.prompt + " " + reply.settings))];
   const orig = (reply.prompt.match(/\bforge\b/i) || ["Forge"])[0], unmask = (/** @type {string} */ t) => (theirs ? String(t).replace(/\bsmithy\b/gi, orig) : t);
   if (theirs) { cw.prompt = unmask(cw.prompt); cw.negative = unmask(cw.negative); }
@@ -108,6 +115,7 @@ export function checkPrompt(E, o) {
     for (let i = 0; i < ws.length; i++) {
       const w = ws[i].replace(/^[("'“]+|[)"'”.,;!?]+$/g, "");
       if (!/^[A-Z][a-zA-Z'-]+$/.test(w)) continue;
+      if (/^[A-Z]-[a-z]/.test(w)) continue; // 11.4: V-shaped, T-shirt, U-turn, X-ray are shapes and things, not names
       const lw = w.toLowerCase().replace(/'s$/, "");
       if (known.includes(lw) || (E.isWord && E.isWord(lw))) continue;
       names.add(w);

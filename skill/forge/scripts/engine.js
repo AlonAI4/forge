@@ -35,7 +35,7 @@ const V = {
   production:["close-mic'd","bone-dry","sidechained","tape saturation","plate reverb","gated reverb","lo-fi bedroom","pristine studio","analog console warmth","vinyl crackle"],
   llmFormat:["Plain prose","Markdown with headings","Bulleted list","Numbered steps","JSON matching a schema","Markdown table","CSV","XML tags","Code only, no commentary"],
   llmRole:["senior editor","staff engineer","research analyst","product manager","teacher explaining to a beginner","sceptical reviewer","copywriter","data analyst"],
-  banned:["masterpiece","best quality","8k","ultra detailed","ultra-detailed","award winning","award-winning","trending on artstation","hyper realistic","hyperrealistic","stunning","beautiful","very detailed","highly detailed","super detailed","extremely detailed","insanely detailed","photorealistic 4k","amazing","perfect","intricate details","high image quality","high quality image","high quality","good quality","great quality","good sharpness","high resolution","high res"]
+  banned:["masterpiece","best quality","8k","ultra detailed","ultra-detailed","award winning","award-winning","trending on artstation","hyper realistic","hyperrealistic","stunning","beautiful","very detailed","highly detailed","super detailed","extremely detailed","insanely detailed","photorealistic 4k","amazing","perfect","intricate details","high image quality","high quality image","high quality","good quality","great quality","good sharpness","high resolution","high res","high-quality","high-resolution","high-res","good-quality"]
 };
 
 /* Heat scale: real colour temperatures a smith reads off steel. */
@@ -4523,7 +4523,8 @@ function checkWritten(raw, o){
   const params = (res.flat.match(/(\s--[a-z][\s\S]*)$/) || [])[1];
   if(params && !/\s--[a-z]/.test(text)){ text = text.replace(/\s*$/, "") + " " + params.trim(); notes.push("Forge put back the parameters: " + params.trim()); }
   // every fact the person gave is still there (the words that carry it, not the exact sentence)
-  const out = new Set((text.toLowerCase().match(/[a-z0-9']+/g) || []).map(stemOf));
+  // 11.4: for an AI with its own keep-out field, the words written there are kept too (not lost from the prompt)
+  const out = new Set(((text + (m.neg && m.neg.mode === "field" ? " " + neg : "")).toLowerCase().match(/[a-z0-9']+/g) || []).map(stemOf));
   const lost = Object.entries(o.brief || {}).filter(([k, v]) => has(v) && !sug.includes(k) && !["aspect","duration","shots","sfxLen","mLen","effort","level"].includes(k)).filter(([, v]) => {
     const ws = (join(v).toLowerCase().match(/[a-z0-9']{3,}/g) || []).filter(w => !STOP_WORDS.has(w)).map(stemOf);
     return ws.length && ws.filter(w => out.has(w)).length / ws.length < 0.5;
