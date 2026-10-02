@@ -1,7 +1,7 @@
 {
   "name": "forge",
   "displayName": "Forge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Expert prompts for any AI. Forge picks the AI, asks at most 3 questions, hands Claude its brief, and checks what Claude wrote. Keeps no data.",
   "author": { "name": "Alon Shayo", "url": "https://github.com/AlonAI4" },
   "homepage": "https://forge-prompt-smithy.netlify.app",
