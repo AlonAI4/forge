@@ -4,7 +4,9 @@
 
 **Use it now, free: https://alonai4.github.io/forge/**
 
-(Backup link, an older copy until it is updated: https://forge-prompt-smithy.netlify.app)
+Also at: https://forge-prompt-smithy.netlify.app (the same site; both update together).
+
+**New here?** The website's Manual tab explains every part and how to add Forge to Claude or ChatGPT, step by step: https://alonai4.github.io/forge/#get-forge
 
 Works for 57 models: Image (12), Video (11), Voice & speech (6), Sound effects (2), Music (5), Chat & reasoning (6), Coding agents (6), App builders (5), Research (4).
 
@@ -51,7 +53,7 @@ Tested on 3 October 2026. The same new requests went to Forge and to other free 
 | Forge | vs Jotform AI Prompt Generator | vs GeneratePrompt.net |
 |---|---|---|
 | The plugin for Claude | won 10 of 10 | won 7 of 7 |
-| The website, on its own (no AI) | won 4 of 5 (the version before won 1 of 5) | lost 5 of 7 (tested before the 3 October update; a re-test is coming) |
+| The website, on its own (no AI) | won 4 of 5 (the version before won 1 of 5) | lost 5 of 7 (tested before the 3 October update) |
 
 Against Claude itself (a full AI writing the prompt), the website on its own still loses almost every time (0-5% across its features on 90 new requests, 3 October), though each feature got clearly better than its old version (Chat Context 82%, Anvil 63%, Doctor 61%). The plugin, where Claude writes from Forge's brief, is the strong one.
 
@@ -60,7 +62,7 @@ Limits: these are small tests. The other generators limit free use (GenerateProm
 
 ## Community
 
-Forge is free while it is being built. Found a bug, a model that is out of date, or have an idea?
+Forge is free while it is being built. The full guide is on the website: https://alonai4.github.io/forge/#get-forge Found a bug, a model that is out of date, or have an idea?
 Open an issue: https://github.com/AlonAI4/forge/issues
 
 The website updates itself whenever this repo changes.

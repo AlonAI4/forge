@@ -666,13 +666,21 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
         <div class="billet"><div class="billet-head"><h2>Reverse Forge</h2><button class="mini" type="button" data-open-tab="intake">Open Reverse Forge</button></div><div class="billet-body"><p>Start from something you already have: a picture you like, or a text file.</p><ol><li>Drop in images or files, or click the box to choose them.</li><li>Forge measures what it can: the shape, the main colours, how bright it is, how much detail.</li><li>It asks about the parts only you can see, like the subject and the mood.</li><li>It writes the prompt that would make something like it.</li></ol><p class="mtip"><b>Tip:</b> for a text file, <b>Diagnose</b> sends it to the Prompt Doctor.</p></div></div>
         <div class="billet"><div class="billet-head"><h2>Chat Context</h2><button class="mini" type="button" data-open-tab="context">Open Chat Context</button></div><div class="billet-body"><p>Keep a long chat with an AI on track.</p><ol><li>Copy a chat from Claude, ChatGPT or any AI and paste it in. Lines starting &quot;You:&quot; and &quot;AI:&quot; tell Forge who said what. ChatGPT's own &quot;You said:&quot; works too.</li><li>Press <b>Read the chat</b>. Forge shows what the chat is about, and which of the 9 things a good prompt needs you have already said.</li><li>Say what you want now, and answer up to 3 questions.</li><li>Press <b>Write the prompt</b>. You get a prompt with the chat's context built in. Paste it into the AI, or improve it in the Prompt Doctor.</li></ol><p class="mtip"><b>Tip:</b> the <b>Context block</b> is a short summary of the chat. Paste it at the start of a new chat so the AI remembers what you were doing.</p></div></div>
         <div class="billet"><div class="billet-head"><h2>Matchmaker</h2><button class="mini" type="button" data-open-tab="match">Open Matchmaker</button></div><div class="billet-body"><p>Not sure which AI to use? Ask here.</p><ol><li>Say what you want to make, like &quot;a 15-second video ad with music&quot;.</li><li>Pick what matters most to you, like speed or words inside the image.</li><li>Press <b>Find the tool</b>. Forge ranks the AIs that are best at it and says why.</li></ol></div></div>
+        <div class="billet" id="get-forge" style="scroll-margin-top:90px"><div class="billet-head"><h2>Forge inside Claude or ChatGPT</h2></div><div class="billet-body">
+          <p>This page works on its own. If you use Claude or ChatGPT, you can also add Forge to them: Forge gives the AI its expert brief, the AI writes the prompt, and Forge checks it. That is the strongest way to use Forge. All free, and it keeps no data.</p>
+          <ul class="notes">
+            <li><span><b>Plugin for Claude Code</b> (best): type these two lines in Claude Code, one at a time:<br><code>/plugin marketplace add AlonAI4/forge</code><br><code>/plugin install forge@forge</code><br>Then type <code>/forge:forge</code> and what you want, like <code>/forge:forge a fox in the snow for Midjourney</code>. Drop in a picture and type <code>/forge:forge-reverse midjourney</code> for a prompt that makes more like it.</span></li>
+            <li><span><b>Skill for the Claude app or ChatGPT:</b> download the <code>skill/forge</code> folder from GitHub. In Claude: zip the folder, then upload it in Customize, Skills (Code execution must be on in Settings). In ChatGPT: Skills, Create, Upload from your computer. Then just ask &quot;write me a Midjourney prompt for…&quot;.</span></li>
+            <li><span><b>Code and full instructions:</b> <a href="https://github.com/AlonAI4/forge" target="_blank" rel="noopener">github.com/AlonAI4/forge</a></span></li>
+          </ul>
+        </div></div>
         <div class="billet"><div class="billet-head"><h2>How Forge compares</h2></div><div class="billet-body">
           <p>Tested on 3 October 2026: the same new requests went to Forge and to other free prompt generators, and a blind judge picked the better prompt, with a reason each time.</p>
           <ul class="notes">
             <li><span><b>Forge's own generator (this page, no AI)</b> against Jotform's AI Prompt Generator: won 4 of 5 (the version before the 3 October update won 1 of 5).</span></li>
             <li><span><b>Forge's plugin for Claude</b> against Jotform: won 10 of 10. Against GeneratePrompt.net: won 7 of 7.</span></li>
             <li><span><b>Against Claude itself</b> (a full AI writing the prompt): this page still loses almost every time (0-5% across Anvil, Doctor, Chat Context and Matchmaker, 90 new requests). It did get clearly better than before (Chat Context won 82% against its old version, Anvil 63%, Doctor 61%). Writing as well as an AI needs an AI: that is the next version.</span></li>
-            <li><span><b>Honest limits:</b> small tests against the other generators, because they limit free use (about 10 a day or a few an hour). Against GeneratePrompt.net, this page lost 5 of 7 before the 3 October update; a re-test is coming.</span></li>
+            <li><span><b>Honest limits:</b> small tests against the other generators, because they limit free use (about 10 a day or a few an hour). Against GeneratePrompt.net, this page lost 5 of 7 (tested before the 3 October update).</span></li>
           </ul>
         </div></div>
         <div class="billet"><div class="billet-head"><h2>The Forge Score</h2></div><div class="billet-body">
@@ -8316,6 +8324,8 @@ $$(".tab").forEach(t=>t.addEventListener("click", ()=>{
   $$(".pane").forEach(p=>p.setAttribute("data-active", p.getAttribute("data-pane")===t.getAttribute("data-pane") ? "1":"0"));
   window.scrollTo(0, 0); // 2.3.2: a new tab starts at its top, not at the old tab's scroll position
 }));
+// A link to #manual or #get-forge (from the GitHub README) opens the Manual tab at that part.
+if(/^#(manual|get-forge)$/.test(location.hash)){ const t = document.querySelector('.tab[data-pane="manual"]'); if(t){ t.click(); const g = document.getElementById(location.hash.slice(1)); if(g) setTimeout(()=>g.scrollIntoView(), 50); } }
 
 /* ==========================================================================
    12. PROMPT DOCTOR
