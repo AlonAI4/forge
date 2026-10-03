@@ -41506,7 +41506,7 @@ function chatNeeds(all, b) {
     lim.push(x[0].trim().replace(/\s+(?:and|but|so)$/i, ""));
   }
   const rules = String(b.rules || "").toLowerCase();
-  const newLim = [...new Set(lim)].filter((l) => !rules.includes(l.toLowerCase()));
+  const newLim = [...new Map(lim.map((l) => [l.toLowerCase(), l])).values()].filter((l) => !rules.includes(l.toLowerCase()));
   if (newLim.length) out.push("Respect what I ruled out: " + newLim.join("; ") + ".");
   if (/\b(email|e-mail|letter|cover letter|speech|toast|message|bio|invite|invitation|announcement|caption|(?:product |listing |job )?description|(?:birthday|greeting|thank[- ]you|wedding|sympathy) card|thank[- ]you|apology|cv|resume|résumé)\b/.test(lo) && /\b(write|draft|make|give me|help me (?:write|draft|word)|need|want)\b/.test(lo))
     out.push("Where you need a detail I did not give (a name, a date, a number), leave a [bracketed blank] instead of inventing it.");
@@ -42607,7 +42607,9 @@ function rebuildBriefParts(text, m2) {
     const left = clauses.filter((c) => !held.includes(c.toLowerCase()) && !saidIn(held, c));
     if (left.length) {
       const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some((c) => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
-      b.context = cap([...keep, ...left].join(", "));
+      const seen = /* @__PURE__ */ new Set();
+      const parts = [...keep, ...left].flatMap((x) => String(x).split(/(?<=[.!?])\s+|,\s+/)).map((x) => x.trim().replace(/[.;,]+$/, "")).filter((x) => x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase()));
+      b.context = cap(parts.map((x, i) => i && /^[A-Z][a-z]/.test(x) && !/^(I|I'm|I've|I'll)\b/.test(x) ? x.charAt(0).toLowerCase() + x.slice(1) : x).join(", "));
     }
   }
   if (["text", "code", "research", "app"].includes(m2.cat) && !has(b.rules) && (m2.craft || []).includes("rules")) {
