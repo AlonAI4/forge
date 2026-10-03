@@ -3110,7 +3110,7 @@ const PLACE = /\b((?:in|at|on|inside|under|over|near|by|beside|across)\s+(?!(?:t
 // landing in the Setting box, so the prompt read "...a glowing portal in a desert on pinterest".
 const SITE = /\b(pinterest|instagram|insta|tiktok|youtube|twitter|reddit|artstation|behance|dribbble|facebook|tumblr|twitch|discord|etsy|linkedin|snapchat|threads|deviantart|flickr|the internet|the web|(?:my|our|the|their)\s+(?:feed|page|site|website|homepage|profile|story|stories|timeline|channel|board|moodboard|camera roll|phone))\b/i;
 const PURPOSE = /\bfor\s+((?:a|an|the|my|our|your)\s+[^,.;!?]+)/i;
-const ACTION = /\b(then|while|drops?|runs?|walks?|jumps?|turns?|moves?|flies|falls?|rises?|spins?|dances?|opens?|looks?|waves?|rides?|skates?|climbs?|swims?|throws?|kicks?|lands?)\b/i;
+const ACTION = /\b(then|while|drops?|runs?|walks?|jumps?|turns?|moves?|flies|falls?|rises?|spins?|dances?|opens?|looks?|waves?|rides?|skates?|climbs?|swims?|throws?|kicks?|lands?|(?:sail|chas|walk|runn|fly|fall|danc|jump|flipp|spinn|bloom|blow|rid|swimm|climb|float|drift|roll|pour|melt|grow|turn|open|crash|splash|chas|leap|wav|bounc|glid|sprint|march|crawl|swing|swirl)ing)\b/i;
 /** @type {Record<string, (t: string) => string>} */
 const FIND = {
   subject: t => { let x = deMeta(t.split(/[.\n,]/)[0].trim()); x = x.replace(PLACE, "").replace(PURPOSE, "").replace(/\s{2,}/g," ").trim(); return x.split(/\s+/).length >= 2 ? x : ""; },
@@ -3303,8 +3303,33 @@ function notMine(t){
   });
   return {text, found};
 }
+/** v1 bug hunt: the instruction to Forge is not part of the job ("Use the forge skill: write a prompt for midjourney, a cozy
+ *  bedroom..." made "Use the forge skill: write a prompt for midjourney" the subject of the picture). @param {string} t */
+function stripAsk(t){
+  return String(t || "")
+    .replace(/^\s*(?:please\s+)?use\s+(?:the\s+)?(?:forge|smithy)(?:\s+(?:skill|plugin|tool))?\s*(?:to\s+|[:,.-]\s*)?/i, "")
+    .replace(/^\s*(?:(?:can|could)\s+you\s+|please\s+)?(?:write|make|create|generate|give me|forge|build)\s+(?:me\s+)?(?:a\s+|an\s+|the\s+)?(?:good\s+|great\s+|better\s+|expert\s+|detailed\s+)?prompt\s+(?:for|to use (?:in|with)|in)\s+[\w.+-]+(?:\s+[\w.+-]+){0,2}?\s*(?:[:,-]\s*|\.\s+|\s+(?=(?:a|an|the|my|our|of|about)\b))/i, "")
+    .replace(/\s*[.,]?\s*(?:and\s+)?(?:please\s+)?(?:skip|no|don'?t ask)\s+(?:the\s+|any\s+)?questions?\s*(?:please)?\s*[.!]?\s*$/i, "")
+    .trim();
+}
+/** v1 bug hunt: lines Forge adds to the person's "Anything else?" on its own. They are Forge's, so the check never asks
+ *  the writer to keep them (the skill's check failed three times asking for the screens line back) */
+const SCREENS_LINE = "Screens show original made-up art with no real game titles or logos";
+const FORGE_ADDED = [SCREENS_LINE];
+/** v1 step 14: a decimal point is not the end of a sentence ("ICED TEA $1.50" became "$1." on a menu board). Hidden while
+ *  the request is cut into parts, put back after. */
+const DECIMAL = "\u2024";
+const hideDecimals = (/** @type {string} */ t) => t.replace(/(\d)\.(\d)/g, "$1" + DECIMAL + "$2");
+/** @param {any} v @returns {any} */
+const showDecimals = v => typeof v === "string" ? v.split(DECIMAL).join(".") : Array.isArray(v) ? v.map(showDecimals) : v;
 /** @param {string} text @param {Model} m */
 function rebuildBrief(text, m){
+  const out = rebuildBriefParts(hideDecimals(stripAsk(String(text || ""))), m);
+  for(const k of Object.keys(out.brief)) out.brief[k] = showDecimals(out.brief[k]);
+  return out;
+}
+/** @param {string} text @param {Model} m @returns {{brief: Brief, suggested: string[]}} */
+function rebuildBriefParts(text, m){
   const t0 = cleanDraft(stripBanned(text).text);
   const t = ["image","video"].includes(m.cat) ? notMine(t0).text : ["sfx","music"].includes(m.cat) ? cap(t0.replace(REQUEST_LEAD, "")) : t0; // 12.2; 12.4: a sound AI hears "Need a" too
   /** @type {Brief} */
@@ -3380,7 +3405,7 @@ function rebuildBrief(text, m){
     if(["image","video"].includes(m.cat) && /\b(gaming (?:setup|room|station|desk|corner|den|pc|rig)|battle ?station|monitors?|screens?|tvs?|televisions?|laptops?|computers?|arcade|cinema|movie theat(?:er|re)|billboards?|phones?|tablets?)\b/i.test(t)
       && !/\b(?:for|on|as)\s+(?:my|our|a|the|your)?\s*(?:\w+\s+)?(?:screens?|phones?|laptops?|computers?|desktops?|tablets?|monitors?|banner|wallpaper|lock ?screen|home ?screen|background)\b/i.test(t) // the destination, not something in the picture
       && !/["“][^"”]+["”]|\b(?:showing|playing|plays|displaying|of)\s+[A-Z][\w'’:-]+/.test(t)){
-      const line = "Screens show original made-up art with no real game titles or logos"; // no commas: extras are split at commas
+      const line = SCREENS_LINE; // no commas: extras are split at commas
       b.extra = [has(b.extra) ? stripDot(join(b.extra)) : "", line].filter(Boolean).join(". ");
     }
     // 12.4: a generic word ("illustration") matched the first preset that contains it, so every illustration became a gouache one
@@ -3428,13 +3453,38 @@ function rebuildBrief(text, m){
         // 8.5.2: nor any other piece already said in the subject ("in a garage sparks flying" came out twice)
         const setg = String(b.setting || "").toLowerCase().trim();
         d = d.split(/,\s*/).map(c => setg && c.trim().toLowerCase().startsWith(setg) ? c.trim().slice(setg.length).trim() : c).filter(c => { const x = c.trim().toLowerCase(); return x && !subj.includes(x) && !x.includes(subj || "\u0000") && !(setg && setg.includes(x)) && !avoidFrom(x); }).join(", "); // 8.7.18: nor the setting again, nor a keep-out
-        d = d.split(/,\s*/).filter(c => !/^(?:for|to)\s+(?:a|an|the|our|my|your|his|her|their|this)\b/i.test(c.trim())).join(", "); // v2.6: "for our restaurant's social media" is what it is for, not what happens
+        d = d.split(/,\s*/).filter(c => !/^(?:for|to)\s+(?:a|an|the|our|my|your|his|her|their|this)\b/i.test(c.trim())).join(", ");
+        // v1 step 14: "close up, cinematic" and "slow motion" are how it is filmed, not what happens (the action was "close up, cinematic").
+        d = d.split(/,\s*/).filter(c => !/^(?:(?:extreme |a )?close-?ups?|wide(?: shot)?|medium shot|establishing(?: shot)?|cinematic|slow[- ]?(?:motion|mo)|time-?lapse|drone shot|aerial(?: shot)?|\d+\s*(?:s|sec|secs|seconds)|shot on [\w ]+|\d+mm|4k|vertical|horizontal|widescreen|16:9|9:16|soft light|golden hour|realistic|photorealistic)$/i.test(c.trim())).join(", "); // v2.6: "for our restaurant's social media" is what it is for, not what happens
         if(d.length>40) b.action = d; else if(d.length > 8 && !saidIn(b.subject, d)) sug("action", d); // 8.5.14: never the subject again, "held for the length of the shot"
+      }
+      // v1 step 14: how it is filmed goes to the camera boxes, so the rewrite keeps them
+      if(m.cat === "video"){
+        const sh = t.match(/\b(extreme close-?up|close[- ]?up|medium shot|wide shot|establishing shot|aerial shot|drone shot|low angle|high angle)\b/i);
+        if(sh && !has(b.shot)) b.shot = [sh[1].toLowerCase().replace(/^close[ ]?up$/, "close-up").replace(/^extreme close-?up$/, "extreme close-up").replace(/^(?:drone|aerial) shot$/, "aerial drone shot")];
+        if(/\bslow[- ]?(?:motion|mo)\b/i.test(t) && !has(b.motion)) b.motion = ["slow-motion 120fps"];
+        if(/\btime-?lapse\b/i.test(t) && !has(b.motion)) b.motion = ["time-lapse"];
+        if(/\bcinematic\b/i.test(t) && !has(b.grade) && !has(b.mood)) b.mood = ["cinematic"];
+        // "drone shot flying over a misty lake": the shot is the camera, and the lake is what is in the frame
+        if(/^(?:an? )?(?:aerial|drone|wide|establishing|tracking)(?: drone)? shot$/i.test(String(b.subject || "").trim()) && has(b.setting)){
+          b.subject = cap(String(b.setting).replace(/^(?:over|above|across|through|along|past|around)\s+/i, ""));
+          b.action = "the camera " + String(b.action || "moving") + " " + (String(b.setting).match(/^(over|above|across|through|along|past|around)\b/i) || ["over"])[0].toLowerCase() + " it";
+          delete b.setting;
+        }
       }
       const mv = firstMatch(t, /\b(slow dolly in|dolly in|dolly out|tracking shot|pan left|pan right|tilt up|tilt down|orbit|crane up|handheld|push in|pull back|whip pan)\b/i);
       if(mv) b.camMove = mv; // 13.20: no guessed "slow dolly in" (round 5 judges: "an invented dolly move")
     }
     const q = t.match(/["“]([^"”]{2,40})["”]/); if(q) b.imgtext = q[1];
+    // v1 step 14: "a menu board that says FRESH LEMONADE $2 and ICED TEA $1.50": the words to print, said without quotes
+    if(!has(b.imgtext) && m.cat === "image" && (m.craft || []).includes("imgtext")){
+      const sayRe = /\s*,?\s*(?:that|which)?\s*(?:says|reads|saying|reading|with the (?:words?|text))\s+([^,\n]{2,80}?)(?=\s*(?:,|$|\.\s|\s+(?:for|on|in|with)\s+(?:my|our|a|an|the)\b))/i;
+      const sm = t.match(sayRe);
+      if(sm && /[A-Z0-9$]/.test(sm[1])){
+        b.imgtext = sm[1].trim();
+        for(const k of ["subject", "purpose", "extra"]) if(typeof b[k] === "string") b[k] = String(b[k]).replace(sayRe, "").trim();
+      }
+    }
     if((m.tech || []).includes("aspect")){ const a = pickAspect(t, m); if(a) b.aspect = a; } // 8.7.17
     { const av = avoidFrom(t); if(av) b.avoid = av; } // 8.7.16
     // 8.17, 8.5.12: "extra limbs" only when there is a body in the picture (a water bottle got it)
@@ -4742,7 +4792,7 @@ function checkWritten(raw, o){
   // 11.4: for an AI with its own keep-out field, the words written there are kept too (not lost from the prompt)
   const out = new Set(((text + (m.neg && m.neg.mode === "field" ? " " + neg : "")).toLowerCase().match(/[a-z0-9']+/g) || []).map(stemOf));
   const lost = Object.entries(o.brief || {}).filter(([k, v]) => has(v) && !sug.includes(k) && !["aspect","duration","shots","sfxLen","mLen","effort","level"].includes(k)).filter(([, v]) => {
-    const ws = (join(v).toLowerCase().match(/[a-z0-9']{3,}/g) || []).filter(w => !STOP_WORDS.has(w)).map(stemOf);
+    const ws = (FORGE_ADDED.reduce((x, l) => x.split(l).join(" "), join(v)).toLowerCase().match(/[a-z0-9']{3,}/g) || []).filter(w => !STOP_WORDS.has(w)).map(stemOf);
     return ws.length && ws.filter(w => out.has(w)).length / ws.length < 0.5;
   });
   // 6.2.3, from the first real test with Chrome's AI: sections kept, the person's own words kept
@@ -4888,7 +4938,7 @@ function trustTheirWords(b, theirWords){
     if(noun && !desc.includes(noun) && theirs) delete out.vArch;
   }
   // a look they named in their own words beats a different look in the box ("a chalk sign" with "ink line art")
-  const MEDIA = [["chalk", "chalk lettering on a chalkboard"], ["chalkboard", "chalk lettering on a chalkboard"], ["watercolou?r", "watercolour illustration"], ["neon", "glowing neon sign"], ["embroider\\w*", "embroidered patch"], ["stained glass", "stained glass"], ["pixel art", "pixel art"], ["claymation|clay", "clay animation style"], ["woodcut|linocut", "woodcut print"], ["pencil", "pencil drawing"], ["crayon", "crayon drawing"], ["oil paint\\w*", "oil painting"], ["vector", "flat vector"], ["cartoon", "cartoon illustration"], ["anime", "anime illustration"], ["3d|three-?d", "3D render"], ["photo\\w*|realistic", "photograph"]];
+  const MEDIA = [["chalk", "chalk lettering on a chalkboard"], ["chalkboard", "chalk lettering on a chalkboard"], ["watercolou?r", "watercolour illustration"], ["neon (?:signs?|lettering|text|words?|logo)", "glowing neon sign"], ["embroider\\w*", "embroidered patch"], ["stained glass", "stained glass"], ["pixel art", "pixel art"], ["claymation|clay", "clay animation style"], ["woodcut|linocut", "woodcut print"], ["pencil", "pencil drawing"], ["crayon", "crayon drawing"], ["oil paint\\w*", "oil painting"], ["vector", "flat vector"], ["cartoon", "cartoon illustration"], ["anime", "anime illustration"], ["3d|three-?d", "3D render"], ["photo\\w*|realistic", "photograph"]];
   if(has(b.medium)){
     const typed = [b.subject, b.extra, b.purpose].filter(has).map(v => join(v)).join(" ").toLowerCase(), box = String(b.medium).toLowerCase();
     const hit = MEDIA.find(([re]) => new RegExp("\\b(?:" + re + ")\\b").test(typed) && !new RegExp("\\b(?:no|not|without|never|instead of)\\s+(?:a\\s+|an\\s+)?(?:" + re + ")").test(typed));
@@ -4912,7 +4962,9 @@ function trustTheirWords(b, theirWords){
   if(has(theirWords) && has(b.room) && !said.includes(String(b.room).toLowerCase().split(/\s+/).pop() || "~")) delete out.room;
   // 13.20: a motion chip their words do not back ("dust motes in the beam" on a phoenix rising, "steam rising throughout")
   if(has(theirWords) && arr(b.motion).length){
-    const mv = arr(b.motion).filter(x => (String(x).toLowerCase().match(/[a-z]{4,}/g) || []).some(w => !/^(rising|throughout|motion|moving|subtle|slow)$/.test(w) && said.includes(w)));
+    // v1 step 14: "slow motion" and "timelapse" in their words back those chips, though the words are on the skip list
+    const backed = (/** @type {string} */ x) => (/slow-?motion/i.test(x) && /\bslow[- ]?(?:motion|mo)\b/.test(said)) || (/time-?lapse/i.test(x) && /\btime-?lapse\b/.test(said));
+    const mv = arr(b.motion).filter(x => backed(String(x)) || (String(x).toLowerCase().match(/[a-z]{4,}/g) || []).some(w => !/^(rising|throughout|motion|moving|subtle|slow)$/.test(w) && said.includes(w)));
     if(mv.length) out.motion = mv; else delete out.motion;
   }
   const INST = ["piano","felt piano","upright piano","acoustic guitar","electric guitar","nylon-string guitar","guitar","banjo","fiddle","violin","cello","strings","string section","brass","trumpet","horns","saxophone","sax","flute","clarinet","ukulele","harp","organ","hammond","synth","synthesizer","808","drums","drumline","snare","timpani","bells","glockenspiel","xylophone","marimba","handclaps","claps","choir","bass","upright bass","lap steel","accordion","mandolin","harmonica","sitar","tabla","steel drums","music box","toy piano","kalimba"];
@@ -5212,4 +5264,4 @@ function forge(b, m, level, opts){
 }
 
 
-export { styleCopy, kindQuestion, JOB_KINDS, AI_FACTS, askAndContext, findRecipes, setRecipeMode, withTips, RECIPES, MODERN, dictionary, isWord, edits1, bestFix, autocorrect, MODEL_SOURCES, byValue, SETTING_HELP, FIND, TEXT_SIGNS, forgeFromText, rebuildBrief, onlyVisible, hiddenAnswers, CUTTABLE, MAX_DETAIL, cutBrief, listedTogether, NO_REPEAT_CHECK, LEX, hasPhrase, scoreText, PARTS, DETAIL_STEPS, repeatsIn, fitsPoints, sumParts, forgeScore, LEVELS, BASIC_TECH, visibleFields, CLASHES, NOT_A_CAMERA, findClashes, QUESTIONS, HIGH_VALUE, askQuestions, V, HEAT, heatName, F, CATS, IMG_CORE, IMG_CRAFT, MODELS, VID_CORE, VID_CRAFT, LLM_CORE, LLM_CRAFT, has, arr, join, cap, stripDot, artic, sentences, DET, lc, deMeta, stripBanned, camClause, lightClause, finishClause, moodClause, imageSections, COMPOSE, splitBeats, markUpScript, videoSections, clamp, makeVariations, READS_BACKGROUND, addBackground, MKEY, MSIGNALS, APOSTROPHE, matchModels, tidyRequest, dropChat, askedFormat, addExtra, forgeFromChat, matchReason, writerPrompt, writerBrief, setDraftless, checkWritten, forge, howTo, reverseBrief, reverseFromAI, measurePixels, chatContext, CHAT_SUMMARY_ASK, readChat, notMine, tipClashes, TIP_CLASHES };
+export { stripAsk, styleCopy, kindQuestion, JOB_KINDS, AI_FACTS, askAndContext, findRecipes, setRecipeMode, withTips, RECIPES, MODERN, dictionary, isWord, edits1, bestFix, autocorrect, MODEL_SOURCES, byValue, SETTING_HELP, FIND, TEXT_SIGNS, forgeFromText, rebuildBrief, onlyVisible, hiddenAnswers, CUTTABLE, MAX_DETAIL, cutBrief, listedTogether, NO_REPEAT_CHECK, LEX, hasPhrase, scoreText, PARTS, DETAIL_STEPS, repeatsIn, fitsPoints, sumParts, forgeScore, LEVELS, BASIC_TECH, visibleFields, CLASHES, NOT_A_CAMERA, findClashes, QUESTIONS, HIGH_VALUE, askQuestions, V, HEAT, heatName, F, CATS, IMG_CORE, IMG_CRAFT, MODELS, VID_CORE, VID_CRAFT, LLM_CORE, LLM_CRAFT, has, arr, join, cap, stripDot, artic, sentences, DET, lc, deMeta, stripBanned, camClause, lightClause, finishClause, moodClause, imageSections, COMPOSE, splitBeats, markUpScript, videoSections, clamp, makeVariations, READS_BACKGROUND, addBackground, MKEY, MSIGNALS, APOSTROPHE, matchModels, tidyRequest, dropChat, askedFormat, addExtra, forgeFromChat, matchReason, writerPrompt, writerBrief, setDraftless, checkWritten, forge, howTo, reverseBrief, reverseFromAI, measurePixels, chatContext, CHAT_SUMMARY_ASK, readChat, notMine, tipClashes, TIP_CLASHES };

@@ -47,7 +47,8 @@ export function checkPrompt(E, o) {
   // own words have it (a screenshot of Forge, a blacksmith's forge), it is a fact, not chat talk: hide it from that test.
   const theirs = /\bforge\b/i.test(o.said), mask = (/** @type {string} */ t) => (theirs ? String(t).replace(/\bforge\b/gi, "smithy") : t);
   // 11.4: "Subject:", "Action:", "Light and mood:" are labels in Claude's picture description, not words to keep
-  const said = String(o.said || "").replace(/(^|[\n.;]\s*)[A-Z][A-Za-z]{2,15}(?: (?:and |& )?[a-z]{2,10})?:[ \t]+/g, "$1");
+  // v1 bug hunt: "Use the forge skill: write a prompt for midjourney, ..." is the instruction, not words the prompt must keep
+  const said = (E.stripAsk ? E.stripAsk(String(o.said || "")) : String(o.said || "")).replace(/(^|[\n.;]\s*)[A-Z][A-Za-z]{2,15}(?: (?:and |& )?[a-z]{2,10})?:[ \t]+/g, "$1");
   const fixed = E.autocorrect(mask(said));
   const { brief, suggested } = E.rebuildBrief(fixed.text, m);
   // 11.4: --flags written under Settings are the prompt's own; without this Forge appended its default --ar 1:1 over a measured 3:2
@@ -106,7 +107,8 @@ export function checkPrompt(E, o) {
   // --- 3. nothing invented: names and numbers must come from the person or from Forge's brief ---
   const known = (o.written + "\n" + o.said + "\n" + knowledge).toLowerCase();
   // 10.10: camera and sound craft (35mm, f/2.8, 24fps, 4K, 3200K, 16:9, 120 BPM, 85mm) is the writer's job, not an invented fact
-  const written = (reply.prompt + "\n" + reply.settings).replace(/\b\d+(?:\.\d+)?\s*(?:mm|fps|k|bpm|hz|khz|db)\b|\bf\/\d+(?:\.\d+)?|\b(?:1:1|4:5|5:4|2:3|3:2|3:4|4:3|9:16|16:9|21:9|9:21|1:2|2:1)\b/gi, " "); // only real aspect ratios: an invented time like 8:00 is still caught
+  const written = (reply.prompt + "\n" + reply.settings).replace(/\b\d+(?:\.\d+)?\s*(?:mm|fps|k|bpm|hz|khz|db)\b|\bf\/\d+(?:\.\d+)?|\b(?:1:1|4:5|5:4|2:3|3:2|3:4|4:3|9:16|16:9|21:9|9:21|1:2|2:1)\b/gi, " ")
+    .replace(/--[a-z]+\s+[\d.:]+/gi, " "); // v1 bug hunt: a parameter value (--stylize 250, --chaos 20) is the writer's craft too // only real aspect ratios: an invented time like 8:00 is still caught
   const nums = [...new Set((written.match(/\$?\d+(?:[.,:/]\d+)*%?/g) || []).filter((n) => !known.includes(n.toLowerCase().replace(/^\$/, ""))))];
   if (nums.length) P.invented.push("Numbers the person never gave and the brief does not hold: " + nums.slice(0, 5).join(", ") + ". Remove them, or ask the person.");
   const names = new Set();

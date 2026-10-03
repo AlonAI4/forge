@@ -7,7 +7,7 @@
       "name": "forge",
       "source": "./plugin",
       "description": "Expert prompts for any AI: pick the AI, ask at most 3 questions, Claude writes from Forge's brief, Forge checks it. Keeps no data.",
-      "version": "0.2.10"
+      "version": "0.2.11"
     }
   ]
 }

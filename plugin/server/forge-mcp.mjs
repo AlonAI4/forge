@@ -37406,6 +37406,7 @@ __export(engine_exports, {
   setDraftless: () => setDraftless,
   setRecipeMode: () => setRecipeMode,
   splitBeats: () => splitBeats,
+  stripAsk: () => stripAsk,
   stripBanned: () => stripBanned,
   stripDot: () => stripDot,
   styleCopy: () => styleCopy,
@@ -42074,7 +42075,7 @@ var firstMatch = (t, re) => {
 var PLACE = /\b((?:in|at|on|inside|under|over|near|by|beside|across)\s+(?!(?:the )?top\b|all\b|least\b|most\b|time\b|general\b|mind\b|repeat\b|the way\b|a budget\b|purpose\b|fire\b|point\b|board\b|loop\b|average\b)(?:a|an|the|my|our)?\s*[a-z][^,.;!?]*)/i;
 var SITE = /\b(pinterest|instagram|insta|tiktok|youtube|twitter|reddit|artstation|behance|dribbble|facebook|tumblr|twitch|discord|etsy|linkedin|snapchat|threads|deviantart|flickr|the internet|the web|(?:my|our|the|their)\s+(?:feed|page|site|website|homepage|profile|story|stories|timeline|channel|board|moodboard|camera roll|phone))\b/i;
 var PURPOSE = /\bfor\s+((?:a|an|the|my|our|your)\s+[^,.;!?]+)/i;
-var ACTION = /\b(then|while|drops?|runs?|walks?|jumps?|turns?|moves?|flies|falls?|rises?|spins?|dances?|opens?|looks?|waves?|rides?|skates?|climbs?|swims?|throws?|kicks?|lands?)\b/i;
+var ACTION = /\b(then|while|drops?|runs?|walks?|jumps?|turns?|moves?|flies|falls?|rises?|spins?|dances?|opens?|looks?|waves?|rides?|skates?|climbs?|swims?|throws?|kicks?|lands?|(?:sail|chas|walk|runn|fly|fall|danc|jump|flipp|spinn|bloom|blow|rid|swimm|climb|float|drift|roll|pour|melt|grow|turn|open|crash|splash|chas|leap|wav|bounc|glid|sprint|march|crawl|swing|swirl)ing)\b/i;
 var FIND = {
   subject: (t) => {
     let x = deMeta(t.split(/[.\n,]/)[0].trim());
@@ -42275,7 +42276,20 @@ function notMine(t) {
   });
   return { text, found: found2 };
 }
+function stripAsk(t) {
+  return String(t || "").replace(/^\s*(?:please\s+)?use\s+(?:the\s+)?(?:forge|smithy)(?:\s+(?:skill|plugin|tool))?\s*(?:to\s+|[:,.-]\s*)?/i, "").replace(/^\s*(?:(?:can|could)\s+you\s+|please\s+)?(?:write|make|create|generate|give me|forge|build)\s+(?:me\s+)?(?:a\s+|an\s+|the\s+)?(?:good\s+|great\s+|better\s+|expert\s+|detailed\s+)?prompt\s+(?:for|to use (?:in|with)|in)\s+[\w.+-]+(?:\s+[\w.+-]+){0,2}?\s*(?:[:,-]\s*|\.\s+|\s+(?=(?:a|an|the|my|our|of|about)\b))/i, "").replace(/\s*[.,]?\s*(?:and\s+)?(?:please\s+)?(?:skip|no|don'?t ask)\s+(?:the\s+|any\s+)?questions?\s*(?:please)?\s*[.!]?\s*$/i, "").trim();
+}
+var SCREENS_LINE = "Screens show original made-up art with no real game titles or logos";
+var FORGE_ADDED = [SCREENS_LINE];
+var DECIMAL = "\u2024";
+var hideDecimals = (t) => t.replace(/(\d)\.(\d)/g, "$1" + DECIMAL + "$2");
+var showDecimals = (v2) => typeof v2 === "string" ? v2.split(DECIMAL).join(".") : Array.isArray(v2) ? v2.map(showDecimals) : v2;
 function rebuildBrief(text, m2) {
+  const out = rebuildBriefParts(hideDecimals(stripAsk(String(text || ""))), m2);
+  for (const k2 of Object.keys(out.brief)) out.brief[k2] = showDecimals(out.brief[k2]);
+  return out;
+}
+function rebuildBriefParts(text, m2) {
   const t0 = cleanDraft(stripBanned(text).text);
   const t = ["image", "video"].includes(m2.cat) ? notMine(t0).text : ["sfx", "music"].includes(m2.cat) ? cap(t0.replace(REQUEST_LEAD, "")) : t0;
   const b = {};
@@ -42343,7 +42357,7 @@ function rebuildBrief(text, m2) {
       if (rest.length) b.extra = [has(b.extra) ? stripDot(join(b.extra)) : "", cap(rest.join(", "))].filter(Boolean).join(". ");
     }
     if (["image", "video"].includes(m2.cat) && /\b(gaming (?:setup|room|station|desk|corner|den|pc|rig)|battle ?station|monitors?|screens?|tvs?|televisions?|laptops?|computers?|arcade|cinema|movie theat(?:er|re)|billboards?|phones?|tablets?)\b/i.test(t) && !/\b(?:for|on|as)\s+(?:my|our|a|the|your)?\s*(?:\w+\s+)?(?:screens?|phones?|laptops?|computers?|desktops?|tablets?|monitors?|banner|wallpaper|lock ?screen|home ?screen|background)\b/i.test(t) && !/["“][^"”]+["”]|\b(?:showing|playing|plays|displaying|of)\s+[A-Z][\w'’:-]+/.test(t)) {
-      const line = "Screens show original made-up art with no real game titles or logos";
+      const line = SCREENS_LINE;
       b.extra = [has(b.extra) ? stripDot(join(b.extra)) : "", line].filter(Boolean).join(". ");
     }
     if (b.medium) {
@@ -42398,14 +42412,35 @@ function rebuildBrief(text, m2) {
           return x && !subj.includes(x) && !x.includes(subj || "\0") && !(setg && setg.includes(x)) && !avoidFrom(x);
         }).join(", ");
         d2 = d2.split(/,\s*/).filter((c) => !/^(?:for|to)\s+(?:a|an|the|our|my|your|his|her|their|this)\b/i.test(c.trim())).join(", ");
+        d2 = d2.split(/,\s*/).filter((c) => !/^(?:(?:extreme |a )?close-?ups?|wide(?: shot)?|medium shot|establishing(?: shot)?|cinematic|slow[- ]?(?:motion|mo)|time-?lapse|drone shot|aerial(?: shot)?|\d+\s*(?:s|sec|secs|seconds)|shot on [\w ]+|\d+mm|4k|vertical|horizontal|widescreen|16:9|9:16|soft light|golden hour|realistic|photorealistic)$/i.test(c.trim())).join(", ");
         if (d2.length > 40) b.action = d2;
         else if (d2.length > 8 && !saidIn(b.subject, d2)) sug("action", d2);
+      }
+      if (m2.cat === "video") {
+        const sh = t.match(/\b(extreme close-?up|close[- ]?up|medium shot|wide shot|establishing shot|aerial shot|drone shot|low angle|high angle)\b/i);
+        if (sh && !has(b.shot)) b.shot = [sh[1].toLowerCase().replace(/^close[ ]?up$/, "close-up").replace(/^extreme close-?up$/, "extreme close-up").replace(/^(?:drone|aerial) shot$/, "aerial drone shot")];
+        if (/\bslow[- ]?(?:motion|mo)\b/i.test(t) && !has(b.motion)) b.motion = ["slow-motion 120fps"];
+        if (/\btime-?lapse\b/i.test(t) && !has(b.motion)) b.motion = ["time-lapse"];
+        if (/\bcinematic\b/i.test(t) && !has(b.grade) && !has(b.mood)) b.mood = ["cinematic"];
+        if (/^(?:an? )?(?:aerial|drone|wide|establishing|tracking)(?: drone)? shot$/i.test(String(b.subject || "").trim()) && has(b.setting)) {
+          b.subject = cap(String(b.setting).replace(/^(?:over|above|across|through|along|past|around)\s+/i, ""));
+          b.action = "the camera " + String(b.action || "moving") + " " + (String(b.setting).match(/^(over|above|across|through|along|past|around)\b/i) || ["over"])[0].toLowerCase() + " it";
+          delete b.setting;
+        }
       }
       const mv = firstMatch(t, /\b(slow dolly in|dolly in|dolly out|tracking shot|pan left|pan right|tilt up|tilt down|orbit|crane up|handheld|push in|pull back|whip pan)\b/i);
       if (mv) b.camMove = mv;
     }
     const q = t.match(/["“]([^"”]{2,40})["”]/);
     if (q) b.imgtext = q[1];
+    if (!has(b.imgtext) && m2.cat === "image" && (m2.craft || []).includes("imgtext")) {
+      const sayRe = /\s*,?\s*(?:that|which)?\s*(?:says|reads|saying|reading|with the (?:words?|text))\s+([^,\n]{2,80}?)(?=\s*(?:,|$|\.\s|\s+(?:for|on|in|with)\s+(?:my|our|a|an|the)\b))/i;
+      const sm = t.match(sayRe);
+      if (sm && /[A-Z0-9$]/.test(sm[1])) {
+        b.imgtext = sm[1].trim();
+        for (const k2 of ["subject", "purpose", "extra"]) if (typeof b[k2] === "string") b[k2] = String(b[k2]).replace(sayRe, "").trim();
+      }
+    }
     if ((m2.tech || []).includes("aspect")) {
       const a = pickAspect(t, m2);
       if (a) b.aspect = a;
@@ -43734,7 +43769,7 @@ function checkWritten(raw, o) {
   }
   const out = new Set(((text + (m2.neg && m2.neg.mode === "field" ? " " + neg : "")).toLowerCase().match(/[a-z0-9']+/g) || []).map(stemOf));
   const lost = Object.entries(o.brief || {}).filter(([k2, v2]) => has(v2) && !sug.includes(k2) && !["aspect", "duration", "shots", "sfxLen", "mLen", "effort", "level"].includes(k2)).filter(([, v2]) => {
-    const ws = (join(v2).toLowerCase().match(/[a-z0-9']{3,}/g) || []).filter((w2) => !STOP_WORDS.has(w2)).map(stemOf);
+    const ws = (FORGE_ADDED.reduce((x, l) => x.split(l).join(" "), join(v2)).toLowerCase().match(/[a-z0-9']{3,}/g) || []).filter((w2) => !STOP_WORDS.has(w2)).map(stemOf);
     return ws.length && ws.filter((w2) => out.has(w2)).length / ws.length < 0.5;
   });
   const media = !READS_BACKGROUND.includes(m2.cat);
@@ -43875,7 +43910,7 @@ function trustTheirWords(b, theirWords) {
     const theirs = /\b(wizard|witch|villain|pirate|robot|vampire|dragon|monster|knight|princess|king|queen|alien|ghost|kid|child|grandma|grandpa|teacher|coach|narrator|detective|announcer|host|dj)\b/.exec(desc);
     if (noun && !desc.includes(noun) && theirs) delete out.vArch;
   }
-  const MEDIA = [["chalk", "chalk lettering on a chalkboard"], ["chalkboard", "chalk lettering on a chalkboard"], ["watercolou?r", "watercolour illustration"], ["neon", "glowing neon sign"], ["embroider\\w*", "embroidered patch"], ["stained glass", "stained glass"], ["pixel art", "pixel art"], ["claymation|clay", "clay animation style"], ["woodcut|linocut", "woodcut print"], ["pencil", "pencil drawing"], ["crayon", "crayon drawing"], ["oil paint\\w*", "oil painting"], ["vector", "flat vector"], ["cartoon", "cartoon illustration"], ["anime", "anime illustration"], ["3d|three-?d", "3D render"], ["photo\\w*|realistic", "photograph"]];
+  const MEDIA = [["chalk", "chalk lettering on a chalkboard"], ["chalkboard", "chalk lettering on a chalkboard"], ["watercolou?r", "watercolour illustration"], ["neon (?:signs?|lettering|text|words?|logo)", "glowing neon sign"], ["embroider\\w*", "embroidered patch"], ["stained glass", "stained glass"], ["pixel art", "pixel art"], ["claymation|clay", "clay animation style"], ["woodcut|linocut", "woodcut print"], ["pencil", "pencil drawing"], ["crayon", "crayon drawing"], ["oil paint\\w*", "oil painting"], ["vector", "flat vector"], ["cartoon", "cartoon illustration"], ["anime", "anime illustration"], ["3d|three-?d", "3D render"], ["photo\\w*|realistic", "photograph"]];
   if (has(b.medium)) {
     const typed = [b.subject, b.extra, b.purpose].filter(has).map((v2) => join(v2)).join(" ").toLowerCase(), box = String(b.medium).toLowerCase();
     const hit = MEDIA.find(([re]) => new RegExp("\\b(?:" + re + ")\\b").test(typed) && !new RegExp("\\b(?:no|not|without|never|instead of)\\s+(?:a\\s+|an\\s+)?(?:" + re + ")").test(typed));
@@ -43891,7 +43926,8 @@ function trustTheirWords(b, theirWords) {
   if (has(theirWords) && has(b.mic) && !/\b(mic|microphone|recorded|recording|close-?up|foley|field recording)\b/.test(said)) delete out.mic;
   if (has(theirWords) && has(b.room) && !said.includes(String(b.room).toLowerCase().split(/\s+/).pop() || "~")) delete out.room;
   if (has(theirWords) && arr(b.motion).length) {
-    const mv = arr(b.motion).filter((x) => (String(x).toLowerCase().match(/[a-z]{4,}/g) || []).some((w2) => !/^(rising|throughout|motion|moving|subtle|slow)$/.test(w2) && said.includes(w2)));
+    const backed = (x) => /slow-?motion/i.test(x) && /\bslow[- ]?(?:motion|mo)\b/.test(said) || /time-?lapse/i.test(x) && /\btime-?lapse\b/.test(said);
+    const mv = arr(b.motion).filter((x) => backed(String(x)) || (String(x).toLowerCase().match(/[a-z]{4,}/g) || []).some((w2) => !/^(rising|throughout|motion|moving|subtle|slow)$/.test(w2) && said.includes(w2)));
     if (mv.length) out.motion = mv;
     else delete out.motion;
   }
@@ -44217,7 +44253,7 @@ function checkPrompt(E2, o) {
   const reply2 = splitReply(o.prompt);
   const P2 = { kept: [], settings: [], invented: [], filler: [], other: [] };
   const theirs = /\bforge\b/i.test(o.said), mask = (t) => theirs ? String(t).replace(/\bforge\b/gi, "smithy") : t;
-  const said = String(o.said || "").replace(/(^|[\n.;]\s*)[A-Z][A-Za-z]{2,15}(?: (?:and |& )?[a-z]{2,10})?:[ \t]+/g, "$1");
+  const said = (E2.stripAsk ? E2.stripAsk(String(o.said || "")) : String(o.said || "")).replace(/(^|[\n.;]\s*)[A-Z][A-Za-z]{2,15}(?: (?:and |& )?[a-z]{2,10})?:[ \t]+/g, "$1");
   const fixed = E2.autocorrect(mask(said));
   const { brief: brief2, suggested } = E2.rebuildBrief(fixed.text, m2);
   const setFlags = /\s--[a-z]/.test(" " + reply2.prompt) ? [] : String(reply2.settings || "").match(/--[a-z][a-z0-9-]*(?:[ \t]+(?!--)[^\s-][^\s]*)*/gi) || [];
@@ -44273,7 +44309,7 @@ function checkPrompt(E2, o) {
     }
   }
   const known = (o.written + "\n" + o.said + "\n" + knowledge).toLowerCase();
-  const written = (reply2.prompt + "\n" + reply2.settings).replace(/\b\d+(?:\.\d+)?\s*(?:mm|fps|k|bpm|hz|khz|db)\b|\bf\/\d+(?:\.\d+)?|\b(?:1:1|4:5|5:4|2:3|3:2|3:4|4:3|9:16|16:9|21:9|9:21|1:2|2:1)\b/gi, " ");
+  const written = (reply2.prompt + "\n" + reply2.settings).replace(/\b\d+(?:\.\d+)?\s*(?:mm|fps|k|bpm|hz|khz|db)\b|\bf\/\d+(?:\.\d+)?|\b(?:1:1|4:5|5:4|2:3|3:2|3:4|4:3|9:16|16:9|21:9|9:21|1:2|2:1)\b/gi, " ").replace(/--[a-z]+\s+[\d.:]+/gi, " ");
   const nums = [...new Set((written.match(/\$?\d+(?:[.,:/]\d+)*%?/g) || []).filter((n) => !known.includes(n.toLowerCase().replace(/^\$/, ""))))];
   if (nums.length) P2.invented.push("Numbers the person never gave and the brief does not hold: " + nums.slice(0, 5).join(", ") + ". Remove them, or ask the person.");
   const names = /* @__PURE__ */ new Set();
