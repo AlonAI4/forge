@@ -43788,6 +43788,7 @@ function measurePixels(d2, w2, h2, W, H2) {
 }
 function reverseBrief(o) {
   const m2 = o.m, a = o.measures || {}, name = m2.n + (m2.sub ? " " + m2.sub : "");
+  const changing = /\bChange this from the picture\b/i.test(String(o.notes || ""));
   const ar = a.ratio ? (m2.aspects || []).find((x) => x.indexOf(String(a.ratio)) === 0) || a.ratio : "";
   const L = [
     "I've attached an image. Help me write the prompt that would make this picture again with " + name + ".",
@@ -43820,8 +43821,14 @@ function reverseBrief(o) {
     "RULES",
     "1. Describe what is in the picture, not that it is a picture: 'a tabby cat leaping between rooftops', not 'an image of a cat'.",
     "2. The most important thing first. Keep every detail from step 1 that makes this picture this picture.",
-    "3. Use the measured aspect ratio and colours." + (ar ? " Aspect: " + ar + "." : ""),
-    "4. No filler words (masterpiece, 8k, stunning) and nothing you did not see.",
+    ...changing ? [
+      "3. Use the measured aspect ratio and colours, unless my change says otherwise." + (ar ? " Measured aspect: " + ar + "." : ""),
+      "4. No filler words (masterpiece, 8k, stunning), and nothing you did not see except what my change asks for.",
+      "5. Apply my change: where it differs from the picture (subject, time, light, colours, words, shape), the change wins. Keep everything else that makes this picture this picture."
+    ] : [
+      "3. Use the measured aspect ratio and colours." + (ar ? " Aspect: " + ar + "." : ""),
+      "4. No filler words (masterpiece, 8k, stunning) and nothing you did not see."
+    ],
     "",
     "REPLY WITH",
     "Description: <step 1>",
@@ -43840,10 +43847,41 @@ function reverseFromAI(text, m2, measures) {
   );
   const core = sect("prompt") || sect("description") || t.trim();
   const res = forgeFromText(core, m2);
+  {
+    const st = (w2) => w2.replace(/(ing|ed|es|s|ly)$/, "");
+    const body = core.replace(/\s--[a-z][\s\S]*$/i, "");
+    const theirs = (body.toLowerCase().match(/[a-z']{4,}/g) || []).filter((w2) => !STOP_WORDS.has(w2)).map(st);
+    const mine = new Set((String(res.flat).toLowerCase().match(/[a-z']{4,}/g) || []).map(st));
+    if (theirs.length && (body.split(/\s+/).length >= 25 || theirs.filter((w2) => mine.has(w2)).length / theirs.length < 0.95)) {
+      const flags = (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];
+      const own2 = (core.match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];
+      res.flat = own2 ? core.trim() : body.trim() + flags;
+      res.blocks = [["Prompt", res.flat]];
+      res.keptYours = true;
+    }
+  }
   const a = measures || {};
-  const ar = a.ratio ? (m2.aspects || []).find((x) => x.indexOf(String(a.ratio)) === 0) : "";
+  const said = (core + " " + sect("settings")).match(/--ar\s+(\d+:\d+)|\b(\d{1,2}:\d{1,2})\b/);
+  const want = said ? String(said[1] || said[2]) : a.ratio ? String(a.ratio) : "";
+  const asNum = (o) => /^square/i.test(o) ? 1 : ratioOf(o);
+  const wantN = want ? asNum(want.replace(/^(\d+):(\d+)$/, "$1x$2")) : 0;
+  let ar = "";
+  if (wantN) {
+    let gap = 9;
+    for (const o of m2.aspects || []) {
+      const r2 = asNum(String(o));
+      if (!r2) continue;
+      const g = Math.abs(Math.log(r2 / wantN));
+      if (g < gap - 1e-9) {
+        gap = g;
+        ar = String(o);
+      }
+    }
+    if (gap > 0.2) ar = "";
+  }
+  if (ar && !/--ar\s/.test(res.flat) && /\s--[a-z]/.test(res.flat)) res.flat = res.flat.replace(/(\s--[a-z])/, " --ar " + ar.split(" ")[0] + "$1");
   if (ar) {
-    const row = (res.settings || []).find((r2) => /aspect|^--ar$/i.test(r2[0]));
+    const row = (res.settings || []).find((r2) => /^--ar$/.test(r2[0]) || (m2.aspects || []).map(String).includes(String(r2[1])) && /aspect|size|ratio/i.test(r2[0]));
     if (row) row[1] = /^--ar$/.test(row[0]) ? ar.split(" ")[0] : ar;
     res.flat = res.flat.replace(/--ar \S+/, "--ar " + ar.split(" ")[0]);
   }
@@ -44753,11 +44791,12 @@ function reverse(a) {
     rules: [
       "Describe what is in the picture, not that it is a picture: 'a tabby cat leaping between rooftops', not 'an image of a cat'.",
       "The most important thing first (the subject), then action, setting, camera, light, colours, style. Keep every detail from your description that makes this picture this picture.",
-      ...ar ? ["Use the measured aspect ratio: " + ar + "."] : measures.ratio ? ["The picture is " + measures.ratio + "; " + name + " does not offer that exact ratio, so pick its closest setting."] : [],
+      ...ar ? ["Use the measured aspect ratio: " + ar + ", unless the person asked for another shape."] : measures.ratio ? ["The picture is " + measures.ratio + "; " + name + " does not offer that exact ratio, so pick its closest setting."] : ["Forge could not measure this picture. Match its shape yourself (you can see whether it is square, wide or tall) and set " + name + "'s size or aspect setting to the closest shape it offers, unless the person asked for another shape; do not keep a default size."],
       ...Array.isArray(measures.top) && measures.top.length ? ["Use the measured colours (by name in the prompt, not hex codes, unless " + name + " reads hex)."] : [],
       ...m2.cat === "video" ? ["This AI makes video and a picture does not move: treat the picture as the first frame. Add ONE simple camera move and only motion that fits what you saw (water ripples, lights flicker, clouds drift), and say it is one continuous take."] : [],
       "Quote any text in the picture word for word, in quotes.",
-      "No filler words (masterpiece, 8k, stunning) and nothing you did not see. Say nothing about Forge or this brief."
+      "No filler words (masterpiece, 8k, stunning) and nothing you did not see, except what the person asked to change. Say nothing about Forge or this brief.",
+      "If the person asked for a change (another subject, time, colours, words or shape), the change wins where it differs from the picture; keep everything else that makes this picture this picture."
     ],
     settings,
     ...ar ? { aspect: ar } : {},

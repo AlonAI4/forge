@@ -5559,6 +5559,7 @@ function measurePixels(d, w, h, W, H){
  *  @param {{m: Model, measures?: Record<string, any>, notes?: string}} o @returns {string} */
 function reverseBrief(o){
   const m = o.m, a = o.measures || {}, name = m.n + (m.sub ? " " + m.sub : "");
+  const changing = /\bChange this from the picture\b/i.test(String(o.notes || ""));
   const ar = a.ratio ? ((m.aspects || []).find(x => x.indexOf(String(a.ratio)) === 0) || a.ratio) : "";
   const L = ["I've attached an image. Help me write the prompt that would make this picture again with " + name + ".", "",
     "STEP 1: DESCRIBE IT. Look closely and write down only what you can see (say 'unsure' when you are):",
@@ -5582,8 +5583,15 @@ function reverseBrief(o){
   L.push("", "RULES",
     "1. Describe what is in the picture, not that it is a picture: 'a tabby cat leaping between rooftops', not 'an image of a cat'.",
     "2. The most important thing first. Keep every detail from step 1 that makes this picture this picture.",
-    "3. Use the measured aspect ratio and colours." + (ar ? " Aspect: " + ar + "." : ""),
-    "4. No filler words (masterpiece, 8k, stunning) and nothing you did not see.",
+    // v1 step 15 (reverse test): a change the person asked for ("at night, as a 9:16 wallpaper") was overruled by "use the
+    // measured aspect and colours" and "nothing you did not see". The change wins where it differs; the rest stays
+    ...(changing ? [
+      "3. Use the measured aspect ratio and colours, unless my change says otherwise." + (ar ? " Measured aspect: " + ar + "." : ""),
+      "4. No filler words (masterpiece, 8k, stunning), and nothing you did not see except what my change asks for.",
+      "5. Apply my change: where it differs from the picture (subject, time, light, colours, words, shape), the change wins. Keep everything else that makes this picture this picture."
+    ] : [
+      "3. Use the measured aspect ratio and colours." + (ar ? " Aspect: " + ar + "." : ""),
+      "4. No filler words (masterpiece, 8k, stunning) and nothing you did not see."]),
     "", "REPLY WITH", "Description: <step 1>", "Prompt: <the prompt>" + (m.neg && m.neg.mode === "field" ? "\nNegative: <keep-outs>" : "") + "\nSettings: <settings, if it takes any>");
   return L.join("\n");
 }
@@ -5595,10 +5603,33 @@ function reverseFromAI(text, m, measures){
   const sect = /** @param {string} k */ k => { const r = t.match(new RegExp("(?:^|\\n)\\s*\\**" + k + "\\**\\s*:\\s*([\\s\\S]*?)(?=\\n\\s*\\**(?:description|prompt|negative|settings)\\**\\s*:|$)", "i")); return r ? r[1].trim() : ""; };
   const core = sect("prompt") || sect("description") || t.trim();
   const res = forgeFromText(core, m);
+  // v1 step 15 (reverse test): the AI's finished prompt went back through the request reader, which dropped details
+  // ("rain streaks") and added stock lines. When the rebuild loses any of its words, its own prompt is kept, and
+  // Forge only adds the settings it is missing
+  { const st = (/** @type {string} */ w) => w.replace(/(ing|ed|es|s|ly)$/, "");
+    const body = core.replace(/\s--[a-z][\s\S]*$/i, "");
+    const theirs = (body.toLowerCase().match(/[a-z']{4,}/g) || []).filter(w => !STOP_WORDS.has(w)).map(st);
+    const mine = new Set((String(res.flat).toLowerCase().match(/[a-z']{4,}/g) || []).map(st));
+    // a finished prompt (25 words or more, written from Forge's brief) is kept whole: the rebuild chopped its lists into sentences
+    if(theirs.length && (body.split(/\s+/).length >= 25 || theirs.filter(w => mine.has(w)).length / theirs.length < 0.95)){
+      const flags = (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];
+      const own = (core.match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];
+      res.flat = own ? core.trim() : body.trim() + flags; res.blocks = [["Prompt", res.flat]]; res.keptYours = true;
+    } }
   const a = measures || {};
-  const ar = a.ratio ? (m.aspects || []).find(x => x.indexOf(String(a.ratio)) === 0) : "";
+  // the shape the AI wrote (from the person's change: "as a 9:16 wallpaper") beats the shape measured from the picture
+  const said = (core + " " + sect("settings")).match(/--ar\s+(\d+:\d+)|\b(\d{1,2}:\d{1,2})\b/);
+  const want = said ? String(said[1] || said[2]) : a.ratio ? String(a.ratio) : "";
+  // v1 step 15 (reverse test): matched by name only, so a square picture got FLUX's "landscape_16_9" and a 2:3 poster a 9:16
+  // GPT Image size. Now the nearest shape the AI offers ("square_hd", "1024x1536", "2x3"), by ratio
+  const asNum = (/** @type {string} */ o) => /^square/i.test(o) ? 1 : ratioOf(o);
+  const wantN = want ? asNum(want.replace(/^(\d+):(\d+)$/, "$1x$2")) : 0;
+  let ar = "";
+  if(wantN){ let gap = 9; for(const o of (m.aspects || [])){ const r = asNum(String(o)); if(!r) continue; const g = Math.abs(Math.log(r / wantN)); if(g < gap - 1e-9){ gap = g; ar = String(o); } } if(gap > 0.2) ar = ""; }
+  if(ar && !/--ar\s/.test(res.flat) && /\s--[a-z]/.test(res.flat)) res.flat = res.flat.replace(/(\s--[a-z])/, " --ar " + ar.split(" ")[0] + "$1");
   if(ar){
-    const row = (res.settings || []).find(r => /aspect|^--ar$/i.test(r[0])); if(row) row[1] = /^--ar$/.test(row[0]) ? ar.split(" ")[0] : ar;
+    // the setting that holds a shape (its value is one of the AI's shapes), not "image_size: 2K"
+    const row = (res.settings || []).find(r => /^--ar$/.test(r[0]) || ((m.aspects || []).map(String).includes(String(r[1])) && /aspect|size|ratio/i.test(r[0]))); if(row) row[1] = /^--ar$/.test(row[0]) ? ar.split(" ")[0] : ar;
     res.flat = res.flat.replace(/--ar \S+/, "--ar " + ar.split(" ")[0]);
   }
   const neg = sect("negative");
