@@ -37344,6 +37344,7 @@ __export(engine_exports, {
   RECIPES: () => RECIPES,
   SETTING_HELP: () => SETTING_HELP,
   TEXT_SIGNS: () => TEXT_SIGNS,
+  TIP_CLASHES: () => TIP_CLASHES,
   V: () => V,
   VID_CORE: () => VID_CORE,
   VID_CRAFT: () => VID_CRAFT,
@@ -37410,6 +37411,7 @@ __export(engine_exports, {
   styleCopy: () => styleCopy,
   sumParts: () => sumParts,
   tidyRequest: () => tidyRequest,
+  tipClashes: () => tipClashes,
   videoSections: () => videoSections,
   visibleFields: () => visibleFields,
   withTips: () => withTips,
@@ -41869,6 +41871,32 @@ var CLASHES = [
   ["deadpan", "breathless"]
 ];
 var NOT_A_CAMERA = ["flat vector", "ink line art", "isometric diagram", "risograph print", "pencil study", "gouache illustration", "oil painting", "collage"];
+var TIP_CLASHES = (
+  /** @type {[RegExp, RegExp][]} */
+  [
+    [/\b(hard|sharp|instant|punchy) attack\b/i, /\b(swell\w*|soft|slow|gradual) attack\b|\bfades? in\b/i],
+    [/\bstereo\b|\bleft[- ]to[- ]right\b|\bpann(?:ing|ed)\b/i, /\bmono\b/i],
+    [/\b(dry|no reverb|bone-dry|close-mic)/i, /\b(reverb\w*|echo\w*|large (?:space|room|hall)|cathedral|long tail|rumbling tail|tail over)\b/i],
+    [/\b(close-?up|filling the frame|fills the frame|tight crop)\b/i, /\b(wide shot|wide header|establishing|negative space|clear space|room for (?:text|a title|the title)|space for text)\b/i],
+    [/\b(locked-off|static camera|still camera|tripod|no camera move\w*)\b/i, /\b(handheld|tracking|orbit\w*|circling|dolly|push-?in|sway)\b/i],
+    [/\b(soft|diffused|even|overcast) light\w*\b/i, /\b(hard|harsh|direct) (?:side |top )?light\w*\b/i],
+    [/\bsunrise|soft morning\b/i, /\bhard side or top light\b/i],
+    [/\b(photo|photograph\w*|realistic)\b/i, /\b(grid layout|aligned columns|font size|type sizes?|columns of text)\b/i],
+    [/\b(calm|gentle|soothing|sleep\w*|bedtime)\b/i, /\b(urgent|breathless|energetic|hype|aggressive)\b/i],
+    [/\b(energetic|urgent|breathless|exciting)\b/i, /\b(not announced|conversational, not|calm and slow)\b/i],
+    [/\b(1|2|one|two)[- ]?(?:s|sec|second)s?\b/i, /\bover (?:a few|several) seconds\b|\b(?:3|4|5)-second (?:tail|hold)\b/i],
+    [/\bseamless(?:ly)? loop\w*|\bloop: ?true\b/i, /\bhard cut\b|\bbuilds? to a (?:finish|climax)\b/i],
+    [/\b(centred|centered|central safe area|middle of the frame)\b/i, /\b(offset|off-cent(?:er|re)|to one side)\b/i],
+    [/\b(no people|empty|unpeopled|no one)\b/i, /\b(people|crowd|workers|absorbed in the work)\b/i],
+    [/\b(risograph|screen print|vintage poster|1960s)\b/i, /\b(gouache|watercolou?r|big-headed)\b/i],
+    [/\b(handwritten|chalk|brush lettering|script lettering)\b/i, /\b(clean sans[- ]serif|strict grid)\b/i],
+    [/\b(dark|goth\w*|moody|horror)\b/i, /\b(flat vector, two or three colou?rs|plain white background)\b/i],
+    [/\b(edit|restore|keep (?:the )?(?:same|original)|match(?:ing)? (?:the )?existing)\b/i, /\bseamless clean backdrop\b/i]
+  ]
+);
+function tipClashes(tip, text) {
+  return TIP_CLASHES.some(([x, y]) => x.test(tip) && y.test(text) && !x.test(text) || y.test(tip) && x.test(text) && !y.test(text));
+}
 function findClashes(b) {
   const picked = new Set(Object.values(b).flat().filter((v2) => typeof v2 === "string").map((v2) => v2.toLowerCase()));
   const typed = Object.values(b).flat().filter((v2) => typeof v2 === "string");
@@ -42546,12 +42574,17 @@ function askedFormat(t, kind) {
   if (/\bcode only|just the code|only the code/.test(x)) return "Code only, no commentary";
   return "";
 }
-function forgeFromText(text, m2, level) {
+function forgeFromText(text, m2, level, more) {
   const fixed = autocorrect(text);
   const { brief: brief2, suggested } = rebuildBrief(fixed.text, m2);
-  const res = forge(brief2, m2, level, { said: text });
+  for (const [k2, v2] of Object.entries(more && more.addBoxes || {})) if (!has(brief2[k2])) {
+    brief2[k2] = v2;
+    suggested.push(k2);
+  }
+  if (more && more.level) level = more.level;
+  const res = forge(brief2, m2, level, { said: text, ...more || {} });
   const found2 = Object.fromEntries(Object.entries(brief2).filter(([k2]) => !suggested.includes(k2)));
-  const counted = forge(found2, m2, level, { said: text });
+  const counted = forge(found2, m2, level, { said: text, ...more || {} });
   res.score = counted.score;
   res.parts = counted.parts;
   res.ask = counted.ask;
@@ -43895,7 +43928,7 @@ function applyStyle(res, b, m2, said0, linesOnly) {
   if (!hits.length) return;
   const best = hits.map((r2) => ({ r: r2, len: (text.match(r2.when) || [""])[0].length })).sort((x, y) => y.len - x.len)[0].r;
   const said = (res.flat + " " + res.negative).toLowerCase();
-  const lines = best.add.filter((a) => (a.toLowerCase().match(/[a-z]{4,}/g) || []).filter((w2) => !said.includes(w2)).length >= 2);
+  const lines = best.add.filter((a) => (a.toLowerCase().match(/[a-z]{4,}/g) || []).filter((w2) => !said.includes(w2)).length >= 2 && !tipClashes(a, said + " " + text));
   const keepOut = !linesOnly && m2.neg && ["field", "flag"].includes(m2.neg.mode) && best.avoid && best.avoid[0] ? ["no " + best.avoid[0].replace(/^no\s+/i, "")] : [];
   if (!lines.length && !keepOut.length) return;
   res.style = best.id.replace(/^style:/, "");
@@ -43916,6 +43949,10 @@ function applyRecipes(res, b, m2) {
     return;
   }
   if (RECIPE_MODE === "strict") found2 = strong;
+  if (!found2.length) {
+    res.recipes = [];
+    return;
+  }
   const said = (res.flat + " " + res.negative + " " + (res.settings || []).map((r2) => r2[1]).join(" ")).toLowerCase();
   const stem2 = (w2) => w2.replace(/(ing|ed|es|s|ly)$/, "");
   const saidWords = new Set((said.match(/[a-z0-9']+/g) || []).map(stem2));
@@ -43931,7 +43968,10 @@ function applyRecipes(res, b, m2) {
     }
     return words2.filter((w2) => saidWords.has(stem2(w2))).length / words2.length < 0.5;
   };
-  const adds = [.../* @__PURE__ */ new Set([...found2[0].add.filter(fresh).slice(0, 4), ...found2[1] ? found2[1].add.filter(fresh).slice(0, 1) : []])].slice(0, RECIPE_MODE === "strict" ? 3 : 4);
+  const against = res.flat + " " + res.negative + " " + text;
+  const askWords = new Set((text.toLowerCase().match(/[a-z]{4,}/g) || []).filter((w2) => !STOP_WORDS.has(w2)).map(stem2));
+  const fits = (line) => !tipClashes(line, against) && (!READS_BACKGROUND.includes(m2.cat) || (line.toLowerCase().match(/[a-z]{4,}/g) || []).some((w2) => !STOP_WORDS.has(w2) && askWords.has(stem2(w2))));
+  const adds = [.../* @__PURE__ */ new Set([...found2[0].add.filter(fresh).filter(fits).slice(0, 4), ...found2[1] ? found2[1].add.filter(fresh).filter(fits).slice(0, 1) : []])].slice(0, RECIPE_MODE === "strict" ? 3 : 4);
   const avoids = RECIPE_MODE === "strict" ? [] : [...new Set(found2.flatMap((r2) => r2.avoid || []))].filter((a) => !said.includes(a.toLowerCase())).slice(0, 4);
   res.recipes = found2.map((r2) => r2.id);
   if (found2[0].role && has(b.role) && (V.llmRole || []).includes(String(b.role))) {
@@ -43971,6 +44011,8 @@ function applyRecipes(res, b, m2) {
     } else if (m2.grammar === "tags") {
       const at = f2.search(/\s--[a-z]/), tags = adds.map((a) => lc(stripDot(a))).join(", ");
       res.flat = (at > 0 ? f2.slice(0, at) : f2).replace(/[\s,]*$/, "") + ", " + tags + (at > 0 ? f2.slice(at) : "");
+    } else if (/^Subject: /m.test(f2) && /^(?:Goal|Scene): /m.test(f2)) {
+      res.flat = /^Details: /m.test(f2) ? f2.replace(/^(Details: .*?)\s*$/m, (_a3, d2) => d2 + " " + line) : f2.replace(/^(Subject: .*)$/m, (_a3, sj) => sj + "\nDetails: " + line);
     } else {
       const at = f2.search(/\s--[a-z]/);
       res.flat = at > 0 ? f2.slice(0, at).replace(/\s*$/, "") + " " + line + f2.slice(at) : f2.replace(/\s*$/, "") + " " + line;
@@ -44111,7 +44153,7 @@ function forge(b, m2, level, opts2) {
     addExtra(res, m2, b.extra, styleFromNote);
     if (!res.negative) res.negative = before;
   } else addExtra(res, m2, b.extra, styleFromNote);
-  if (!opts2.noRecipes) applyStyle(res, b, m2, opts2.said, false);
+  if (!opts2.noRecipes && !opts2.noStyle) applyStyle(res, b, m2, opts2.said, false);
   const hi = (m2.len || [0, 0])[1];
   if (hi && sc.words > hi) res.warn.push("About " + (sc.words - hi) + " words over the " + m2.len[0] + " to " + hi + " word range for " + m2.n + ". Cut the least important part yourself: Forge does not cut your sentences, because that can change what you meant.");
   return res;

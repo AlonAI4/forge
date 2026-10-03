@@ -3594,6 +3594,33 @@ const CLASHES = [
 // Media where a camera lens, aperture or film stock means nothing.
 const NOT_A_CAMERA = ["flat vector","ink line art","isometric diagram","risograph print","pencil study","gouache illustration","oil painting","collage"];
 
+/** 13.5: opposite craft words, written as patterns, so a tip that fights the prompt is caught before it is added. From the
+ *  judges' reasons in the Best tests ("swelling attack" next to "hard attack", stereo next to mono, a close-up on a wide
+ *  header with room for text, a grid layout on a ramen photo). Rules only catch what is listed here. */
+const TIP_CLASHES = /** @type {[RegExp, RegExp][]} */ ([
+  [/\b(hard|sharp|instant|punchy) attack\b/i, /\b(swell\w*|soft|slow|gradual) attack\b|\bfades? in\b/i],
+  [/\bstereo\b|\bleft[- ]to[- ]right\b|\bpann(?:ing|ed)\b/i, /\bmono\b/i],
+  [/\b(dry|no reverb|bone-dry|close-mic)/i, /\b(reverb\w*|echo\w*|large (?:space|room|hall)|cathedral|long tail|rumbling tail|tail over)\b/i],
+  [/\b(close-?up|filling the frame|fills the frame|tight crop)\b/i, /\b(wide shot|wide header|establishing|negative space|clear space|room for (?:text|a title|the title)|space for text)\b/i],
+  [/\b(locked-off|static camera|still camera|tripod|no camera move\w*)\b/i, /\b(handheld|tracking|orbit\w*|circling|dolly|push-?in|sway)\b/i],
+  [/\b(soft|diffused|even|overcast) light\w*\b/i, /\b(hard|harsh|direct) (?:side |top )?light\w*\b/i],
+  [/\bsunrise|soft morning\b/i, /\bhard side or top light\b/i],
+  [/\b(photo|photograph\w*|realistic)\b/i, /\b(grid layout|aligned columns|font size|type sizes?|columns of text)\b/i],
+  [/\b(calm|gentle|soothing|sleep\w*|bedtime)\b/i, /\b(urgent|breathless|energetic|hype|aggressive)\b/i],
+  [/\b(energetic|urgent|breathless|exciting)\b/i, /\b(not announced|conversational, not|calm and slow)\b/i],
+  [/\b(1|2|one|two)[- ]?(?:s|sec|second)s?\b/i, /\bover (?:a few|several) seconds\b|\b(?:3|4|5)-second (?:tail|hold)\b/i],
+  [/\bseamless(?:ly)? loop\w*|\bloop: ?true\b/i, /\bhard cut\b|\bbuilds? to a (?:finish|climax)\b/i],
+  [/\b(centred|centered|central safe area|middle of the frame)\b/i, /\b(offset|off-cent(?:er|re)|to one side)\b/i],
+  [/\b(no people|empty|unpeopled|no one)\b/i, /\b(people|crowd|workers|absorbed in the work)\b/i],
+  [/\b(risograph|screen print|vintage poster|1960s)\b/i, /\b(gouache|watercolou?r|big-headed)\b/i],
+  [/\b(handwritten|chalk|brush lettering|script lettering)\b/i, /\b(clean sans[- ]serif|strict grid)\b/i],
+  [/\b(dark|goth\w*|moody|horror)\b/i, /\b(flat vector, two or three colou?rs|plain white background)\b/i],
+  [/\b(edit|restore|keep (?:the )?(?:same|original)|match(?:ing)? (?:the )?existing)\b/i, /\bseamless clean backdrop\b/i],
+]);
+/** does this tip fight anything already said? @param {string} tip @param {string} text */
+function tipClashes(tip, text){
+  return TIP_CLASHES.some(([x, y]) => (x.test(tip) && y.test(text) && !x.test(text)) || (y.test(tip) && x.test(text) && !y.test(text)));
+}
 /** @param {Brief} b */
 function findClashes(b){
   const picked = new Set(Object.values(b).flat().filter(v=>typeof v==="string").map(v=>v.toLowerCase()));
@@ -4301,12 +4328,16 @@ function askedFormat(t, kind){
 }
 
 /** @param {string} text @param {Model} m @param {Level=} level */
-function forgeFromText(text, m, level){
+/** @param {string} text @param {Model} m @param {Level=} level @param {{noStyle?: boolean, addBoxes?: Record<string, Value>, level?: Level}=} more 13.3: Best's switches */
+function forgeFromText(text, m, level, more){
   const fixed = autocorrect(text);
   const {brief, suggested} = rebuildBrief(fixed.text, m);
-  const res = forge(brief, m, level, {said: text});
+  // 13.3: Best fills empty craft boxes with what winners of similar requests used; they are Forge's picks, not theirs
+  for(const [k, v] of Object.entries((more && more.addBoxes) || {})) if(!has(brief[k])){ brief[k] = v; suggested.push(k); }
+  if(more && more.level) level = more.level;
+  const res = forge(brief, m, level, {said: text, ...(more || {})});
   const found = Object.fromEntries(Object.entries(brief).filter(([k])=>!suggested.includes(k)));
-  const counted = forge(found, m, level, {said: text});
+  const counted = forge(found, m, level, {said: text, ...(more || {})});
   res.score = counted.score; res.parts = counted.parts; res.ask = counted.ask;
   // 9.2: never hand back something that scores lower than the person's own words (Prompt Doctor showed 51 -> 47
   // and 53 -> 45). Keep their words, spelling fixed and filler cut, and say why; the questions say what to add.
@@ -5637,7 +5668,7 @@ function applyStyle(res, b, m, said0, linesOnly){
   if(!hits.length) return;
   const best = hits.map(r => ({ r, len: (text.match(r.when) || [""])[0].length })).sort((x, y) => y.len - x.len)[0].r;
   const said = (res.flat + " " + res.negative).toLowerCase();
-  const lines = best.add.filter(a => (a.toLowerCase().match(/[a-z]{4,}/g) || []).filter(w => !said.includes(w)).length >= 2);
+  const lines = best.add.filter(a => (a.toLowerCase().match(/[a-z]{4,}/g) || []).filter(w => !said.includes(w)).length >= 2 && !tipClashes(a, said + " " + text)); // 13.5
   const keepOut = !linesOnly && m.neg && ["field","flag"].includes(m.neg.mode) && best.avoid && best.avoid[0] ? ["no " + best.avoid[0].replace(/^no\s+/i, "")] : [];
   if(!lines.length && !keepOut.length) return;
   res.style = best.id.replace(/^style:/, "");
@@ -5660,6 +5691,7 @@ function applyRecipes(res, b, m){
     return;
   }
   if(RECIPE_MODE === "strict") found = strong;
+  if(!found.length){ res.recipes = []; return; } // 13.3: "loose" with no matching recipe read found[0] of an empty list
   const said = (res.flat + " " + res.negative + " " + (res.settings || []).map(r => r[1]).join(" ")).toLowerCase();
   const stem = (/** @type {string} */ w) => w.replace(/(ing|ed|es|s|ly)$/, "");
   const saidWords = new Set((said.match(/[a-z0-9']+/g) || []).map(stem));
@@ -5675,7 +5707,12 @@ function applyRecipes(res, b, m){
     return words.filter(w => saidWords.has(stem(w))).length / words.length < 0.5;
   };
   // the best match gives most of the lines; a second match adds only its first (judges punish unrequested extras)
-  const adds = [...new Set([...found[0].add.filter(fresh).slice(0, 4), ...(found[1] ? found[1].add.filter(fresh).slice(0, 1) : [])])].slice(0, RECIPE_MODE === "strict" ? 3 : 4);
+  // 13.5: a tip that fights the prompt or their words is dropped; on text, code, app and research a tip must share a real
+  // word with what they asked (sales-dashboard rules landed on a visit tracker)
+  const against = res.flat + " " + res.negative + " " + text;
+  const askWords = new Set((text.toLowerCase().match(/[a-z]{4,}/g) || []).filter(w => !STOP_WORDS.has(w)).map(stem));
+  const fits = (/** @type {string} */ line) => !tipClashes(line, against) && (!READS_BACKGROUND.includes(m.cat) || (line.toLowerCase().match(/[a-z]{4,}/g) || []).some(w => !STOP_WORDS.has(w) && askWords.has(stem(w))));
+  const adds = [...new Set([...found[0].add.filter(fresh).filter(fits).slice(0, 4), ...(found[1] ? found[1].add.filter(fresh).filter(fits).slice(0, 1) : [])])].slice(0, RECIPE_MODE === "strict" ? 3 : 4);
   const avoids = RECIPE_MODE === "strict" ? [] : [...new Set(found.flatMap(r => r.avoid || []))].filter(a => !said.includes(a.toLowerCase())).slice(0, 4);
   res.recipes = found.map(r => r.id);
   // 10.4: a stock role chip that does not fit the job ("You are a product manager." for a performance review) gives
@@ -5714,6 +5751,9 @@ function applyRecipes(res, b, m){
     } else if(m.grammar === "tags"){
       const at = f.search(/\s--[a-z]/), tags = adds.map(a => lc(stripDot(a))).join(", ");
       res.flat = (at > 0 ? f.slice(0, at) : f).replace(/[\s,]*$/, "") + ", " + tags + (at > 0 ? f.slice(at) : "");
+    } else if(/^Subject: /m.test(f) && /^(?:Goal|Scene): /m.test(f)){
+      // 13.3: labelled lines (GPT Image): the tips went on the end of the Constraints line
+      res.flat = /^Details: /m.test(f) ? f.replace(/^(Details: .*?)\s*$/m, (_a, d) => d + " " + line) : f.replace(/^(Subject: .*)$/m, (_a, sj) => sj + "\nDetails: " + line);
     } else {
       const at = f.search(/\s--[a-z]/);
       res.flat = at > 0 ? f.slice(0, at).replace(/\s*$/, "") + " " + line + f.slice(at) : f.replace(/\s*$/, "") + " " + line;
@@ -5747,7 +5787,7 @@ function withTips(flat, m, lines){
   const at = flat.search(/\s--[a-z]/);
   return at > 0 ? flat.slice(0, at).replace(/\s*$/, "") + " " + line + flat.slice(at) : flat.replace(/\s*$/, "") + " " + line;
 }
-/** @param {Brief} b @param {Model} m @param {Level=} level @param {{keep?: boolean, noFix?: boolean, context?: string, noRecipes?: boolean, said?: string}=} opts */
+/** @param {Brief} b @param {Model} m @param {Level=} level @param {{keep?: boolean, noFix?: boolean, context?: string, noRecipes?: boolean, said?: string, noStyle?: boolean}=} opts */
 function forge(b, m, level, opts){
   level = level || "pro"; opts = opts || {};
   // 3.4: what you see is what is used. Boxes hidden at this level are left out.
@@ -5839,7 +5879,7 @@ function forge(b, m, level, opts){
   useOwnImage(res, m, b);
   if(defaultNeg){ const before = res.negative; res.negative = ""; addExtra(res, m, b.extra, styleFromNote); if(!res.negative) res.negative = before; } // their own keep-outs replace the defaults
   else addExtra(res, m, b.extra, styleFromNote);
-  if(!opts.noRecipes) applyStyle(res, b, m, opts.said, false); // 12.4: after their own words
+  if(!opts.noRecipes && !opts.noStyle) applyStyle(res, b, m, opts.said, false); // 12.4: after their own words; 13.3: Best tries it off too
   const hi = (m.len||[0,0])[1];
   if(hi && sc.words > hi) res.warn.push("About " + (sc.words - hi) + " words over the " + m.len[0] + " to " + hi + " word range for " + m.n + ". Cut the least important part yourself: Forge does not cut your sentences, because that can change what you meant.");
   return res;
