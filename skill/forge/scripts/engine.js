@@ -4059,10 +4059,10 @@ function addBackground(res, m, context){
 /* --- Matchmaker (moved from the page into the engine in 8.0, so it can be tested) ---------- */
 /** Words that point to each kind of AI. @type {Record<string, string[]>} */
 const MKEY = {
-  image:["cinematic shot","cinematic still","still of","portrait of","image","picture","photo","poster","logo","illustration","thumbnail","artwork","render","icon","mockup","banner","sticker","sign","flyer","wallpaper","painting","drawing","art","sketch","comic","emblem","badge","label","cover art","album cover","headshot","portrait"],
-  video:["video","clip","film","footage","ad","animation","animate","animated","reel","short","b-roll","trailer","commercial","teaser","camera angles","slow-mo","walkthrough"],
+  image:["cinematic shot","cinematic still","still of","portrait of","image","picture","photo","poster","logo","illustration","thumbnail","artwork","render","icon","mockup","banner","sticker","sign","flyer","wallpaper","painting","drawing","art","sketch","comic","emblem","badge","label","cover art","album cover","headshot","portrait","product shot","macro shot","flat lay","infographic","meme"],
+  video:["video","clip","film","footage","ad","animation","animate","animated","reel","short","b-roll","trailer","commercial","teaser","camera angles","slow-mo","walkthrough","gif","gifs","drone shot","tracking shot","dolly shot","timelapse","time-lapse","slow motion","cinemagraph","looping clip","drone","no filming","without filming","cinematic intro","intro sequence"],
   voice:["voice","voiceover","hear it in","narration","speech","read","dub","dubbed","dubbing","language track","localize","localise","tts","audiobook","talking"],
-  sfx:["sound effect","sfx","foley","explosion sound","whoosh sound","swoosh","ambient sound","background sound","background noise","creepy atmosphere","atmosphere","soundscape","room tone","button click","click sound","whoosh","impact","ambience","ui sound","sound","notification sound","ding","chime","alarm sound","jingle sound"],
+  sfx:["sound effect","sfx","foley","explosion sound","whoosh sound","swoosh","ambient sound","background sound","background noise","creepy atmosphere","atmosphere","soundscape","room tone","button click","click sound","whoosh","impact","ambience","ui sound","sound","notification sound","ding","chime","alarm sound","jingle sound","footsteps","creak","creaks","creaking","thunder","laser","zap","zaps","noises","sound effects","8-bit sounds","game sounds"],
   music:["music","song","track","beat","beats","score","soundtrack","jingle","underscore","instrumental","playlist","lo-fi","lofi","album","melody","tune","rap","hip hop","lyrics","chorus","remix","lullaby","anthem","chant","cheer","hype chant","theme song","intro music","singing","sing","sung","vocals","vocal"],
   // 3.5.1: websites and games are usually built with a coding agent too, so they count as code
   code:["code","codebase","keeps failing","keeps crashing","crashes","crashing","throws","exception","stack trace","debug","null pointer","out of memory","memory leak","slow queries","autocomplete","autocompletes","code completion","inline completion","ghost text","ide","github","issue","agent","triage","framework","pr","ticket","feature","endpoint","backend","frontend","database","schema","unit tests","library","dependency","dependencies","npm","package","module","cli","legacy","migrate","upgrade","lint","typescript errors","refactor","bug","test","repo","migration","api","function","typescript","python","website","site","game","webpage","claude code","component","render","fix","error","crash","crashes","deploy","script","css","javascript","react","node","sql","editor","pull request","compile","build fails","stack trace"],
@@ -4074,6 +4074,17 @@ const MKEY = {
 };
 /** 8.3: which AI within a kind fits the job, from words in the request. [pattern, {model id: points}] */
 const MSIGNALS = /** @type {[RegExp, Record<string, number>][]} */ ([
+  // v1 step 14: the Matchmaker lost 24 of 30 to Claude; these are the intents it missed (general, not those rows)
+  [/\b(chants?|sing-?alongs?|anthems?|sung|singing|lyrics|vocals?|gang vocals|choir sings|call[- ]and[- ]response)\b/, {suno:14, lyria:4}],
+  [/\b(invent\w*|original|brand-?new|unique|custom|one-of-a-kind|made-up|design(?:ed)?)\s+(?:\w+\s+){0,3}(voices?|narrator)\b|\bvoices? (?:not based on|that (?:doesn'?t|does not) exist)\b|\bcharacter voices?\b/, {"el-voicedesign":16}],
+  [/\b(my|our|this|a) (own )?(\w+ )?(drawing|painting|sketch|illustration|artwork|photo|picture)\b.*\b(loop\w*|lock ?screen|wallpaper)\b/, {mjvideo:12}],
+  [/\b(our|my|existing|real|rough|raw|phone) (\w+ )?(footage|clips|recordings?|videos)\b|\bfrom (?:our|my) (?:\w+ ){0,2}footage\b|\b(edit|polish|clean up|cut down|trim) (?:our|my|the) (?:\w+ )?(footage|video|clips)\b/, {runway:14}],
+  [/\b(hebrew|arabic|persian|farsi|urdu|yiddish|right-to-left|rtl)\b/, {seedream:20}],
+  // v1 step 14: learning to code wants a patient explainer, not the cheapest coder
+  [/\b(learn\w*|understand\w*|student|homework|tutor|teach me|beginner|first year)\b/, {claude:8, gpt:6, deepseek:-6}],
+  // v1 step 14: "I only have blurry phone pics" of the product: an editor that remakes their own photo, not a text-to-image start
+  [/\b(?:i (?:only )?have|from|use|using|turn|make) (?:\w+ ){0,3}(?:my|our|phone|blurry|own) (?:\w+ ){0,2}(?:photos?|pics?|pictures?|shots?)\b|\b(?:my|our) (?:blurry|phone|bad|old) (?:photos?|pics?|pictures?)\b/, {nanobanana:12, gptimage:8, ideogram:-10}],
+  [/\b(do ?n'?t|dont|do not|never|rather not) (?:want to |wanna )?(touch|deal with|manage|write|maintain|learn) (?:the |any |a )?(backend|code|coding|servers?|infrastructure|database)\b|\bno[- ]code\b|\bnot (?:a )?(developer|coder|programmer|technical)\b|\bbackend-?averse\b/, {lovable:12, base44:10, claudecode:-10, codex:-10, devin:-10, cursor:-8}],
   [/\b(my|our|the) (own )?(\w+ )?(notes|pdfs?|documents|docs|files|slides|readings|lectures?|transcripts?|minutes|journals?|letters|sources|reports|textbook)\b|upload|using only|only from|based only on|hundreds of pages|document production|find every mention|every mention of|(a|the) (whole|entire) (stack|pile|folder|binder) of/, {notebooklm:35}], // 8.7.35
   [/\b(dozens of sources|many sources|lots of sources|academic papers|archives?|entire|comprehensive|everything|in-depth|deep dive|(regulatory|competitive|market|legal|policy) landscape|full report|thorough|all the)\b/, {deepresearch:22}], // 8.5.12: not "a landscape painting"
   [/\b(my|this|our|a) (photo|picture|image|pic|art|artwork|drawing|painting|illustration|cover)\b.*\b(video|clip|animat\w*|move|moving|motion|loop)\b|\banimate (my|this|our)\b/, {kling:14, runway:12, mjvideo:10, veo:6}],
@@ -4144,7 +4155,7 @@ function matchModels(query, priorities, kind){
   const WEAK = ["agent","issue","film","sound","sign","portrait","label","ad","short","game","site","render","read","talking","fix","test","function","build","plan","ideas","learn","chat","market","brief","script","score","track","beat","clip","reel","talk through"];
   Object.entries(MKEY).forEach(([c,ks])=>{ catScore[c] = ks.reduce((s,k)=> s + (hit(k) ? (WEAK.includes(k) ? 0.5 : 1) : 0), 0); });
   const lead = q.match(/\b(music|song|jingle|beat|soundtrack|voice ?over|narration|narrator|sound effects?|sfx|logo|thumbnail|poster|image|picture|photo|video|clip|app|website|landing page|report|research)\b(?= (for|to go with|under|behind|in|on) )/);
-  if(/\banimat\w*\b|\binto (?:a )?(?:video|clip)\b|\bmake (?:it|them) move\b|\bbring (?:[\w']+ ){0,8}to life\b|\bcome alive\b|\b(?:one|a|single) (?:\w+ ){0,2}shot of (?:\w+ ){0,4}(?:drawing|running|jumping|flying|walking|turning|opening|falling|swinging)\b/.test(q)) catScore.video += 1.5; // 8.7.27: "bring my invite art to life", "one dramatic shot of X drawing a sword" // 8.5.14: animating a picture is a video job
+  if(/\banimat\w*\b|\binto (?:an? )?(?:\w+ ){0,2}(?:video|clip)\b|\bmake (?:it|them) move\b|\bbring (?:[\w']+ ){0,8}to life\b|\bcome alive\b|\b(?:one|a|single) (?:\w+ ){0,2}shot of (?:\w+ ){0,4}(?:drawing|running|jumping|flying|walking|turning|opening|falling|swinging)\b/.test(q)) catScore.video += 1.5; // 8.7.27: "bring my invite art to life", "one dramatic shot of X drawing a sword" // 8.5.14: animating a picture is a video job
   // 8.7.19: what is being MADE decides the kind. Writing a script, a letter or copy is a words job even when a
   // logo or a video is in the sentence ("a cease and desist about a company ripping off my logo" went to image AIs)
   // 8.7.35: round 4's match rows
@@ -4161,6 +4172,15 @@ function matchModels(query, priorities, kind){
   // countries or plans is research
   if(/\b(digiti[sz]\w*|scan|scanning|archiv\w*|organi[sz]\w*|back(?:ing)? up|restor\w*) (?:\w+ ){0,6}(photos|pictures|slides|negatives|albums)\b/.test(q) && /\b(best way|how (?:do|should|can|to)|figure out|without it taking|options?)\b/.test(q)){ catScore.research = (catScore.research || 0) + 3; catScore.text = (catScore.text || 0) + 1; catScore.image = 0; }
   if(/\bcompar\w* (?:like |about |around )?(two|three|four|five|six|seven|eight|\d+) (countries|cities|states|plans|options|providers|schools|neighbou?rhoods)\b|\bbest (country|city|state|place) to (retire|live|move)\b/.test(q)) catScore.research = (catScore.research || 0) + 3;
+  // v1 step 14 (fresh match test): sound effects FOR a film or game are a sound job; a bot, script or plugin to write is code;
+  // learning to code is a tutor's job; a landing page to put online is an app builder's; a market report with sources is research
+  if(/\b(footsteps|creak\w*|thunder|laser|zaps?|explosions?|whoosh\w*|noises|sound effects|sfx)\b/.test(q) && /\b(sounds?|noises|audio|effects?|sfx)\b/.test(q) && !/\b(music|song|soundtrack)\b/.test(q)){ catScore.sfx = (catScore.sfx || 0) + 3; catScore.video = Math.max(0, (catScore.video || 0) - 2); }
+  if(/\b(write|make|build|code|codes|program|create)\b[^.]{0,40}\b(bot|discord bot|(?:python|bash|shell|node|js|automation) script|plugin|mod|browser extension|chrome extension|scraper)s?\b/.test(q)){ catScore.code = (catScore.code || 0) + 3; catScore.voice = Math.max(0, (catScore.voice || 0) - 2); }
+  if(/\b(learn\w*|understand\w*|student|homework|tutor|teach me|explain\w*|beginner|first year)\b/.test(q) && /\b(code|coding|program\w*|recursion|function|java|python|javascript|algorithm)\b/.test(q) && !/\b(my|our|the) (repo|codebase|project)\b/.test(q)) catScore.text = (catScore.text || 0) + 4;
+  if(/\b(landing page|website|web ?site|site)\b/.test(q) && /\b(online|live|launch|publish|sign-?ups?|signup|email list)\b/.test(q)) catScore.app = (catScore.app || 0) + 2;
+  if(/\b(with|cite|cited|real|reliable) sources\b|\bhow big (?:is )?the market\b|\bmarket size\b|\bmain players\b|\bcompetitors\b/.test(q)) catScore.research = (catScore.research || 0) + 3;
+  // v1 step 14: "a vertical tiktok of my dog surfing" went to a chat AI; a TikTok, Reel or Short is a video unless it is the words
+  if(/\b(tiktoks?|reels?|youtube shorts|shorts|vertical (?:video|clip)s?)\b/.test(q) && !/\b(caption|script|bio|hashtags?|post text|description|hook lines?|title)s?\b/.test(q)) catScore.video = (catScore.video || 0) + 3;
   // 11.1: round 4's Matchmaker misses (found on rounds 1-5's match rows, measured on round 4's final)
   // a voice that speaks: voiceover, narration, read aloud, spoken replies
   if(/\b(voice-?overs?|narrat(?:or|ors|ion|e|ed|es|ing)|read (?:it |this |them )?(?:out )?(?:loud|aloud)|text to speech|tts|spoken|speaks? back|talk(?:s|ing)? back|out loud)\b/.test(q) && !/\b(song|music|singing|lyrics|jingle)\b/.test(q)){ catScore.voice = (catScore.voice || 0) + 3; catScore.video = Math.max(0, (catScore.video || 0) - 1); catScore.text = Math.max(0, (catScore.text || 0) - 1); }
@@ -4203,7 +4223,7 @@ function matchModels(query, priorities, kind){
   // 8.5.14: a signal after "not" / "don't need" does not count either ("dont need deep research mode"), signals
   // only help AIs of the top kind ("agent" sent a coding job to a voice AI), and each pick says why, in the
   // person's own words, instead of the same fixed blurb
-  const NEG = /\b(not|no|don'?t need|dont need|don'?t want|dont want|without|isn'?t|instead of|rather than)\s+(?:a|an|the|any|to use|use)?\s*(?:\w+\s+){0,2}$|\b(don'?t|dont|do not)\s+(need|want)\b[^.,;!?]{0,40}\bor\s+(?:\w+\s+){0,2}$/;
+  const NEG = /\b(not|no|don'?t need|dont need|don'?t want|dont want|without|isn'?t|instead of|rather than)\s+(?:a|an|the|any|to use|use)?\s*(?:\w+\s+){0,3}$|\b(don'?t|dont|do not)\s+(need|want)\b[^.,;!?]{0,40}\bor\s+(?:\w+\s+){0,2}$/;
   const sig = /** @param {RegExp} re */ re => { const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g"); let mm; while((mm = g.exec(q))){ if(!NEG.test(q.slice(Math.max(0, mm.index - 30), mm.index))) return mm[0]; if(!mm[0]) g.lastIndex++; } return ""; };
   const scored = MODELS.filter(m=>cats.includes(m.cat) && !m.wild).map(m=>{
     let s = 20 + (catScore[m.cat]||0) * 6;
@@ -4218,12 +4238,13 @@ function matchModels(query, priorities, kind){
     // 8.5.4: open-weight models you run yourself fit only when the person has the hardware or wants local
     if(["wan","ltx","sdxl"].includes(m.id)) s += /\b(local(ly)?|gpu|rtx|my own (computer|machine|pc|hardware|server)|offline|self-host\w*|open[- ]?(source|weights?)|fine-?tun\w*|lora|comfy\w*)\b/.test(q) ? 20 : -10;
     if((catScore[m.cat]||0) >= (catScore[cats[0]]||0)) for(const [re, pts] of MSIGNALS){ if(!pts[m.id]) continue; const w = sig(re); if(w){ s += pts[m.id]; why.push(w.trim()); } }
-    if(/vertical|9:16|tiktok|reel|short/.test(q) && m.id==="runway") s -= 12;
+    if(/vertical|9:16|tiktok|\breels?\b|\bshorts\b/.test(q) && m.id==="runway") s -= 12; // v1 step 14: "short clips" is not YouTube Shorts
     // 11.3: a need this AI's facts answer ("seamless loop", "under 90ms", "vector for a big sign") counts for it
-    { const F1 = AI_FACTS[m.id]; if(F1){ const n1 = F1.facts.filter(f => f.when.test(q)).length; if(n1){ s += Math.min(2, n1) * 4; why.push(...F1.facts.filter(f => f.when.test(q)).slice(0, 1).map(f => (q.match(f.when) || [""])[0])); } } }
+    // v1 step 14: and not when the person said they don't want it ("I don't want it to sound robotic" picked the robot-voice designer)
+    { const F1 = AI_FACTS[m.id]; if(F1){ const got = F1.facts.map(f => sig(f.when)).filter(Boolean); if(got.length){ s += Math.min(2, got.length) * 4; why.push(got[0]); } } }
     if(m.id === "recraft" && /\b(photo\w*|realistic|photoreal\w*)\b/.test(q)) s -= 26; // 8.7.27: Recraft is vectors; a photoreal picture for a logo is not
     if(m.cat === "image" && /\b(video|clip|animat\w*|moving)\b/.test(q) && !/\bnot (a |the )?(video|clip)\b/.test(q)) s -= 15; // 8.5.12: "my photo into a video" is a video job
-    if(/vertical|9:16|tiktok|reel|short/.test(q) && ["kling","seedance","veo","higgsfield"].includes(m.id)) s += 8;
+    if(/vertical|9:16|tiktok|\breels?\b|\bshorts\b/.test(q) && ["kling","seedance","veo","higgsfield"].includes(m.id)) s += 8;
     // 11.4: a clip longer than this AI can make in one go ("10 second video" went to Veo, which stops at 8)
     { const want = (q.match(/\b(\d{1,3})\s*(?:s|sec|secs|second|seconds)\b/) || [])[1];
       const most = Math.max(0, ...(m.durations || []).map(d => parseInt(String(d), 10) || 0));
@@ -4285,19 +4306,28 @@ function matchReason(top, query, second){
   const job = need ? need.trim().split(/\s+/).slice(0, 12).join(" ").replace(/\s+(for|to|with|and|a|an|the|of|in|on)$/i, "") : "";
   const firstSentence = /** @param {string} t */ t => String(t || "").split(/(?<=\.)\s/)[0].replace(/\.$/, "");
   // 11.1: from the AI's strengths, the ones this request needs first (a word match), not the whole list in catalogue order
-  let why = whyFor(top.m, query);
+  let why = whyFor(top.m, query), wordHit = false;
+  // v1 step 14: a video AI's sound features only count when the person asks for sound
+  const quiet = /\b(silent|no (?:sound|audio|music|voice)|muted?|without (?:sound|audio)|gifs?)\b/i.test(String(query || ""))
+    || (top.m.cat === "video" && !/\b(sound|audio|dialogue|talk\w*|speak\w*|says|voice|music|sfx|ambien\w*|noise|lip)/i.test(String(query || "")));
+  const fits = (/** @type {string} */ say) => !(quiet && /\b(sound|audio|dialogue|speech|sfx|ambience|music)\b/i.test(say));
   const parts = /\.\s/.test(why.replace(/\.$/, "")) ? [] : why.replace(/\.$/, "").split(/,\s*/).filter(has);
   if(parts.length > 2){
     const st = (/** @type {string} */ x) => x.toLowerCase().replace(/(ing|ed|es|s)$/, "");
-    const asked = new Set((String(query || "").toLowerCase().match(/[a-z0-9]{3,}/g) || []).map(st));
-    const hits = parts.map((p0, i) => ({ p0, i, n: (p0.toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter(x => asked.has(st(x))).length }));
+    // the kind of thing ("track", "video") is in every request of that kind, so it says nothing about this job
+    const asked = new Set((String(query || "").toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter(x => !/^(track|song|music|video|clip|image|picture|photo|voice|app|website|site|the|and|for|with|my|our)s?$/.test(x)).map(st));
+    const hits = parts.filter(fits).map((p0, i) => ({ p0, i, n: (p0.toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter(x => asked.has(st(x))).length }));
     const best = hits.filter(h => h.n).sort((a, b) => b.n - a.n || a.i - b.i).slice(0, 2);
+    wordHit = best.length > 0;
     const pick = (best.length ? best : hits.slice(0, 2)).sort((a, b) => a.i - b.i).map(h => h.p0);
     why = top.m.n + " is strongest at " + lc(pick.join(" and ")) + ".";
   }
   // 11.2: a concrete fact about this AI that fits this request, from aifacts.json (judges: name the feature that solves it)
   const F0 = AI_FACTS[top.m.id];
-  if(F0){ const hit = (F0.facts || []).find(f => f.when.test(String(query || ""))); const say = hit ? hit.say : F0.default; if(say) why = top.m.n + (top.m.sub ? " " + top.m.sub : "") + ": " + say.replace(/^\s*/, ""); }
+  // v1 step 14: judges marked "synced audio" for a silent GIF clip and studio terms for a podcast bed as off-topic. A fact about sound is skipped when
+  // the person wants no sound, and the catch-all fact gives way to the strengths that share the person's words.
+
+  if(F0){ const hit = (F0.facts || []).find(f => fits(f.say) && f.when.test(String(query || ""))); const say = hit ? hit.say : (wordHit || !fits(F0.default || "") ? "" : F0.default); if(say) why = top.m.n + (top.m.sub ? " " + top.m.sub : "") + ": " + say.replace(/^\s*/, ""); }
   return (job ? "For \"" + job + "\": " : "") + why
     + (w.length && !AI_FACTS[top.m.id] ? " You mentioned " + w.map(x => "'" + x + "'").join(", ") + "." : "")
     // 11.1: a second choice only when it is the same kind of AI and nearly as good (judges: "an irrelevant second choice")
@@ -4498,6 +4528,9 @@ function writerBrief(o){
       if(!need || words >= need * 0.6) return [];
       return ["Script length: their words are a start, not the whole read (about " + Math.max(1, Math.round(words / 2.5)) + " seconds" + (secs ? " for a " + secs + "-second slot" : " for this job") + "). Keep their line word for word, and write the rest around it in the same voice so it fills " + (secs ? "the slot (about " + need + " words)" : "the job") + "."];
     })(),
+    // v1 step 14 (a real plugin run): Claude put a delivery-direction paragraph at the top of an ElevenLabs script, so the
+    // voice would read "Friendly, upbeat radio ad read, spoken to one listener..." out loud
+    ...((m.core || []).includes("script") ? ["Read aloud: " + name + " speaks everything in the prompt box, word for word. Put only the words to be spoken there. Delivery (tone, pace, smile, energy, room sound) goes under Settings as Voice direction" + (/\bv3\b|audio tags/i.test(JSON.stringify(m.notes || [])) ? ", or as short audio tags if this model supports them" : "") + "."] : []),
     // round 3: the voice writers invented an Australian accent, a "patient tutor" persona, a deep male voice
     ...(m.cat === "voice" ? ["Voice: describe only the traits they gave or clearly implied (age, gender, accent, persona, pace). Do not add new ones; where they gave none, keep the voice description short and neutral."] : []),
     // round 2: kept for music only (generic-music 11 -> 89%, el-music 33 -> 67%); it lost on video (hailuo, ltx) and voice design

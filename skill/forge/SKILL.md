@@ -31,7 +31,7 @@ Files you can use (read only what you need):
    ```bash
    node scripts/forge.mjs --check --model <id> --request "<what the user asked>" --details "<their answers, if any>" --prompt "<your prompt>"
    ```
-   Use `--prompt-file <path>` for long prompts, and `--negative "<keep-outs>"` if the AI has a negative field. **FAIL** means you dropped what the user said or wrote around the job: fix your prompt and check again (at most 2 more rounds). On **PASS**, read the notes anyway: words you left out, numbers you added that the user never gave, filler Forge cut, too long. Fix the ones that matter. Use the checked prompt it prints (Forge already applied its small fixes). Use Forge's own version only if your fixed prompt still fails.
+   For a long prompt, pass `--prompt -` and give the prompt on standard input (`node scripts/forge.mjs --check ... --prompt - <<'EOF'` ... `EOF`): no file needed. `--prompt-file <path>` also works, and `--negative "<keep-outs>"` if the AI has a negative field. **FAIL** means you dropped what the user said or wrote around the job: fix your prompt and check again (at most 2 more rounds). On **PASS**, read the notes anyway: words you left out, numbers you added that the user never gave, filler Forge cut, too long. Fix the ones that matter. Use the checked prompt it prints (Forge already applied its small fixes). Use Forge's own version only if your fixed prompt still fails.
 6. **Answer** in this order, short and plain:
    - the prompt in a code block, ready to copy (the negative prompt in its own block, if the AI has that field);
    - the settings (aspect ratio, model, duration...) as a short list;

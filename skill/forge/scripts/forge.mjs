@@ -27,6 +27,8 @@ const has = k => args.includes("--" + k);
 const fail = msg => { console.error(msg); process.exit(1); };
 /** a text option, straight or from --<name>-file */
 const text = k => {
+  // v1 step 14: "-" reads it from standard input, so a long prompt needs no temporary file (writing one is often blocked)
+  if (opt(k) === "-") { try { return readFileSync(0, "utf8").trim(); } catch (e) { fail(`Could not read --${k} from standard input: ${e.message}`); } }
   if (opt(k) !== undefined) return opt(k);
   const f = opt(k + "-file");
   if (f === undefined) return undefined;

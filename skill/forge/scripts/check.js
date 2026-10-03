@@ -125,6 +125,14 @@ export function checkPrompt(E, o) {
   if (["image", "video"].includes(m.cat)) { const mine = E.notMine(reply.prompt).found; if (mine.length) { P.invented.push("Says \"" + mine[0] + "\": " + name + " can't know whose it is. Write \"" + E.notMine(mine[0].toLowerCase()).text + "\" and describe it instead."); cleaned = E.notMine(cleaned).text; } }
   if (names.size) P.invented.push("Names the person never gave: " + [...names].slice(0, 5).join(", ") + ". Remove them unless the person said them.");
 
+  // v1 step 14: a voice that reads the prompt aloud would speak a delivery-direction paragraph at the top of the script
+  if ((m.core || []).includes("script")) {
+    const spoken = String(reply.prompt || "").split("\n").filter((l) => !/^\s*(settings|voice direction|voice|model|stability|speed|negative)\s*:/i.test(l)).join("\n").trim();
+    const paras = spoken.split(/\n\s*\n/), first = paras[0] || "";
+    // direction words only (not "voice", "warm", "calm": a story can say those), and only above the actual script
+    const cues = (first.match(/\b(reads?|delivery|pace[sd]?|pacing|announcer|broadcast|cadence|reverb|enunciat\w*|spoken to|smile in the voice|narration style|voice direction)\b/gi) || []).length;
+    if (paras.length > 1 && cues >= 2 && !/["“]/.test(first)) P.settings.push("The first lines read like delivery direction (" + first.slice(0, 60).trim() + "...): " + name + " would say them out loud. Move them under Settings as Voice direction, and keep only the spoken words in the prompt.");
+  }
   const problems = [...P.kept, ...P.settings, ...P.invented, ...P.filler];
   /** @type {ReturnType<typeof checkPrompt>} */
   const out = {

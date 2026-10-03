@@ -193,8 +193,9 @@ function chatContext(input){
   sum.goal = user.length ? glTidyAsk(user[0].text) : "";
   sum.latest = user.length > 1 ? glLatestAsk(turns) : "";
   for(const t of user) for(const x of sents(t.text)){
-    const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it)\b/i;
-    if(RULE.test(x)){ const cl = x.split(/,\s*|;\s*|\s+but\s+|\s+and\s+(?=(?:never|don'?t|do not|no|only|without|must|keep)\b)/i).filter(c => RULE.test(c)); sum.rules.push(...(cl.length ? cl : [x])); }
+    // v1 step 14: "no stock photos" is a rule too (a real /forge-map run listed it as "not tagged as a rule")
+    const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
+    if(RULE.test(x)){ const cl = x.split(/,\s*|;\s*|\s+but\s+|\s+and\s+(?=(?:never|don'?t|do not|no|only|without|must|keep)\b)/i).filter(c => RULE.test(c)); sum.rules.push(...(cl.length ? cl : [x]).map(c => c.replace(/^\s*(?:and|but|also|plus|then)\s+/i, ""))); }
     else if(/\b(let'?s|we'?ll|go with|going with|decided|i chose|i choose|i picked|use the|yes,? (?:do|go)|ok,? (?:do|go)|i want)\b/i.test(x)) sum.decisions.push(x);
   }
   for(const t of ai) for(const x of sents(t.text)){
