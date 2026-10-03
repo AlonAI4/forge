@@ -41497,7 +41497,8 @@ function imageSections(b, m2) {
   const drawn = isDrawn(b);
   const norm = (x) => " " + String(x).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim() + " ";
   const core = norm(med).replace(/ (?:illustration|painting|drawing|art|print|render|design|style|still|photo|photograph) $/, " ");
-  S.push(["Subject", (String(med).trim() && (norm(subj).includes(norm(med)) || core.trim().length > 2 && norm(subj).includes(core)) ? cap(withSetting(lc(subj), b.setting)) : cap(med) + " of " + withSetting(lc(subj), b.setting)) + "."]);
+  const isThing = /^(?:an?\s+)?(?:infographic|poster|logo|diagram|chart|map|flyer|sticker|icon|banner|menu|label|card|invitation|badge|comic|thumbnail)s?\b/i.test(String(subj).trim());
+  S.push(["Subject", (String(med).trim() && (norm(subj).includes(norm(med)) || core.trim().length > 2 && norm(subj).includes(core)) ? cap(withSetting(lc(subj), b.setting)) : isThing ? cap(med) + " " + withSetting(lc(String(subj).replace(/^(?:an?|the)\s+/i, "")), b.setting) : cap(med) + " of " + withSetting(lc(subj), b.setting)) + "."]);
   const shotLook = lookOf(SHOT_LOOK, b.shot);
   const cam = camClause(b);
   if (cam) S.push(["Camera", cam + (shotLook ? ", " + shotLook : "") + "."]);
@@ -41840,7 +41841,8 @@ var COMPOSE = {
     const all = [b.goal, b.context, b.extra].filter(has).map((v2) => join(v2)).join(" ");
     const present = /```|\bdef \w+\(|\bfunction\b|=>|\b(?:let|const|var|return|for|while)\b[^.]{0,40}[=;{(]|\{[^}]{10,}\}|["\u201c'][^"\u201d']{30,}["\u201d']/.test(all);
     const mat0 = materialNamed([b.goal, b.context].filter(has).join(" "));
-    const mat = present || /\b(chapter|textbook|book|unit|lesson)\b/i.test(String(mat0 || "")) ? "" : mat0;
+    const inline = /\b(?:notes?|text|these|this|list|points|facts|info(?:rmation)?|headings|below)\b[^:]{0,40}:\s*\S+(?:\s+\S+){5,}/i.test(all);
+    const mat = present || inline || /\b(chapter|textbook|book|unit|lesson)\b/i.test(String(mat0 || "")) ? "" : mat0;
     if (has(b.pasted)) S.push([xml ? "<material>" : "## Material", String(b.pasted)]);
     else if (mat && !(has(b.context) && String(b.context).length > 280)) S.push([xml ? "<material>" : "## Material", "[Paste " + mat + " here]"]);
     const needs = chatNeeds([b.goal, b.context, b.extra, b.length].filter(has).map((v2) => join(v2)).join(". "), b);
@@ -42406,7 +42408,7 @@ function pickAspect(t, m2) {
     else if (/\b(ultra-?wide|cinemascope|anamorphic|2\.39|letterbox\w*)\b/i.test(t)) want = 21 / 9;
     else if (/\b(widescreen|landscape (orientation|format|mode)|youtube (video|thumbnail|banner|intro)|desktop wallpaper|thumbnail|banner|header|16 by 9)\b/i.test(t)) want = 16 / 9;
     else if (/\b(wide shot|wide-angle|wide angle|panoram\w*|landscape view|establishing shot|vista)\b/i.test(t)) want = 16 / 9;
-    else if (/(?:^|[,;]\s*)wide(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 16 / 9;
+    else if (/(?:^|[,;]\s*)(?:wide|landscape)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 16 / 9;
     else if (/(?:^|[,;]\s*)tall(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2 / 3;
     else if (m2.cat === "video" && /\b(social(?: media)?|instagram|insta|ig|tiktok|reels?|stories|phone)\b/i.test(t) && !/\byoutube\b(?!\s+shorts?)/i.test(t)) want = 9 / 16;
     else if (m2.cat === "video" && /\byoutube\b/i.test(t)) want = 16 / 9;
@@ -42592,7 +42594,18 @@ function rebuildBriefParts(text, m2) {
           return x && !subj.includes(x) && !x.includes(subj || "\0") && !(setg && setg.includes(x)) && !avoidFrom(x);
         }).join(", ");
         d2 = d2.split(/,\s*/).filter((c) => !/^(?:for|to)\s+(?:a|an|the|our|my|your|his|her|their|this)\b/i.test(c.trim())).join(", ");
-        d2 = d2.split(/,\s*/).filter((c) => !/^(?:(?:extreme |a )?close-?ups?|wide(?: shot)?|medium shot|establishing(?: shot)?|cinematic|slow[- ]?(?:motion|mo)|time-?lapse|drone shot|aerial(?: shot)?|\d+\s*(?:s|sec|secs|seconds)|shot on [\w ]+|\d+mm|4k|vertical|horizontal|widescreen|16:9|9:16|soft light|golden hour|realistic|photorealistic)$/i.test(c.trim())).join(", ");
+        d2 = d2.split(/,\s*/).filter((c) => !/^(?:(?:extreme |a )?close-?ups?|wide(?: shot)?|medium shot|establishing(?: shot)?|cinematic|slow[- ]?(?:motion|mo)|time-?lapse|drone shot|aerial(?: shot)?|\d+\s*(?:s|sec|secs|seconds)|shot on [\w ]+|\d+mm|4k|vertical|horizontal|widescreen|16:9|9:16|soft light|golden hour|realistic|photorealistic)$/i.test(c.trim()) && !/^(?:vertical|horizontal|square|wide)\s+for\s+\w+$|^for\s+(?:tiktok|reels?|shorts|instagram|youtube)$/i.test(c.trim())).join(", ");
+        {
+          const MOODS = /^(?:funny|cute|sad|epic|dramatic|scary|creepy|happy|calm|chill|cozy|cosy|eerie|joyful|intense|peaceful|romantic|mysterious|dreamy|playful|wholesome|hilarious)$/i;
+          const keepC = d2.split(/,\s*/).filter((c) => {
+            if (MOODS.test(c.trim())) {
+              if (!arr(b.mood).length) b.mood = [c.trim().toLowerCase()];
+              return false;
+            }
+            return true;
+          });
+          d2 = keepC.join(", ");
+        }
         if (d2.length > 40) b.action = d2;
         else if (d2.length > 8 && !saidIn(b.subject, d2)) sug("action", d2);
       }
@@ -42638,6 +42651,22 @@ function rebuildBriefParts(text, m2) {
       const cm = kw ? t.slice(kw.index).match(/^[^.]{0,80}?\b(?:called|named)\s+((?:[A-Z0-9][\w'&-]*)(?:\s+(?:&\s+)?[A-Z0-9][\w'&-]*){0,4})/) : null;
       if (cm) b.imgtext = cm[1];
     }
+    if (m2.cat === "image" || m2.cat === "video") {
+      const PLACES = { beach: "on a", street: "on a", mountain: "on a", rooftop: "on a", field: "in a", forest: "in a", city: "in a", desert: "in a", jungle: "in a", park: "in a", garden: "in a", cafe: "in a", kitchen: "in a", studio: "in a", castle: "in a", meadow: "in a", lake: "by a", river: "by a", ocean: "by the", sea: "by the", space: "in", snow: "in the", underwater: "" };
+      if (!has(b.setting) && typeof b.extra === "string") {
+        const parts = String(b.extra).split(/\s*,\s*/);
+        const i = parts.findIndex((x) => Object.prototype.hasOwnProperty.call(PLACES, x.toLowerCase().replace(/[.!]$/, "")));
+        if (i >= 0) {
+          const w2 = parts[i].toLowerCase().replace(/[.!]$/, "");
+          b.setting = (PLACES[w2] ? PLACES[w2] + " " : "") + w2;
+          parts.splice(i, 1);
+          if (parts.length) b.extra = cap(parts.join(", "));
+          else delete b.extra;
+        }
+      }
+      if (typeof b.subject === "string" && /^[A-Za-z]+$/.test(b.subject) && !/s$/i.test(b.subject) && !/^(?:snow|rain|fog|water|fire|smoke|light|art|space)$/i.test(b.subject)) b.subject = cap(artic(b.subject.toLowerCase()) + " " + b.subject.toLowerCase());
+    }
+    if (typeof b.setting === "string" && /^(?:in\s+)?(?:super\s+)?slow[- ]?(?:motion|mo)$/i.test(b.setting.trim())) delete b.setting;
     if (m2.cat === "image" && /\b(pixar|dreamworks|3d animat\w*|animated (?:movie|film) style)\b/i.test(t) && (!has(b.medium) || suggested.includes("medium"))) {
       b.medium = "3D render";
       const i = suggested.indexOf("medium");
@@ -42669,6 +42698,20 @@ function rebuildBriefParts(text, m2) {
   } else if (m2.cat === "music") {
     if (/\binstrumental\b|\bno (vocals|singing|lyrics)\b/i.test(t)) b.mVocal = "Instrumental";
     else if (/\b(song|sing|sings|sung|singer|lyrics?|vocals?|chorus|verse|rap|rapper|anthem|jingle|duet|lullaby|ballad|mention(?:s|ing)?|shout[\s-]?outs?)\b|\b(?:name|say|says)\s+(?:our|my|the|his|her|their)\b/i.test(t)) b.mVocal = "Vocals";
+    if (Array.isArray(b.mInst)) b.mInst = b.mInst.filter(
+      /** @param {string} x */
+      (x) => /^vocals?$/i.test(String(x)) || !new RegExp("\\b(?:no|without|not any|zero)\\s+(?:\\w+\\s+)?" + String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/s?$/, "s?") + "\\b", "i").test(t)
+    );
+    if (Array.isArray(b.mInst) && !b.mInst.length) delete b.mInst;
+    {
+      const ex = [...t.matchAll(/\b(?:no|without)\s+((?:heavy |loud |electric |acoustic )?(?:drums?|percussion|guitars?|bass|synths?|piano|strings|brass|autotune|vocals?|singing|lyrics|beats?|808s?))\b/gi)].map((x) => x[1].toLowerCase());
+      const keep = ex.filter((x) => !/^(?:vocals?|singing|lyrics)$/.test(x) || b.mVocal !== "Instrumental");
+      if (keep.length && !has(b.mExclude)) b.mExclude = keep.join(", ");
+    }
+    {
+      const vg = t.match(/\b(female|woman'?s?|girl'?s?|male|man'?s?|boy'?s?|deep|soft|raspy|husky|choir|duet)\s+(vocals?|voice|singer)\b/i);
+      if (vg && b.mVocal !== "Instrumental") b.mVocal = cap(vg[1].toLowerCase().replace(/'?s$/, "").replace(/^woman$/, "female").replace(/^girl$/, "female").replace(/^man$/, "male").replace(/^boy$/, "male")) + " vocals";
+    }
     if (/\b(start with|starts with|then|build|builds|drop|intro|outro|verse|chorus|bridge|breakdown|fade)\b/i.test(t)) b.mStruct = t;
   } else if (m2.cat === "sfx") {
     if (!b.sound) b.sound = tidyRequest(t).replace(/\.$/, "");
@@ -43094,6 +43137,7 @@ function bestFix(w2) {
   return pick2([...two].filter((x) => x[0] === w2[0])) || "";
 }
 var APOSTROPHE = Object.fromEntries("dont:don't doesnt:doesn't didnt:didn't cant:can't couldnt:couldn't shouldnt:shouldn't wouldnt:wouldn't isnt:isn't arent:aren't wasnt:wasn't werent:weren't hasnt:hasn't havent:haven't hadnt:hadn't theyre:they're youre:you're thats:that's whats:what's theres:there's heres:here's im:I'm ive:I've youve:you've weve:we've theyve:they've youll:you'll theyll:they'll itll:it'll".split(" ").map((x) => x.split(":")));
+var NOT_TYPOS = new Set("london to paris in december pairs in deceiver january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday london paris rome madrid barcelona lisbon berlin munich amsterdam brussels vienna prague budapest warsaw athens istanbul dublin edinburgh glasgow manchester liverpool birmingham bristol oxford cambridge milan venice florence naples nice lyon marseille zurich geneva copenhagen stockholm oslo helsinki reykjavik moscow kyiv cairo dubai doha riyadh jerusalem tel aviv tokyo kyoto osaka seoul beijing shanghai hong kong singapore bangkok bali delhi mumbai sydney melbourne auckland toronto vancouver montreal chicago boston seattle miami denver austin dallas houston vegas orlando hawaii brooklyn manhattan england scotland wales ireland britain france spain portugal italy germany austria switzerland netherlands belgium greece turkey poland sweden norway denmark finland iceland russia ukraine egypt israel morocco nigeria kenya japan china korea india thailand vietnam indonesia australia zealand canada mexico brazil argentina chile peru colombia usa america europe asia africa english french spanish italian german portuguese dutch greek turkish polish swedish russian arabic hebrew japanese chinese mandarin korean hindi".split(" "));
 var FORGE_WORDS = ["prompt", "prompts", "setting", "settings", "medieval", "plugin", "plugins", "graphify", "toggleable", "matchmaker", "extension", "context", "reverse", "doctor", "summary", "summarised", "conversation"];
 var ANIMAL_WORDS = /\b(?:cats?|kittens?|kitty|dogs?|pupp(?:y|ies)|mice|mouse|rats?|tigers?|lions?|fox(?:es)?|seals?|otters?|rabbits?|bunn(?:y|ies)|leopards?|cheetahs?|lynx|walrus(?:es)?|hamsters?|pugs?)\b/i;
 var TYPOS = { yoru: "your", yuor: "your", agin: "again", iys: "it's", becuase: "because", becasue: "because", waht: "what", wnat: "want", jsut: "just", realy: "really", doent: "doesn't", dosent: "doesn't", donrt: "don't", dnot: "don't", inst: "isn't", gues: "guess", ouyr: "your", medivl: "medieval", quity: "quality", qaulity: "quality", buidl: "build", thier: "their", wich: "which", recieve: "receive", definately: "definitely", seperate: "separate", untill: "until", alot: "a lot" };
@@ -43169,6 +43213,7 @@ function autocorrect(text) {
   const own2 = /* @__PURE__ */ new Set([...(t.toLowerCase().match(/[a-z]+/g) || []).filter((x) => x.length >= 3 && isWord(x)), ...FORGE_WORDS]);
   let fixed = masked.replace(/[A-Za-zÀ-ɏ]+(?:'[a-z]+)?/g, (w2, at, all) => {
     if (/[À-ɏ]/.test(w2)) return w2;
+    if (NOT_TYPOS.has(w2.toLowerCase())) return w2;
     if (w2.length > 24) return w2;
     const prev = all[at - 1] || "", next = all[at + w2.length] || "";
     const aw = Object.prototype.hasOwnProperty.call(APOSTROPHE, w2.toLowerCase()) ? APOSTROPHE[w2.toLowerCase()] : "";
@@ -43603,17 +43648,26 @@ function matchReason(top, query, second) {
   second.s <= 6 ? " Second choice: " + second.m.n + (second.m.sub ? " " + second.m.sub : "") + ", for " + lc(firstSentence(whyFor(second.m, query))) + "." : "");
 }
 function addExtra(res, m2, extra, keepAny) {
-  const x = stripDot(String(extra || "").trim());
+  let x = stripDot(String(extra || "").trim());
   if (!x) return;
+  const typedNegs = [];
+  {
+    const np = x.match(/\bnegative(?: prompt)?\s*:\s*([^\n]+)$/i);
+    if (np && m2.neg) {
+      typedNegs.push(...np[1].split(/\s*,\s*/).map((v2) => v2.trim().replace(/[.;]+$/, "")).filter(Boolean));
+      x = x.slice(0, np.index).replace(/[\s,;.]+$/, "");
+      if (!x && !typedNegs.length) return;
+    }
+  }
   if ((m2.core || []).includes("script")) {
     res.warn.push("Your note (" + x + ") was not added to the script, because " + m2.n + " would read it out loud. Use it to choose the voice and settings.");
     return;
   }
   const said = (res.flat + " " + (res.settings || []).map((r2) => r2[1]).join(" ")).toLowerCase();
   const saidWords = new Set((said.match(/[a-z0-9']+/g) || []).map((w2) => w2.replace(/(ing|ed|es|s|ly)$/, "")));
-  const keep = [], negs = [];
+  const keep = [], negs = [...typedNegs];
   const media = !READS_BACKGROUND.includes(m2.cat);
-  const parts = x.replace(/\([^)]*\)/g, (p0) => p0.replace(/[,.;]/g, "")).replace(/\b(e\.g|i\.e|etc|vs)\./gi, (t0) => t0.replace(".", "")).split(/\s*[;]\s*|,\s+(?=[a-z])|\.\s+/i).map((c) => c.replace(/\u0001/g, ",").replace(/\u0002/g, "."));
+  const parts = x.replace(/\([^)]*\)/g, (p0) => p0.replace(/[,;]/g, "").replace(/\./g, "")).replace(/\b(e\.g|i\.e|etc|vs)\./gi, (t0) => t0.replace(".", "")).split(/\s*[;]\s*|,\s+(?=[a-z])|\.\s+/i).map((c) => c.replace(/\u0001/g, ",").replace(/\u0002/g, "."));
   for (let c of parts) {
     c = c.trim().replace(/^(?:and|but|also|plus|so)\s+/i, "").replace(/^(?:(?:he|she|they|i|we|the client|client|my boss|the team|it)\s+)?(?:wants?|needs?|would like|would love|likes?|hopes?)\s+(?:it\s+|them\s+|this\s+)?(?:to\s+)?/i, "").replace(/^(?:it'?s|its|it is|this is|that'?s)\s+(?:(?:our|my|their|a|an|the|for)\s+)?/i, "").replace(/^(?:(?:it|this|the \w+) )?(?:should |must |has to |needs to )?(?:feel|look|sound)s? like\s+/i, "").trim();
     if (!c) continue;
@@ -43655,7 +43709,7 @@ function addExtra(res, m2, extra, keepAny) {
     keep.push(c);
   }
   if (negs.length) {
-    res.negative = [res.negative, ...negs].filter(has).join(", ");
+    res.negative = [...new Map([res.negative, ...negs].filter(has).flatMap((v2) => String(v2).split(/\s*,\s*/)).filter(Boolean).map((v2) => [v2.toLowerCase(), v2])).values()].join(", ");
     if (m2.neg && m2.neg.mode === "flag") {
       const add = negs.join(", ");
       res.flat = /--no\s/.test(res.flat) ? res.flat.replace(/--no\s([^\n]*?)(?=\s--[a-z]|$)/, (_m, list) => "--no " + String(list).replace(/[\s,]*$/, "") + ", " + add) : res.flat.search(/\s--[a-z]/) > 0 ? res.flat.replace(/(\s--[a-z])/, " --no " + add + "$1") : res.flat.replace(/\s*$/, "") + " --no " + add;
@@ -44262,7 +44316,7 @@ function trustTheirWords(b, theirWords) {
     else delete out.motion;
   }
   const INST = ["piano", "felt piano", "upright piano", "acoustic guitar", "electric guitar", "nylon-string guitar", "guitar", "banjo", "fiddle", "violin", "cello", "strings", "string section", "brass", "trumpet", "horns", "saxophone", "sax", "flute", "clarinet", "ukulele", "harp", "organ", "hammond", "synth", "synthesizer", "808", "drums", "drumline", "snare", "timpani", "bells", "glockenspiel", "xylophone", "marimba", "handclaps", "claps", "choir", "bass", "upright bass", "lap steel", "accordion", "mandolin", "harmonica", "sitar", "tabla", "steel drums", "music box", "toy piano", "kalimba"];
-  const named = INST.filter((i) => new RegExp("\\b" + i + "s?\\b").test(said));
+  const named = INST.filter((i) => new RegExp("\\b" + i + "s?\\b").test(said) && !new RegExp("\\b(?:no|without)\\s+(?:\\w+\\s+)?" + i + "s?\\b").test(said));
   if (has(theirWords) && named.length && arr(b.mInst).length) {
     const fits = arr(b.mInst).filter((i) => named.some((n) => String(i).toLowerCase().includes(n)));
     out.mInst = [.../* @__PURE__ */ new Set([...fits, ...named.filter((n) => !fits.some((f2) => String(f2).toLowerCase().includes(n)))])].slice(0, 5);

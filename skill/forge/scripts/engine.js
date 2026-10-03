@@ -2385,7 +2385,9 @@ function imageSections(b, m){
   // 12.4: "Anime of an anime girl", "Pixel art of pixel art castle": when the subject already names the medium, say it once
   const norm = (/** @type {unknown} */ x) => " " + String(x).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim() + " ";
   const core = norm(med).replace(/ (?:illustration|painting|drawing|art|print|render|design|style|still|photo|photograph) $/, " ");
-  S.push(["Subject", (String(med).trim() && (norm(subj).includes(norm(med)) || (core.trim().length > 2 && norm(subj).includes(core))) ? cap(withSetting(lc(subj), b.setting)) : cap(med) + " of " + withSetting(lc(subj), b.setting)) + "."]);
+  // Oct 2026 fake test: "Flat vector of infographic explaining..." - a thing that IS a graphic takes its style as a word in front
+  const isThing = /^(?:an?\s+)?(?:infographic|poster|logo|diagram|chart|map|flyer|sticker|icon|banner|menu|label|card|invitation|badge|comic|thumbnail)s?\b/i.test(String(subj).trim());
+  S.push(["Subject", (String(med).trim() && (norm(subj).includes(norm(med)) || (core.trim().length > 2 && norm(subj).includes(core))) ? cap(withSetting(lc(subj), b.setting)) : isThing ? cap(med) + " " + withSetting(lc(String(subj).replace(/^(?:an?|the)\s+/i, "")), b.setting) : cap(med) + " of " + withSetting(lc(subj), b.setting)) + "."]);
   // 13.14: each chip with what it looks like, in sentences ("Golden hour: low, warm sun raking across...")
   const shotLook = lookOf(SHOT_LOOK, b.shot);
   const cam = camClause(b); if(cam) S.push(["Camera", cam + (shotLook ? ", " + shotLook : "") + "."]);
@@ -2753,7 +2755,10 @@ llm(b, m){
   const all = [b.goal, b.context, b.extra].filter(has).map(v => join(v)).join(" ");
   const present = /```|\bdef \w+\(|\bfunction\b|=>|\b(?:let|const|var|return|for|while)\b[^.]{0,40}[=;{(]|\{[^}]{10,}\}|["\u201c'][^"\u201d']{30,}["\u201d']/.test(all);
   const mat0 = materialNamed([b.goal, b.context].filter(has).join(" "));
-  const mat = present || /\b(chapter|textbook|book|unit|lesson)\b/i.test(String(mat0 || "")) ? "" : mat0;
+  // Oct 2026 fake test: "turn these notes into a study sheet with headings: photosynthesis needs light water co2, ..." already
+  // has the notes after the colon; no "[Paste the notes here]"
+  const inline = /\b(?:notes?|text|these|this|list|points|facts|info(?:rmation)?|headings|below)\b[^:]{0,40}:\s*\S+(?:\s+\S+){5,}/i.test(all);
+  const mat = present || inline || /\b(chapter|textbook|book|unit|lesson)\b/i.test(String(mat0 || "")) ? "" : mat0;
   if(has(b.pasted)) S.push([xml ? "<material>" : "## Material", String(b.pasted)]); // 13.2: what they already pasted
   else if(mat && !(has(b.context) && String(b.context).length > 280)) S.push([xml ? "<material>" : "## Material", "[Paste " + mat + " here]"]);
   // v1 step 15: what their own words ask for, as plain requirements (see chatNeeds)
@@ -3366,7 +3371,7 @@ function pickAspect(t, m){
     else if(/\b(ultra-?wide|cinemascope|anamorphic|2\.39|letterbox\w*)\b/i.test(t)) want = 21/9;
     else if(/\b(widescreen|landscape (orientation|format|mode)|youtube (video|thumbnail|banner|intro)|desktop wallpaper|thumbnail|banner|header|16 by 9)\b/i.test(t)) want = 16/9;
     else if(/\b(wide shot|wide-angle|wide angle|panoram\w*|landscape view|establishing shot|vista)\b/i.test(t)) want = 16/9; // v1 bug hunt: a "wide shot" came out square
-    else if(/(?:^|[,;]\s*)wide(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 16/9; // Oct 2026 fake test: "..., pixar style, wide" came out square
+    else if(/(?:^|[,;]\s*)(?:wide|landscape)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 16/9; // Oct 2026 fake test: "..., pixar style, wide" came out square; a lone "landscape" too
     else if(/(?:^|[,;]\s*)tall(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2/3;
     // v2.6: a clip for social media is vertical unless it is for YouTube (judges: "16:9 for a social clip")
     else if(m.cat === "video" && /\b(social(?: media)?|instagram|insta|ig|tiktok|reels?|stories|phone)\b/i.test(t) && !/\byoutube\b(?!\s+shorts?)/i.test(t)) want = 9/16;
@@ -3563,7 +3568,10 @@ function rebuildBriefParts(text, m){
         d = d.split(/,\s*/).map(c => setg && c.trim().toLowerCase().startsWith(setg) ? c.trim().slice(setg.length).trim() : c).filter(c => { const x = c.trim().toLowerCase(); return x && !subj.includes(x) && !x.includes(subj || "\u0000") && !(setg && setg.includes(x)) && !avoidFrom(x); }).join(", "); // 8.7.18: nor the setting again, nor a keep-out
         d = d.split(/,\s*/).filter(c => !/^(?:for|to)\s+(?:a|an|the|our|my|your|his|her|their|this)\b/i.test(c.trim())).join(", ");
         // v1 step 14: "close up, cinematic" and "slow motion" are how it is filmed, not what happens (the action was "close up, cinematic").
-        d = d.split(/,\s*/).filter(c => !/^(?:(?:extreme |a )?close-?ups?|wide(?: shot)?|medium shot|establishing(?: shot)?|cinematic|slow[- ]?(?:motion|mo)|time-?lapse|drone shot|aerial(?: shot)?|\d+\s*(?:s|sec|secs|seconds)|shot on [\w ]+|\d+mm|4k|vertical|horizontal|widescreen|16:9|9:16|soft light|golden hour|realistic|photorealistic)$/i.test(c.trim())).join(", "); // v2.6: "for our restaurant's social media" is what it is for, not what happens
+        d = d.split(/,\s*/).filter(c => !/^(?:(?:extreme |a )?close-?ups?|wide(?: shot)?|medium shot|establishing(?: shot)?|cinematic|slow[- ]?(?:motion|mo)|time-?lapse|drone shot|aerial(?: shot)?|\d+\s*(?:s|sec|secs|seconds)|shot on [\w ]+|\d+mm|4k|vertical|horizontal|widescreen|16:9|9:16|soft light|golden hour|realistic|photorealistic)$/i.test(c.trim()) && !/^(?:vertical|horizontal|square|wide)\s+for\s+\w+$|^for\s+(?:tiktok|reels?|shorts|instagram|youtube)$/i.test(c.trim())).join(", "); // Oct 2026: "vertical for tiktok" is the shape, not the action // v2.6: "for our restaurant's social media" is what it is for, not what happens
+        // Oct 2026 fake test: "funny" is a mood, not something that happens
+        { const MOODS = /^(?:funny|cute|sad|epic|dramatic|scary|creepy|happy|calm|chill|cozy|cosy|eerie|joyful|intense|peaceful|romantic|mysterious|dreamy|playful|wholesome|hilarious)$/i;
+          const keepC = d.split(/,\s*/).filter(c => { if(MOODS.test(c.trim())){ if(!arr(b.mood).length) b.mood = [c.trim().toLowerCase()]; return false; } return true; }); d = keepC.join(", "); }
         if(d.length>40) b.action = d; else if(d.length > 8 && !saidIn(b.subject, d)) sug("action", d); // 8.5.14: never the subject again, "held for the length of the shot"
       }
       // v1 step 14: how it is filmed goes to the camera boxes, so the rewrite keeps them
@@ -3609,6 +3617,20 @@ function rebuildBriefParts(text, m){
       const cm = kw ? t.slice(kw.index).match(/^[^.]{0,80}?\b(?:called|named)\s+((?:[A-Z0-9][\w'&-]*)(?:\s+(?:&\s+)?[A-Z0-9][\w'&-]*){0,4})/) : null;
       if(cm) b.imgtext = cm[1];
     }
+    // Oct 2026 fake test (Doctor): "beautiful girl, ..., sunset, beach" lost "beach" and said "Photograph of girl".
+    // A lone place in a tag list is the setting; a lone noun gets its "a".
+    if(m.cat === "image" || m.cat === "video"){
+      /** @type {Record<string, string>} */
+      const PLACES = {beach:"on a", street:"on a", mountain:"on a", rooftop:"on a", field:"in a", forest:"in a", city:"in a", desert:"in a", jungle:"in a", park:"in a", garden:"in a", cafe:"in a", kitchen:"in a", studio:"in a", castle:"in a", meadow:"in a", lake:"by a", river:"by a", ocean:"by the", sea:"by the", space:"in", snow:"in the", underwater:""};
+      if(!has(b.setting) && typeof b.extra === "string"){
+        const parts = String(b.extra).split(/\s*,\s*/);
+        const i = parts.findIndex(x => Object.prototype.hasOwnProperty.call(PLACES, x.toLowerCase().replace(/[.!]$/, "")));
+        if(i >= 0){ const w = parts[i].toLowerCase().replace(/[.!]$/, ""); b.setting = (PLACES[w] ? PLACES[w] + " " : "") + w; parts.splice(i, 1); if(parts.length) b.extra = cap(parts.join(", ")); else delete b.extra; }
+      }
+      if(typeof b.subject === "string" && /^[A-Za-z]+$/.test(b.subject) && !/s$/i.test(b.subject) && !/^(?:snow|rain|fog|water|fire|smoke|light|art|space)$/i.test(b.subject)) b.subject = cap(artic(b.subject.toLowerCase()) + " " + b.subject.toLowerCase());
+    }
+    // Oct 2026 fake test: "in slow motion" is how it moves, not where it is
+    if(typeof b.setting === "string" && /^(?:in\s+)?(?:super\s+)?slow[- ]?(?:motion|mo)$/i.test(b.setting.trim())) delete b.setting;
     // Oct 2026: "pixar style" already answers "Photo, painting, 3D...?", so Forge does not ask it again
     if(m.cat === "image" && /\b(pixar|dreamworks|3d animat\w*|animated (?:movie|film) style)\b/i.test(t) && (!has(b.medium) || suggested.includes("medium"))){
       b.medium = "3D render"; const i = suggested.indexOf("medium"); if(i >= 0) suggested.splice(i, 1); // their words, not Forge's guess
@@ -3639,6 +3661,15 @@ function rebuildBriefParts(text, m){
     if(/\binstrumental\b|\bno (vocals|singing|lyrics)\b/i.test(t)) b.mVocal = "Instrumental";
     // 12.4: "name our group The Dice Chasers", "mention 10 years": a name said in the music needs a voice (the judges caught "no vocals")
     else if(/\b(song|sing|sings|sung|singer|lyrics?|vocals?|chorus|verse|rap|rapper|anthem|jingle|duet|lullaby|ballad|mention(?:s|ing)?|shout[\s-]?outs?)\b|\b(?:name|say|says)\s+(?:our|my|the|his|her|their)\b/i.test(t)) b.mVocal = "Vocals";
+    // Oct 2026 fake test: "no drums" put drums IN the instrument list, and "female vocals" became plain "Vocals"
+    if(Array.isArray(b.mInst)) b.mInst = b.mInst.filter(/** @param {string} x */ x => /^vocals?$/i.test(String(x)) || !new RegExp("\\b(?:no|without|not any|zero)\\s+(?:\\w+\\s+)?" + String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/s?$/, "s?") + "\\b", "i").test(t));
+    if(Array.isArray(b.mInst) && !b.mInst.length) delete b.mInst; // vocals on an instrumental track are handled by the composer (12.4)
+    // ... and what they ruled out goes in Exclude, so nothing puts it back as an instrument
+    { const ex = [...t.matchAll(/\b(?:no|without)\s+((?:heavy |loud |electric |acoustic )?(?:drums?|percussion|guitars?|bass|synths?|piano|strings|brass|autotune|vocals?|singing|lyrics|beats?|808s?))\b/gi)].map(x => x[1].toLowerCase());
+      const keep = ex.filter(x => !/^(?:vocals?|singing|lyrics)$/.test(x) || b.mVocal !== "Instrumental");
+      if(keep.length && !has(b.mExclude)) b.mExclude = keep.join(", "); }
+    { const vg = t.match(/\b(female|woman'?s?|girl'?s?|male|man'?s?|boy'?s?|deep|soft|raspy|husky|choir|duet)\s+(vocals?|voice|singer)\b/i);
+      if(vg && b.mVocal !== "Instrumental") b.mVocal = cap(vg[1].toLowerCase().replace(/'?s$/, "").replace(/^woman$/, "female").replace(/^girl$/, "female").replace(/^man$/, "male").replace(/^boy$/, "male")) + " vocals"; }
     // 3.6.3: only an actual arrangement goes in Arrangement, otherwise the text appears twice
     if(/\b(start with|starts with|then|build|builds|drop|intro|outro|verse|chorus|bridge|breakdown|fade)\b/i.test(t)) b.mStruct = t;
   } else if(m.cat==="sfx"){
@@ -4155,6 +4186,9 @@ const APOSTROPHE = Object.fromEntries(("dont:don't doesnt:doesn't didnt:didn't c
   "thats:that's whats:what's theres:there's heres:here's im:I'm ive:I've youve:you've weve:we've theyve:they've youll:you'll " +
   "theyll:they'll itll:it'll").split(" ").map(x => x.split(":")));
 /** @param {string} text @returns {{text: string, fixes: {from: string, to: string}[]}} */
+/** Oct 2026 fake test: "london to paris in december" became "pairs in deceiver". Months, days, places and languages typed in
+ *  lowercase are not typos. Only autocorrect reads this list: they are still names for the invented-name check. */
+const NOT_TYPOS = new Set("london to paris in december pairs in deceiver january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday london paris rome madrid barcelona lisbon berlin munich amsterdam brussels vienna prague budapest warsaw athens istanbul dublin edinburgh glasgow manchester liverpool birmingham bristol oxford cambridge milan venice florence naples nice lyon marseille zurich geneva copenhagen stockholm oslo helsinki reykjavik moscow kyiv cairo dubai doha riyadh jerusalem tel aviv tokyo kyoto osaka seoul beijing shanghai hong kong singapore bangkok bali delhi mumbai sydney melbourne auckland toronto vancouver montreal chicago boston seattle miami denver austin dallas houston vegas orlando hawaii brooklyn manhattan england scotland wales ireland britain france spain portugal italy germany austria switzerland netherlands belgium greece turkey poland sweden norway denmark finland iceland russia ukraine egypt israel morocco nigeria kenya japan china korea india thailand vietnam indonesia australia zealand canada mexico brazil argentina chile peru colombia usa america europe asia africa english french spanish italian german portuguese dutch greek turkish polish swedish russian arabic hebrew japanese chinese mandarin korean hindi".split(" "));
 /** 9.4: Forge's own words, trusted by spelling and used as fixes */
 const FORGE_WORDS = ["prompt", "prompts", "setting", "settings", "medieval", "plugin", "plugins", "graphify", "toggleable", "matchmaker", "extension", "context", "reverse", "doctor", "summary", "summarised", "conversation"];
 /** 12.2: an animal in the request gives whisker typos their meaning */
@@ -4227,6 +4261,7 @@ function autocorrect(text){
   // 8.5.3: accented letters are part of a word ("cliché" was split and became "clinch")
   let fixed = masked.replace(/[A-Za-zÀ-ɏ]+(?:'[a-z]+)?/g, (w, at, all) => {
     if(/[À-ɏ]/.test(w)) return w;
+    if(NOT_TYPOS.has(w.toLowerCase())) return w;
     if(w.length > 24) return w; // 9.15: a pasted hash or a long run of letters is not a typo (building every one-letter change of it ran out of memory)
     const prev = all[at - 1] || "", next = all[at + w.length] || "";
     const aw = Object.prototype.hasOwnProperty.call(APOSTROPHE, w.toLowerCase()) ? APOSTROPHE[w.toLowerCase()] : ""; // 8.5.15: "constructor" hit the prototype // 8.12: before the short-word rule, so "im" is fixed too
@@ -4606,8 +4641,12 @@ function matchReason(top, query, second){
 /** 8.5: the "Anything else?" box, added in the style of the finished prompt. Not counted in the score.
  *  @param {Result} res @param {Model} m @param {Value} extra @param {boolean=} keepAny 12.4: keep a part with even one new word */
 function addExtra(res, m, extra, keepAny){
-  const x = stripDot(String(extra || "").trim());
+  let x = stripDot(String(extra || "").trim());
   if(!x) return;
+  // Oct 2026 fake test: "negative prompt: blurry, ugly" typed into the request is the negative list, not prompt text
+  /** @type {string[]} */ const typedNegs = [];
+  { const np = x.match(/\bnegative(?: prompt)?\s*:\s*([^\n]+)$/i);
+    if(np && m.neg){ typedNegs.push(...np[1].split(/\s*,\s*/).map(v => v.trim().replace(/[.;]+$/, "")).filter(Boolean)); x = x.slice(0, np.index).replace(/[\s,;.]+$/, ""); if(!x && !typedNegs.length) return; } }
   if((m.core || []).includes("script")){ // text to speech: the prompt IS what gets read aloud
     res.warn.push("Your note (" + x + ") was not added to the script, because " + m.n + " would read it out loud. Use it to choose the voice and settings.");
     return;
@@ -4617,11 +4656,12 @@ function addExtra(res, m, extra, keepAny){
   // settings already carry is dropped, and talk about the person ("they want it to") is taken out
   const said = (res.flat + " " + (res.settings || []).map(r => r[1]).join(" ")).toLowerCase();
   const saidWords = new Set((said.match(/[a-z0-9']+/g) || []).map(w => w.replace(/(ing|ed|es|s|ly)$/, ""))); // 8.5.15: whole words ("time" is not in "timer")
-  const keep = [], negs = [];
+  const keep = [], negs = [...typedNegs];
   // 8.5.14: brackets and "e.g." stay whole; talk about the person's own uncertainty is dropped; on media AIs,
   // pieces about where it is shown, who it is for or deadlines are dropped (the AI cannot draw them)
   const media = !READS_BACKGROUND.includes(m.cat);
-  const parts = x.replace(/\([^)]*\)/g, p0 => p0.replace(/[,.;]/g, "\u0001")).replace(/\b(e\.g|i\.e|etc|vs)\./gi, t0 => t0.replace(".", "\u0002"))
+  // a full stop inside brackets stays a full stop ("(detailed:1.4)" became "(detailed:1,4)")
+  const parts = x.replace(/\([^)]*\)/g, p0 => p0.replace(/[,;]/g, "\u0001").replace(/\./g, "\u0002")).replace(/\b(e\.g|i\.e|etc|vs)\./gi, t0 => t0.replace(".", "\u0002"))
     .split(/\s*[;]\s*|,\s+(?=[a-z])|\.\s+/i).map(c => c.replace(/\u0001/g, ",").replace(/\u0002/g, "."));
   for(let c of parts){
     c = c.trim().replace(/^(?:and|but|also|plus|so)\s+/i, "")
@@ -4675,7 +4715,7 @@ function addExtra(res, m, extra, keepAny){
     keep.push(c);
   }
   if(negs.length){
-    res.negative = [res.negative, ...negs].filter(has).join(", ");
+    res.negative = [...new Map([res.negative, ...negs].filter(has).flatMap(v => String(v).split(/\s*,\s*/)).filter(Boolean).map(v => [v.toLowerCase(), v])).values()].join(", "); // each keep-out once
     // 8.7.4: on a --no model the keep-outs live inside the prompt, and the prompt was already composed, so
     // the new ones have to be put into its --no list by hand or they vanish.
     if(m.neg && m.neg.mode === "flag"){
@@ -5227,7 +5267,8 @@ function trustTheirWords(b, theirWords){
     if(mv.length) out.motion = mv; else delete out.motion;
   }
   const INST = ["piano","felt piano","upright piano","acoustic guitar","electric guitar","nylon-string guitar","guitar","banjo","fiddle","violin","cello","strings","string section","brass","trumpet","horns","saxophone","sax","flute","clarinet","ukulele","harp","organ","hammond","synth","synthesizer","808","drums","drumline","snare","timpani","bells","glockenspiel","xylophone","marimba","handclaps","claps","choir","bass","upright bass","lap steel","accordion","mandolin","harmonica","sitar","tabla","steel drums","music box","toy piano","kalimba"];
-  const named = INST.filter(i => new RegExp("\\b" + i + "s?\\b").test(said));
+  // Oct 2026 fake test: "no drums" is not naming drums
+  const named = INST.filter(i => new RegExp("\\b" + i + "s?\\b").test(said) && !new RegExp("\\b(?:no|without)\\s+(?:\\w+\\s+)?" + i + "s?\\b").test(said));
   if(has(theirWords) && named.length && arr(b.mInst).length){
     const fits = arr(b.mInst).filter(i => named.some(n => String(i).toLowerCase().includes(n)));
     out.mInst = [...new Set([...fits, ...named.filter(n => !fits.some(f => String(f).toLowerCase().includes(n)))])].slice(0, 5);
