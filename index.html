@@ -7004,6 +7004,10 @@ function glLatestAsk(turns){
   const prev = turns.slice(0, i).reverse().find(t => t.role === "assistant");
   const q = prev ? (String(prev.text).match(/[^.!?\n]*\?/g) || []).map(x => x.trim()).filter(x => x.split(/\s+/).length >= 2).pop() : "";
   if(m && q){ const rest = m[1] ? glTidyAsk(m[1]) : ""; return 'Yes to "' + q + '"' + (rest ? ", and " + rest.charAt(0).toLowerCase() + rest.slice(1) : "."); }
+  // Oct 2026 context test: "no we're buying the cake. i need the clues and a shopping list" - the no answered the AI;
+  // the new request is what comes after it
+  const no = said.match(/^(?:no|nope|nah)\b[^.!?\n]*[.!?\n]+\s*(\S.*)$/is);
+  if(no && q) return glTidyAsk(no[1]);
   return glTidyAsk(said);
 }
 
@@ -7067,8 +7071,9 @@ function chatContext(input){
   sum.latest = user.length > 1 ? glLatestAsk(turns) : "";
   for(const t of user) for(const x of sents(t.text)){
     // v1 step 14: "no stock photos" is a rule too (a real /forge-map run listed it as "not tagged as a rule")
-    const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
-    if(RULE.test(x)){ const cl = x.split(/,\s*|;\s*|\s+but\s+|\s+and\s+(?=(?:never|don'?t|do not|no|only|without|must|keep)\b)/i).filter(c => RULE.test(c)); sum.rules.push(...(cl.length ? cl : [x]).map(c => c.replace(/^\s*(?:and|but|also|plus|then)\s+/i, ""))); }
+    // Oct 2026: "not too scary", "nothing too heavy", "has to finish by 4pm" and allergies are rules too
+    const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it|not too|nothing too|has to|have to|no later than|allerg\w*)\b|\bby \d{1,2}(?::\d\d)?\s*(?:am|pm)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
+    if(RULE.test(x)){ const cl = x.split(/,\s*|;\s*|\s+but\s+|\s+and\s+(?=(?:never|don'?t|do not|no|only|without|must|keep)\b)/i).filter(c => RULE.test(c)); sum.rules.push(...(cl.length ? cl : [x]).map(c => c.replace(/^\s*(?:and|but|also|plus|then)\s+/i, "").replace(/^it\s+(?=has to|have to)/i, "").replace(/[.!]+$/, ""))); }
     else if(/\b(let'?s|we'?ll|go with|going with|decided|i chose|i choose|i picked|use the|yes,? (?:do|go)|ok,? (?:do|go)|i want)\b/i.test(x)) sum.decisions.push(x);
   }
   for(const t of ai) for(const x of sents(t.text)){
@@ -7077,28 +7082,47 @@ function chatContext(input){
   }
   // v1 step 16: the person's answer to the AI's question is a decision ("What should it cover?" -> "race results, a member
   // of the month, upcoming runs"); before, it was only kept when it said "let's" or "decided"
-  const up1 = (/** @type {string} */ x) => x.charAt(0).toUpperCase() + x.slice(1);
+  // Oct 2026 sweep: never capitalise code ("const items = ..." became "Const items")
+  const up1 = (/** @type {string} */ x) => /[{}();=<>]|^\S+\.\S+/.test(x) ? x : x.charAt(0).toUpperCase() + x.slice(1);
+  /** @type {Set<string>} the AI's questions the person replied to: not open any more */
+  const answered = new Set();
   for(let i = 1; i < turns.length; i++){
     const q = turns[i - 1], ans = turns[i];
     if(q.role !== "assistant" || ans.role === "assistant" || !/\?\s*$/.test(String(q.text).trim())) continue;
-    const first = sents(ans.text)[0] || String(ans.text).trim();
-    if(!first || /^(yes|yeah|yep|no|nope|ok|okay|sure|thanks|thank you)\b[^.,]{0,12}$/i.test(first) || first.split(/\s+/).length > 30) continue;
+    // Oct 2026: the raw first sentence, so a short answer counts ("treasure hunt!" was dropped for being under 3 words)
+    const first = (String(ans.text).trim().split(/(?<=[.!?])\s+|\n+/)[0] || "").replace(/^\s*(?:[-*\u2022#>]+|\d+[.)])\s*/, "").replace(/[.!]+$/, "").trim();
     const qs = sents(q.text).filter(x => /\?$/.test(x)).pop() || "";
+    // the yes/no question it answers ("Should I include a cake recipe?" -> "include a cake recipe")
+    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:i|we|it)?\s*(.+?)\?$/i);
+    for(const x of sents(q.text)) if(/\?$/.test(x)) answered.add(x.toLowerCase());
+    const noA = /^(?:no|nope|nah)\b[,!. ]*/i.exec(first);
+    if(yesQ && noA){ const why = first.slice(noA[0].length).trim(); sum.decisions.push("Don't " + yesQ[1].trim() + (why ? " (" + why + ")" : "")); continue; }
+    if(!first || (!yesQ && /^(yes|yeah|yep|no|nope|ok|okay|sure|thanks|thank you)\b[^.,]{0,12}$/i.test(first)) || first.split(/\s+/).length > 30) continue;
     // v1 step 16: undecided is not a decision ("havent decided if we do cake or cupcakes"): it stays an open question
     if(/\b(?:haven'?t|have not|not yet) (?:decided|checked|looked|thought about it)\b|\bnot sure\b|\bdon'?t know\b|\bundecided\b/i.test(first)){ sum.open.push(first.replace(/[.]+$/, "")); continue; }
     // a label only from a clean "What/Which X?" (judges: "Theme in mind:", "'s the setting time:")
     const tm = qs.match(/^(?:(?:\w+[.!]\s+)?any|what|which)\s+(?!'s\b|is\b|are\b|do\b|does\b|did\b)(?:(?:should|would|will|do|does)\s+(?:it|i|we|you)\s+)?([a-z]+(?:\s+[a-z]+){0,2})\?$/i);
-    const topic = tm && !/\b(in mind|you|me|like)\b/i.test(tm[1]) ? tm[1] : "";
+    // or from a "Theme ideas: space, unicorns, or a treasure hunt?" list
+    const tl = qs.match(/^([A-Za-z]+(?: (?!ideas?\b|options?\b|choices?\b)[a-z]+)?)(?: ideas?| options?| choices?)?:\s/);
+    // only when the AI asked ONE question: "Where? Any limits?" -> "the beach" is not "Limits: the beach"
+    const oneQ = (String(q.text).match(/\?/g) || []).length === 1;
+    const topic = !oneQ ? "" : tm && !/\b(in mind|you|me|like)\b/i.test(tm[1]) ? tm[1] : tl ? tl[1] : "";
     // a yes to "Should I include a training tip?" is the decision "Include a training tip"
-    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:i|we|it)?\s*(.+?)\?$/i);
     const yes = /^(?:yes|yeah|yep|sure|ok|okay)\b[,!. ]*/i.exec(first);
     const d = yesQ && yes ? up1(yesQ[1].trim()) + (first.slice(yes[0].length).trim() ? ", " + first.slice(yes[0].length).trim().replace(/[.]+$/, "") : "")
       : (topic && first.split(/\s+/).length <= 14 ? up1(topic.trim()) + ": " : "") + (topic ? (x => x)(first.replace(/^(?:yes|yeah|ok|okay|sure)\s*,?\s*but\s+/i, "").replace(/[.]+$/, "")) : up1(first.replace(/^(?:yes|yeah|ok|okay|sure)\s*,?\s*but\s+/i, "").replace(/[.]+$/, "")));
     // the whole answer, unless it is exactly one of the rules already ("friendly and a bit funny but no inside jokes" keeps the tone)
-    if(!sum.rules.some(r => String(r).toLowerCase().replace(/[.]+$/, "") === first.toLowerCase().replace(/[.]+$/, ""))) sum.decisions.push(d);
+    // Oct 2026: and without the parts that are already rules ("Outdoor, budget 150 dollars, no peanuts" -> "Outdoor")
+    const ruleSet = new Set(sum.rules.map(r => String(r).toLowerCase().replace(/[.!]+$/, "").trim()));
+    const kept = d.split(/,\s*/).filter(c => !ruleSet.has(c.toLowerCase().replace(/[.!]+$/, "").trim()));
+    if(kept.length && !sum.rules.some(r => String(r).toLowerCase().replace(/[.]+$/, "") === first.toLowerCase().replace(/[.]+$/, ""))) sum.decisions.push(up1(kept.join(", ")));
   }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
-  if(lastAi) sum.open.push(...sents(lastAi.text).filter(x => /\?$/.test(x)));
+  if(lastAi) sum.open.push(...sents(lastAi.text).filter(x => /\?$/.test(x) && !answered.has(x.toLowerCase())));
+  // Oct 2026: the goal is not also a decision, and a decision does not start with "but"
+  const plain = (/** @type {string} */ x) => String(x).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const g0 = plain(sum.goal);
+  sum.decisions = sum.decisions.map(d => up1(String(d).replace(/^\s*(?:but|and|also)\s+/i, ""))).filter(d => !g0 || !(g0.includes(plain(d)) || plain(d).includes(g0)));
   if(lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter(x => /\?$/.test(x))); // answered when the AI spoke after it
   const out = tidy(sum);
   return {shape, turns: turns.map(t => ({role: t.role || "user", text: t.text, ...(t.who ? {who: t.who} : {})})), summary: out, context: ctx(out)};
@@ -7419,8 +7443,23 @@ function readChat(input, opts){
   // because the AI's answers are long and would drown out what the chat is really about
   const weight = /** @param {string} id */ id => { const n = /** @type {GNode} */ (g.nodes.get(id)); return /** @type {Map<string, number>} */ (g.adj.get(id)).size * (1 + n.user / n.count); };
   const gods = glGodNodes(g, 1e9).map(x => ({...x, score: weight(x.id)}))
-    .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1)).slice(0, (opts && opts.topics) || 6)
+    .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1)).slice(0, ((opts && opts.topics) || 6) + 3) // spares, for merged pairs
     .map(({id, label, degree}) => ({id, label, degree}));
+  // Oct 2026 context test: "treasure" and "hunt" were two topics. Two topics that sit side by side at least twice are one
+  // ("treasure hunt"); once is chance ("a cat jumps").
+  {
+    const all = turns.map(t => String(t.text)).join("\n").toLowerCase();
+    const re = (/** @type {string} */ x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    /** @type {any[]} */ const ms = gods;
+    for(let i = 0; i < ms.length; i++) for(let j = 0; j < ms.length; j++){
+      if(i === j || !ms[i] || !ms[j]) continue;
+      const x = String(ms[i].label), y = String(ms[j].label);
+      if(x.includes(" ") || y.includes(" ") || (all.match(new RegExp("\\b" + re(x.toLowerCase()) + "\\s+" + re(y.toLowerCase()) + "\\b", "g")) || []).length < 2) continue;
+      ms[i] = {...ms[i], label: x + " " + y, degree: Math.max(ms[i].degree, ms[j].degree)}; ms[j] = null;
+    }
+    for(let i = gods.length - 1; i >= 0; i--) if(!gods[i]) gods.splice(i, 1);
+    gods.splice((opts && opts.topics) || 6);
+  }
   const lab = /** @param {string} id */ id => /** @type {GNode} */ (g.nodes.get(id)).label;
   // a topic is named after its most connected thing
   const topics = groups.filter(grp => grp.length >= 3).slice(0, 4).map(grp => {
@@ -8474,7 +8513,7 @@ $("#ctxBtn").addEventListener("click", ()=>{
     + '<label><input type="radio" name="ctxWhere" value="new"> A new chat or another AI (with the summary)</label></div></div>'
     + '<button class="strike" id="ctxWrite" type="button" data-tip="Put the chat\'s context and your answers into one prompt">Write the prompt</button>');
   html += '<div id="ctxPrompt"></div>';
-  html += billet("Context block", '<div class="sect-b" style="font-family:var(--f-mono);font-size:0.8125rem;white-space:pre-wrap">' + esc(r.context) + '</div>',
+  html += billet("Context block", '<div class="sect-b" style="font-family:var(--f-mono);font-size:0.8125rem;white-space:pre-wrap">' + esc(cc.context || r.context) + '</div>',
     '<button class="mini" type="button" id="ctxCopyBlock" data-tip="Copy just the summary, to paste at the start of a new chat">Copy</button>');
   $("#ctxOut").innerHTML = html;
   $("#ctxCopyBlock").addEventListener("click", e=>copy(ctxSummaryText() || r.context, e.target.textContent));
