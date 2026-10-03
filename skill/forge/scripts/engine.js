@@ -4454,6 +4454,25 @@ function writerBrief(o){
     "5. No chat talk, no notes to the person inside the prompt, no filler words. Never mention Forge, me or a draft.",
     ...(m.cat === "music" && !/\b(instrumental|no (?:vocals?|lyrics|singing|words)|without (?:vocals?|lyrics|singing))\b/i.test(said) && /\b(song|lyrics?|sing|singer|vocals?|verse|chorus|rap|anthem|jingle|chant|lullaby)\b/i.test(said)
       ? ["6. This is a song: write the complete lyrics yourself, every section with its tag ([Verse], [Chorus], [Bridge]...), full lines not a skeleton, built from the specific details they gave, with the tone they asked for (funny, warm, not sappy...)."] : []), // 10.4 round 13
+    // 12.6 (570 round 1): the writers lost on open lengths ("could run long"), one line for a 30-second spot, --motion low
+    // under a camera move, and empty rows on beer boards and league tables
+    // round 3 (570 round 2): the voice writers kept a one-line sample word for word (rule 1) when the person needed a
+    // 30-second spot, a full menu or a walkthrough, and lost to a full script almost every time
+    ...(() => {
+      if(m.cat !== "voice" || !(m.core || []).includes("script")) return [];
+      const script = join((o.brief || {}).script || ""), words = (script.match(/[A-Za-z0-9']+/g) || []).length;
+      const secs = Number((said.match(/(\d{1,3})[\s-]*(?:s|sec|secs|second|seconds)\b/i) || [])[1] || 0) * ((said.match(/(\d{1,2})[\s-]*(?:min|mins|minute|minutes)\b/i) || [])[1] ? 0 : 1) || Number((said.match(/(\d{1,2})[\s-]*(?:min|mins|minute|minutes)\b/i) || [])[1] || 0) * 60;
+      const longJob = /\b(ad|advert|commercial|spot|radio|promo|trailer|walkthrough|tutorial|tour|guide|menu|affirmations?|meditation|narration|chapter|story|lesson|intro to|explainer|announcement)\b/i.test(said + " " + join((o.brief || {}).useCase || ""));
+      const need = secs ? Math.round(secs * 2.5) : longJob ? 45 : 0;
+      if(!need || words >= need * 0.6) return [];
+      return ["Script length: their words are a start, not the whole read (about " + Math.max(1, Math.round(words / 2.5)) + " seconds" + (secs ? " for a " + secs + "-second slot" : " for this job") + "). Keep their line word for word, and write the rest around it in the same voice so it fills " + (secs ? "the slot (about " + need + " words)" : "the job") + "."];
+    })(),
+    // round 3: the voice writers invented an Australian accent, a "patient tutor" persona, a deep male voice
+    ...(m.cat === "voice" ? ["Voice: describe only the traits they gave or clearly implied (age, gender, accent, persona, pace). Do not add new ones; where they gave none, keep the voice description short and neutral."] : []),
+    // round 2: kept for music only (generic-music 11 -> 89%, el-music 33 -> 67%); it lost on video (hailuo, ltx) and voice design
+    ...(m.cat === "music" ? ["Length: set it every time " + name + " takes one (in Settings, or in the prompt if that is where it goes). If they named a slot (a 15-second intro, a 30-second spot), fit it exactly."] : []),
+    ...(m.id === "mjvideo" ? ["Motion: when the camera itself moves (pan, tilt, truck, orbit, push-in, arc) use --motion high; keep --motion low for small movement with a still camera."] : []),
+    ...(m.cat === "image" && /\b(menus?|lists?|boards?|tables?|charts?|schedules?|brackets?|leaderboards?|cards?|labels?|infographics?|timetables?|price ?lists?|line-?ups?|standings)\b/i.test(said) ? ["Fill it: every row, field and line of the layout gets real content, from what they gave first; where they gave none, write plausible sample entries so the layout is complete (they will replace them). Never leave rows or fields empty."] : []),
     // 10.2 round 12 tried "answer first, one practical extra, never [blanks]" for text: 33% vs 46% (judges: the
     // writer invented the person's own terms, "14 days", "within a day"; the opponent left them as bracketed choices)
     "", "REPLY WITH", "Prompt: <the prompt>" + (m.neg && m.neg.mode === "field" ? "\nNegative: <keep-outs>" : "") + "\nSettings: <settings, if it takes any>");
@@ -4890,7 +4909,7 @@ function findRecipes(main, notes, m, medium, job){
 }
 /** 12.4: the boxes a style is read from (their own words, not the shot, lens or light buttons). When Forge has their
  *  request text, the medium box is skipped: it holds Forge's guess ("flat vector" for a gradient 3D number), not theirs */
-const STYLE_FROM = ["subject", "setting", "extra", "medium", "purpose", "action", "imgtext"];
+const STYLE_FROM = ["subject", "setting", "extra", "medium", "action", "imgtext"]; // not purpose: a photo "for an Instagram post" is still a photo
 /** 12.4 (doc for applyStyle below): the person named a style ("anime", "watercolour", "product photo", "film noir"): add the 2 or 3 markers that make
  *  a picture read as that style, and one known failure as a keep-out where the AI has a keep-out field. Only HOW it
  *  looks, never new things in it (the image test: added cookies lost both posters). From docs/STYLES-RESEARCH.md.
