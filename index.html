@@ -8289,6 +8289,8 @@ const MODEL_ROWS = MODELS.map(m=>({
 mountPicker($("#docModelHost"), "docModel", ST.model, MODEL_ROWS,
   {label:"Target model", labelledby:"lab-docModel", searchHint:"Filter " + MODELS.length + " models", placeholder:"Choose a model"});
 
+// v1 step 15: the "use X instead" button in the Doctor's warning
+document.addEventListener("click", e=>{ const b = e.target.closest("[data-doc-switch]"); if(!b) return; setPickerValue("docModel", b.getAttribute("data-doc-switch")); $("#docBtn").click(); });
 $("#docBtn").addEventListener("click", ()=>{
   const text = $("#docIn").value.trim();
   if(!text){ toast("Paste a prompt first"); return; }
@@ -8307,6 +8309,13 @@ $("#docBtn").addEventListener("click", ()=>{
     + '<div style="font-size:0.8125rem;color:var(--ink-dim);margin:3px 0 7px">' + d.words + ' words in, ' + String(res.flat).trim().split(/\s+/).length + ' words out</div>'
     + '<div class="heat-bar"><div class="heat-fill" style="width:' + res.score + '%"></div></div></div>'
     + '<div style="text-align:right" tabindex="0" data-tip="How Forge\'s rewrite scores. Things Forge added on its own are not counted."><div class="heat-n" style="color:var(--ember)">' + res.score + '</div><div class="heat-t">' + (same ? 'Kept yours' : 'After') + '</div></div></div>';
+  // v1 step 15: "explain photosynthesis to my 9 year old" with Midjourney picked became "Photograph of explain...". When the
+  // words clearly ask for another kind of AI, say so and offer the switch (Forge never switches on its own)
+  { const mm = matchModels(text), top = mm.scored[0] && mm.scored[0].m;
+    const KIND = {image:"a picture", video:"a video", voice:"spoken words", sfx:"a sound effect", music:"music", text:"writing or a chat answer", code:"code", app:"an app or website", research:"research"};
+    const media = (/** @type {string} */ c) => ["image","video"].includes(c);
+    if(top && !mm.guessed && top.cat !== m.cat && !(media(top.cat) && media(m.cat)) && KIND[top.cat] && KIND[m.cat])
+      html = '<p class="fhint" role="note" style="margin:0 0 12px;padding:10px 12px;border:1px solid var(--ember);border-radius:6px">This reads like a job for ' + KIND[top.cat] + ', but the AI picked is ' + esc(m.n) + ' (' + KIND[m.cat] + '). <button class="mini" type="button" data-doc-switch="' + esc(top.id) + '">Use ' + esc(top.n) + ' instead</button></p>' + html; }
 
   // 9.2: the new prompt comes straight after the score (it was at the bottom, under five panels, and looked missing)
   let after = billet("Diagnosis", partsHTML(d.parts));
