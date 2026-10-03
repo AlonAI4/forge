@@ -3401,7 +3401,18 @@ function stripAsk(t){
     .replace(/^\s*(?:please\s+)?use\s+(?:the\s+)?(?:forge|smithy)(?:\s+(?:skill|plugin|tool))?\s*(?:to\s+|[:,.-]\s*)?/i, "")
     .replace(/^\s*(?:(?:can|could)\s+you\s+|please\s+)?(?:write|make|create|generate|give me|forge|build)\s+(?:me\s+)?(?:a\s+|an\s+|the\s+)?(?:good\s+|great\s+|better\s+|expert\s+|detailed\s+)?prompt\s+(?:for|to use (?:in|with)|in)\s+[\w.+-]+(?:\s+[\w.+-]+){0,2}?\s*(?:[:,-]\s*|\.\s+|\s+(?=(?:a|an|the|my|our|of|about)\b))/i, "")
     .replace(/\s*[.,]?\s*(?:and\s+)?(?:please\s+)?(?:skip|no|don'?t ask)\s+(?:the\s+|any\s+)?questions?\s*(?:please)?\s*[.!]?\s*$/i, "")
+    .replace(aiNameRe(), "")
     .trim();
+}
+/** Oct 2026 real run: "... almost tipping over model gpt image 2" put "model gpt image 2" into the subject. "model X",
+ *  "for X", "in X", "using X" where X is an AI Forge knows (with a version number) is who it is for, not what to draw. */
+let AI_NAME_RE = /** @type {RegExp | null} */ (null);
+function aiNameRe(){
+  if(AI_NAME_RE) return AI_NAME_RE;
+  const names = [...new Set(MODELS.flatMap(m => [m.n, m.id]).filter(n => n && n.length > 2).map(n => String(n).toLowerCase()))]
+    .sort((x, y) => y.length - x.length).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "[\\s-]*"));
+  AI_NAME_RE = new RegExp("\\s*[,.]?\\s*\\b(?:(?:with|for|in|on|using|use|model|ai)\\s*:?\\s+)+(?:the\\s+)?(?:" + names.join("|") + ")(?:[\\s-]*v?\\d+(?:\\.\\d+)?)?(?:\\s+(?:model|ai))?\\b\\s*[.!]?(?=\\s*$|\\s*[,.\\n])", "gi");
+  return AI_NAME_RE;
 }
 /** v1 bug hunt: lines Forge adds to the person's "Anything else?" on its own. They are Forge's, so the check never asks
  *  the writer to keep them (the skill's check failed three times asking for the screens line back) */
@@ -3506,7 +3517,7 @@ function rebuildBriefParts(text, m){
     if(b.medium){ const bm = String(b.medium).toLowerCase().trim(), generic = /^(?:an? )?(?:illustration|painting|drawing|render|art|artwork|print|design|still|study|sketch)$/i.test(bm);
       const o = opts("medium").find(x => x === bm || bm.includes(x) || (!generic && x.includes(bm))); if(o) b.medium = (F.medium.o||[]).find(x=>x.toLowerCase()===o); }
     { // 12.4: "a vaporwave city" became "Photograph of a vaporwave city": a named style that is not a photo sets the medium Forge would guess
-      const st = RECIPES.filter(r => r.kind === "style" && r.medium && (!r.for || r.for === m.cat) && r.when.test(t)).sort((x, y) => (t.match(y.when) || [""])[0].length - (t.match(x.when) || [""])[0].length)[0];
+      const st = RECIPES.filter(r => r.kind === "style" && r.medium && (!r.for || r.for === m.cat) && r.when.test(t) && !(r.unless && r.unless.test(t))).sort((x, y) => (t.match(y.when) || [""])[0].length - (t.match(x.when) || [""])[0].length)[0];
       if(st && !has(b.medium)) sug("medium", st.medium); // Forge's pick, so the checker never demands it back
       else if(st && st.medium && st.medium.toLowerCase().includes(String(b.medium).toLowerCase().trim())) b.medium = st.medium; // "illustration" + isometric = isometric illustration
     }
@@ -3842,12 +3853,19 @@ function askedFormat(t, kind){
 }
 
 /** @param {string} text @param {Model} m @param {Level=} level */
-/** @param {string} text @param {Model} m @param {Level=} level @param {{noStyle?: boolean, addBoxes?: Record<string, Value>, level?: Level}=} more 13.3: Best's switches */
+/** @param {string} text @param {Model} m @param {Level=} level @param {{noStyle?: boolean, addBoxes?: Record<string, Value>, answers?: Record<string, string>, level?: Level}=} more 13.3: Best's switches */
 function forgeFromText(text, m, level, more){
   const fixed = autocorrect(text);
   const {brief, suggested} = rebuildBrief(fixed.text, m);
   // 13.3: Best fills empty craft boxes with what winners of similar requests used; they are Forge's picks, not theirs
   for(const [k, v] of Object.entries((more && more.addBoxes) || {})) if(!has(brief[k])){ brief[k] = v; suggested.push(k); }
+  // Oct 2026 real run: answers to Forge's questions go straight into their boxes and always win. Before, they came in as
+  // "Where will you use it? A post, a poster, a website: Instagram post" and "poster" made the picture 2:3.
+  for(const [k, v0] of Object.entries((more && more.answers) || {})){
+    const v = String(v0 ?? "").trim(); if(!v || !F[k]) continue;
+    brief[k] = F[k].t === "chips" ? v.split(/\s*,\s*/) : v;
+    const i = suggested.indexOf(k); if(i >= 0) suggested.splice(i, 1);
+  }
   if(more && more.level) level = more.level;
   const res = forge(brief, m, level, {said: text, ...(more || {})});
   const found = Object.fromEntries(Object.entries(brief).filter(([k])=>!suggested.includes(k)));
@@ -4444,6 +4462,11 @@ function matchModels(query, priorities, kind){
     if((catScore.app || 0) > 0 || (catScore.code || 0) > 0){ catScore.app = (catScore.app || 0) + 2; catScore.code = Math.max(0, (catScore.code || 0) - 1.5); }
   }
   if(kind && JOB_KINDS.includes(kind)) catScore[kind] = (catScore[kind] || 0) + 8; // 11.2: the small AI's reading outweighs the word rules
+  // Oct 2026 real run: "a fox in the snow" (no AI, no kind named) went to Claude. Unsure is still writing (8.5.4), but a bare
+  // scene - "a/the/my <thing> in/on/over/flying/playing ..." with no question, no writing verb and no "for my ..." purpose - is a picture.
+  if(!Object.values(catScore).some(v => v > 0) && q.split(/\s+/).length <= 30
+    && /^(?:an?|the|my|our|two|three|some|old|little|cute|giant|tiny)\s+[a-z]+(?:\s+[a-z]+)?\s+(?:in|on|over|under|at|through|across|inside|beside|near|by|with|flying|playing|sitting|standing|running|sleeping|walking|jumping|swimming|riding|holding|wearing|looking)\b/.test(q)
+    && !/\?|\b(?:how|what|why|when|who|which|explain|write|tell|help|plan|list|summari[sz]e|translate|fix|code|email|essay|story|poem|speech|letter|message|text|post|caption|quiz|lesson|recipe|schedule|budget|party|trip|meeting)\b|\bfor (?:my|our|a|an|the)\b/.test(q)) catScore.image = 2;
   const wanted = Object.entries(catScore).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([c])=>c);
   const cats = wanted.length ? wanted.slice(0,3) : ["text","code","research"]; // 8.3: unsure? most jobs are writing (8.5.4: not image)
   const guessed = !wanted.length;
@@ -5424,7 +5447,8 @@ function forge(b, m, level, opts){
   let styleFromNote = false; // 12.4: the medium came from their note, so the note must not then count as "already said"
   if(["image","video"].includes(m.cat) && !has(b.medium)){ // 12.4: "flat vector sticker look" with no medium chosen was a "Photograph of a red fox"
     const all = STYLE_FROM.filter(k => !(k === "medium" && has(opts.said))).map(k => b[k]).filter(has).map(v => join(v)).join(" ") + " " + String(opts.said || ""); // with their words in hand, a medium is Forge's guess
-    const st = RECIPES.filter(r => r.kind === "style" && r.medium && (!r.for || r.for === m.cat) && r.when.test(all)).sort((x, y) => (all.match(y.when) || [""])[0].length - (all.match(x.when) || [""])[0].length)[0];
+    // Oct 2026: a recipe's "unless" counts here too (a storm got "stylised 3D render")
+    const st = RECIPES.filter(r => r.kind === "style" && r.medium && (!r.for || r.for === m.cat) && r.when.test(all) && !(r.unless && r.unless.test(all))).sort((x, y) => (all.match(y.when) || [""])[0].length - (all.match(x.when) || [""])[0].length)[0];
     if(st){ b = {...b, medium: st.medium}; if(st.when.test(String(b.extra || ""))) styleFromNote = true; }
   }
   if(m.cat === "text" && has(opts.said) && !has(b.pasted)){

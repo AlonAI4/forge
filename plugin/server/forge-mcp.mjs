@@ -164,9 +164,9 @@ function nullish(input2) {
   return input2 === null || input2 === void 0;
 }
 function cleanRegex(source) {
-  const start = source.startsWith("^") ? 1 : 0;
+  const start2 = source.startsWith("^") ? 1 : 0;
   const end = source.endsWith("$") ? source.length - 1 : source.length;
-  return source.slice(start, end);
+  return source.slice(start2, end);
 }
 function floatSafeRemainder2(val, step) {
   const ratio = val / step;
@@ -543,9 +543,9 @@ function prefixIssues(path, issues) {
 function unwrapMessage(message) {
   return typeof message === "string" ? message : message?.message;
 }
-function attachSchema(issues, start, inst) {
+function attachSchema(issues, start2, inst) {
   var _a3;
-  for (let i = start; i < issues.length; i++) {
+  for (let i = start2; i < issues.length; i++) {
     (_a3 = issues[i]).schema ?? (_a3.schema = inst);
   }
 }
@@ -37783,7 +37783,7 @@ var RECIPES = [
   { id: "style:3d-lowpoly", kind: "style", when: /\b(?:faceted[\s-]?3d|low[\s-]?poly|low[\s-]?poly)\b/i, add: ["flat-shaded triangular facets", "simple blocky forms with few polygons", "clean minimal shading"], medium: "low-poly 3D render", avoid: ["smooth high-poly surfaces", "photoreal textures"] },
   { id: "style:art-isometric", kind: "style", when: /\b(?:isometric[\s-]?illustration|isometric[\s-]?view|isometric[\s-]?3d|isometric)\b/i, add: ["parallel projection, no perspective", "equal 30 degree axes", "miniature diorama feel"], medium: "isometric illustration", avoid: ["converging perspective lines", "inconsistent angles between objects"] },
   { id: "style:3d-clay", kind: "style", when: /\b(?:clay[\s-]?animation|claymation|clay[\s-]?style|plasticine)\b/i, add: ["tactile clay surface with fingerprints", "soft rounded handmade forms", "stop-motion look with soft studio light"], medium: "claymation-style 3D", avoid: ["smooth plastic CGI sheen", "perfectly clean machine surfaces"] },
-  { id: "style:3d-render", kind: "style", when: /\b(?:cute[\s-]?3d[\s-]?character|3d[\s-]?illustration|stylized[\s-]?3d|stylised[\s-]?3d|3d[\s-]?render)\b/i, add: ["soft rounded forms with smooth materials", "soft studio lighting with gentle shadows", "colourful tactile finish"], medium: "stylised 3D render", avoid: ["uncanny realism", "harsh noisy shadows"] },
+  { id: "style:3d-render", kind: "style", when: /\b(?:cute[\s-]?3d[\s-]?character|3d[\s-]?illustration|stylized[\s-]?3d|stylised[\s-]?3d|3d[\s-]?render)\b/i, unless: /\b(?:realistic|photo\w*|cinematic|dramatic|storm\w*|gritty|moody|dark|horror|epic|intense)\b/i, add: ["soft rounded forms with smooth materials", "soft studio lighting with gentle shadows", "colourful tactile finish"], medium: "stylised 3D render", avoid: ["uncanny realism", "harsh noisy shadows"] },
   { id: "style:art-vector", kind: "style", when: /\b(?:flat[\s-]?illustration|flat[\s-]?design|flat[\s-]?vector|vector[\s-]?art)\b/i, add: ["solid flat colour shapes", "simple geometric forms, bold palette"], medium: "flat vector illustration", avoid: ["gradients and soft shadows", "over-detailed texture"] },
   { id: "style:print-risograph", kind: "style", when: /\b(?:riso[\s-]?print|riso[\s-]?style|risograph)\b/i, add: ["limited spot-ink colours", "grainy textured ink", "slight misregistered overlapping layers"], medium: "risograph print", avoid: ["smooth full-colour photo look", "perfect digital gradients"] },
   { id: "style:print-linocut", kind: "style", when: /\b(?:relief[\s-]?print|block[\s-]?print|linocut|woodcut)\b/i, add: ["bold carved knife marks", "solid flat ink areas", "limited colours, rough print texture"], medium: "linocut print", avoid: ["smooth digital gradients", "fine photographic detail"] },
@@ -42438,7 +42438,17 @@ function notMine(t) {
   return { text, found: found2 };
 }
 function stripAsk(t) {
-  return String(t || "").replace(/^\s*(?:please\s+)?use\s+(?:the\s+)?(?:forge|smithy)(?:\s+(?:skill|plugin|tool))?\s*(?:to\s+|[:,.-]\s*)?/i, "").replace(/^\s*(?:(?:can|could)\s+you\s+|please\s+)?(?:write|make|create|generate|give me|forge|build)\s+(?:me\s+)?(?:a\s+|an\s+|the\s+)?(?:good\s+|great\s+|better\s+|expert\s+|detailed\s+)?prompt\s+(?:for|to use (?:in|with)|in)\s+[\w.+-]+(?:\s+[\w.+-]+){0,2}?\s*(?:[:,-]\s*|\.\s+|\s+(?=(?:a|an|the|my|our|of|about)\b))/i, "").replace(/\s*[.,]?\s*(?:and\s+)?(?:please\s+)?(?:skip|no|don'?t ask)\s+(?:the\s+|any\s+)?questions?\s*(?:please)?\s*[.!]?\s*$/i, "").trim();
+  return String(t || "").replace(/^\s*(?:please\s+)?use\s+(?:the\s+)?(?:forge|smithy)(?:\s+(?:skill|plugin|tool))?\s*(?:to\s+|[:,.-]\s*)?/i, "").replace(/^\s*(?:(?:can|could)\s+you\s+|please\s+)?(?:write|make|create|generate|give me|forge|build)\s+(?:me\s+)?(?:a\s+|an\s+|the\s+)?(?:good\s+|great\s+|better\s+|expert\s+|detailed\s+)?prompt\s+(?:for|to use (?:in|with)|in)\s+[\w.+-]+(?:\s+[\w.+-]+){0,2}?\s*(?:[:,-]\s*|\.\s+|\s+(?=(?:a|an|the|my|our|of|about)\b))/i, "").replace(/\s*[.,]?\s*(?:and\s+)?(?:please\s+)?(?:skip|no|don'?t ask)\s+(?:the\s+|any\s+)?questions?\s*(?:please)?\s*[.!]?\s*$/i, "").replace(aiNameRe(), "").trim();
+}
+var AI_NAME_RE = (
+  /** @type {RegExp | null} */
+  null
+);
+function aiNameRe() {
+  if (AI_NAME_RE) return AI_NAME_RE;
+  const names = [...new Set(MODELS.flatMap((m2) => [m2.n, m2.id]).filter((n) => n && n.length > 2).map((n) => String(n).toLowerCase()))].sort((x, y) => y.length - x.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "[\\s-]*"));
+  AI_NAME_RE = new RegExp("\\s*[,.]?\\s*\\b(?:(?:with|for|in|on|using|use|model|ai)\\s*:?\\s+)+(?:the\\s+)?(?:" + names.join("|") + ")(?:[\\s-]*v?\\d+(?:\\.\\d+)?)?(?:\\s+(?:model|ai))?\\b\\s*[.!]?(?=\\s*$|\\s*[,.\\n])", "gi");
+  return AI_NAME_RE;
 }
 var SCREENS_LINE = "Screens show original made-up art with no real game titles or logos";
 var FORGE_ADDED = [SCREENS_LINE];
@@ -42529,7 +42539,7 @@ function rebuildBriefParts(text, m2) {
       if (o) b.medium = (F.medium.o || []).find((x) => x.toLowerCase() === o);
     }
     {
-      const st = RECIPES.filter((r2) => r2.kind === "style" && r2.medium && (!r2.for || r2.for === m2.cat) && r2.when.test(t)).sort((x, y) => (t.match(y.when) || [""])[0].length - (t.match(x.when) || [""])[0].length)[0];
+      const st = RECIPES.filter((r2) => r2.kind === "style" && r2.medium && (!r2.for || r2.for === m2.cat) && r2.when.test(t) && !(r2.unless && r2.unless.test(t))).sort((x, y) => (t.match(y.when) || [""])[0].length - (t.match(x.when) || [""])[0].length)[0];
       if (st && !has(b.medium)) sug("medium", st.medium);
       else if (st && st.medium && st.medium.toLowerCase().includes(String(b.medium).toLowerCase().trim())) b.medium = st.medium;
     }
@@ -42854,6 +42864,13 @@ function forgeFromText(text, m2, level, more) {
   for (const [k2, v2] of Object.entries(more && more.addBoxes || {})) if (!has(brief2[k2])) {
     brief2[k2] = v2;
     suggested.push(k2);
+  }
+  for (const [k2, v0] of Object.entries(more && more.answers || {})) {
+    const v2 = String(v0 ?? "").trim();
+    if (!v2 || !F[k2]) continue;
+    brief2[k2] = F[k2].t === "chips" ? v2.split(/\s*,\s*/) : v2;
+    const i = suggested.indexOf(k2);
+    if (i >= 0) suggested.splice(i, 1);
   }
   if (more && more.level) level = more.level;
   const res = forge(brief2, m2, level, { said: text, ...more || {} });
@@ -43433,6 +43450,7 @@ function matchModels(query, priorities, kind) {
     }
   }
   if (kind && JOB_KINDS.includes(kind)) catScore[kind] = (catScore[kind] || 0) + 8;
+  if (!Object.values(catScore).some((v2) => v2 > 0) && q.split(/\s+/).length <= 30 && /^(?:an?|the|my|our|two|three|some|old|little|cute|giant|tiny)\s+[a-z]+(?:\s+[a-z]+)?\s+(?:in|on|over|under|at|through|across|inside|beside|near|by|with|flying|playing|sitting|standing|running|sleeping|walking|jumping|swimming|riding|holding|wearing|looking)\b/.test(q) && !/\?|\b(?:how|what|why|when|who|which|explain|write|tell|help|plan|list|summari[sz]e|translate|fix|code|email|essay|story|poem|speech|letter|message|text|post|caption|quiz|lesson|recipe|schedule|budget|party|trip|meeting)\b|\bfor (?:my|our|a|an|the)\b/.test(q)) catScore.image = 2;
   const wanted = Object.entries(catScore).filter(([, v2]) => v2 > 0).sort((a, b) => b[1] - a[1]).map(([c]) => c);
   const cats = wanted.length ? wanted.slice(0, 3) : ["text", "code", "research"];
   const guessed = !wanted.length;
@@ -44446,7 +44464,7 @@ function forge(b, m2, level, opts2) {
   let styleFromNote = false;
   if (["image", "video"].includes(m2.cat) && !has(b.medium)) {
     const all = STYLE_FROM.filter((k2) => !(k2 === "medium" && has(opts2.said))).map((k2) => b[k2]).filter(has).map((v2) => join(v2)).join(" ") + " " + String(opts2.said || "");
-    const st = RECIPES.filter((r2) => r2.kind === "style" && r2.medium && (!r2.for || r2.for === m2.cat) && r2.when.test(all)).sort((x, y) => (all.match(y.when) || [""])[0].length - (all.match(x.when) || [""])[0].length)[0];
+    const st = RECIPES.filter((r2) => r2.kind === "style" && r2.medium && (!r2.for || r2.for === m2.cat) && r2.when.test(all) && !(r2.unless && r2.unless.test(all))).sort((x, y) => (all.match(y.when) || [""])[0].length - (all.match(x.when) || [""])[0].length)[0];
     if (st) {
       b = { ...b, medium: st.medium };
       if (st.when.test(String(b.extra || ""))) styleFromNote = true;
@@ -44877,8 +44895,9 @@ function answerLines(answers) {
 }
 function readRequest(request, m2, answers) {
   const details = answerLines(answers);
-  const said = String(request || "").trim() + (details ? "\n" + details : "");
-  return { details, said, res: engine_default.forgeFromText(said, m2, LEVEL) };
+  const values = Object.values(answers || {}).map((v2) => String(v2 ?? "").trim()).filter(Boolean);
+  const said = String(request || "").trim() + (values.length ? "\n" + values.join("\n") : "");
+  return { details, said, res: engine_default.forgeFromText(String(request || "").trim(), m2, LEVEL, { answers: answers || {} }) };
 }
 function pickAI(a) {
   const { scored } = engine_default.matchModels(a.request, [], a.kind || void 0);
@@ -44904,7 +44923,12 @@ function questions(a) {
       /** @type {any} */
       engine_default.F[q.f] || {}
     );
-    const options = Array.isArray(f2.o) ? f2.o.slice(0, 4).map(String) : [];
+    const COMMON = (
+      /** @type {Record<string, string[]>} */
+      { shot: ["close-up", "medium shot", "wide shot", "low angle"] }
+    );
+    const all = Array.isArray(f2.o) ? f2.o.map(String) : [];
+    const options = (COMMON[q.f] || all).filter((o) => all.includes(o)).slice(0, 4);
     return { field: q.f, question: q.q, ...q.why ? { why: q.why } : {}, ...options.length >= 2 ? { options } : f2.ph ? { example: String(f2.ph) } : {} };
   });
   return {
@@ -44912,6 +44936,24 @@ function questions(a) {
     name: m2.n + (m2.sub ? " " + m2.sub : ""),
     questions: qs,
     next: qs.length ? 'Ask the person these (all at once, short; they may skip any). Then call forge_brief with answers keyed by field, for example {"' + qs[0].field + '": "..."}.' : "Nothing important is missing. Call forge_brief now."
+  };
+}
+function start(a) {
+  let ai = a.ai, pick2;
+  if (!ai) {
+    const p2 = pickAI({ request: a.request, kind: a.kind, count: 2 });
+    pick2 = p2.picks[0];
+    ai = pick2.ai;
+  }
+  const q = a.skip_questions ? { questions: [] } : questions({ request: a.request, ai: String(ai), answers: a.answers });
+  const m2 = needModel(String(ai));
+  return {
+    ai: m2.id,
+    name: m2.n + (m2.sub ? " " + m2.sub : ""),
+    ...pick2 ? { picked: { reason: pick2.reason } } : {},
+    questions: q.questions,
+    brief: String(brief({ request: a.request, ai: m2.id, answers: a.answers })),
+    next: q.questions.length ? "Ask the person these questions now (one AskUserQuestion call if you have it). If they answer, call forge_brief with their answers keyed by field and write from that; if they skip, write from the brief below. Then call forge_check in the same reply as your prompt." : "Write the prompt from the brief now and call forge_check in the same reply. No text before the check."
   };
 }
 function brief(a) {
@@ -44923,7 +44965,12 @@ function check2(a) {
   const m2 = needModel(a.ai);
   const { details, said, res } = readRequest(a.request, m2, a.answers);
   const written = engine_default.writerBrief({ m: m2, request: String(a.request || "").trim(), details, res, brief: {} });
-  return checkPrompt(engine_default, { m: m2, request: String(a.request || "").trim(), said, answers: a.answers || {}, prompt: a.prompt, res, written });
+  const r2 = checkPrompt(engine_default, { m: m2, request: String(a.request || "").trim(), said, answers: a.answers || {}, prompt: a.prompt, res, written });
+  if (!r2.ok && r2.fixed_prompt) {
+    const again = checkPrompt(engine_default, { m: m2, request: String(a.request || "").trim(), said, answers: a.answers || {}, prompt: r2.fixed_prompt, res, written });
+    if (again.ok) return { ...r2, fixed_ok: true };
+  }
+  return r2;
 }
 var COMING = "coming in this build: the Forge engine in this copy does not have this yet. Update Forge to get it.";
 function chatContext2(a) {
@@ -45081,7 +45128,7 @@ function questionsText(r2) {
   const who = r2.name || r2.ai;
   if (!r2.questions.length) return "## Forge: no questions needed for " + who + "\n" + r2.next;
   const n = r2.questions.length;
-  const lines = r2.questions.map((q, i) => i + 1 + ". " + q.question + " (field `" + q.field + "`" + (q.why ? "; " + q.why : "") + ")");
+  const lines = r2.questions.map((q, i) => i + 1 + ". " + q.question + " (field `" + q.field + "`" + (q.why ? "; " + q.why : "") + ")" + (q.options ? " Choices: " + q.options.join(" / ") : q.example ? " Example: " + q.example : ""));
   return ["## Forge: " + n + " question" + (n === 1 ? "" : "s") + " worth asking for " + who, ...lines, "", "Next: " + r2.next].join("\n");
 }
 function briefText(r2) {
@@ -45091,6 +45138,16 @@ function briefText(r2) {
     "",
     fence(r2.brief)
   ].join("\n");
+}
+function startText(r2) {
+  const out = ["## Forge: " + r2.name + (r2.picked ? " (picked: " + dropName(r2.picked.reason, r2.name) + ")" : "")];
+  if (r2.questions.length) out.push(
+    "",
+    "Questions worth asking (all at once; they may skip any):",
+    ...r2.questions.map((q, i) => i + 1 + ". " + q.question + " (field `" + q.field + "`)" + (q.options ? " Choices: " + q.options.join(" / ") : q.example ? " Example: " + q.example : ""))
+  );
+  out.push("", "Forge's brief (write from it; do not show it):", fence(r2.brief), "", "Next: " + r2.next);
+  return out.join("\n");
 }
 function checkText(r2) {
   const who = r2.name ? " for " + r2.name : "";
@@ -45105,6 +45162,13 @@ function checkText(r2) {
   if (r2.negative) out.push("", "Negative prompt:", fence(r2.negative));
   if (r2.forge_draft) out.push("", "Forge's own draft (rewrite yours from the brief; do not just copy this):", fence(r2.forge_draft));
   if (r2.notes && r2.notes.length) out.push("", "Hints (worth a look, not errors):", ...r2.notes.map((n) => "- " + n));
+  if (
+    /** @type {any} */
+    r2.fixed_ok
+  ) {
+    out.push("", "The fixed prompt above already passed this check. Next: show it to the person in one code block, then any settings as a short list. No need to call forge_check again.");
+    return out.join("\n");
+  }
   out.push("", r2.ok ? "Next: show the person the final prompt in one code block, then any settings as a short list." : "Next: fix the problems above" + (r2.fixed_prompt ? " (or take the fixed prompt)" : "") + ", then call forge_check again with the new prompt. Do not show the person a prompt that has not passed.");
   return out.join("\n");
 }
@@ -45203,7 +45267,7 @@ var VERSION = "0.1.0";
 var readChatSetting = () => /^(1|true|yes|on)$/i.test(String(process.env.FORGE_READ_CHAT || "").trim());
 var INSTRUCTIONS = [
   "Forge writes expert prompts for other AIs (image, video, voice, music, chat, coding, app builders, research). Forge is the expert; you (Claude) are the writer.",
-  "The flow: forge_pick_ai (which AI fits the job) -> forge_questions (at most 3 short questions; ask the person, skip any they don't care about) -> forge_brief (Forge's full brief) -> you write the final prompt from the brief -> forge_check (fix every problem it lists, then show the person the prompt). Never show a prompt that has not passed forge_check: after any fix (yours or fixed_prompt), call forge_check again. Up to 3 tries; if it still fails, show it and say plainly which problems are left.",
+  "The quick flow: forge_start (AI, questions and brief in one call) -> ask any questions -> forge_brief only if they answered -> you write -> forge_check in the same reply (fixed_ok means its fixed_prompt already passed). The long flow, when needed: forge_pick_ai (which AI fits the job) -> forge_questions (at most 3 short questions; ask the person, skip any they don't care about) -> forge_brief (Forge's full brief) -> you write the final prompt from the brief -> forge_check (fix every problem it lists, then show the person the prompt). Never show a prompt that has not passed forge_check: after any fix of yours, call forge_check again (a fixed_prompt with fixed_ok already passed). Up to 3 tries; if it still fails, show it and say plainly which problems are left.",
   "If the person already named the AI, skip forge_pick_ai. Never ask a question the person already answered.",
   // Oct 2026 (Alon: "not a website in Claude, actually in Claude"): everything happens in the chat itself
   "Keep Forge inside the chat. Ask Forge's questions with your own question tool when you have one (in Claude Code: AskUserQuestion, all questions in one call, each question's options as choices; for a question without options, offer 2 or 3 likely answers yourself; the person can always type their own). Otherwise ask them in one short message. Show the result as a code block in the chat. Do not open the Forge panel (forge_open) unless the person asks for the panel or a form by name.",
@@ -45242,6 +45306,21 @@ function createServer() {
     const r2 = pickAI(a);
     return reply(pickText(r2), r2);
   });
+  server.registerTool("forge_start", {
+    title: "Start Forge (pick, questions and brief in one call)",
+    description: "The quick way in. One call returns: the AI (picked for you if the person did not name one, with its reason), up to 3 questions worth asking (none if skip_questions), and Forge's full brief. If there are questions, ask them (AskUserQuestion in Claude Code), then call forge_brief with the answers; if not, or the person skips, write from this brief right away and call forge_check in the same reply. Do not show the brief.",
+    inputSchema: {
+      request: REQUEST,
+      ai: external_exports.string().optional().describe('The AI if the person named one: a Forge id such as "midjourney" or its name. Leave out to let Forge pick.'),
+      answers: ANSWERS,
+      skip_questions: external_exports.boolean().optional().describe("True when the person said to skip the questions or wants it now."),
+      kind: external_exports.enum(["image", "video", "voice", "sfx", "music", "text", "code", "app", "research"]).optional().describe("What they want made, when you can tell and no AI is named. Helps Forge pick.")
+    },
+    annotations: RO
+  }, async (a) => {
+    const r2 = start(a);
+    return reply(startText(r2), r2);
+  });
   server.registerTool("forge_questions", {
     title: "Questions worth asking",
     description: "The at most 3 short questions that would change the result most for this AI, best first. Never repeats what the request or earlier answers already say. Ask the person all of them at once; they may skip any. Empty list means go straight to forge_brief.",
@@ -45262,7 +45341,7 @@ function createServer() {
   });
   server.registerTool("forge_check", {
     title: "Check the prompt you wrote",
-    description: "Check the prompt you wrote from forge_brief. Answers: kept every fact the person gave? settings real for this AI? anything invented? Returns {ok, checks, problems, fixed_prompt?}. If problems are listed, fix them (or use fixed_prompt) before showing the person. Pass the same request and answers you gave forge_brief.",
+    description: "Check the prompt you wrote from forge_brief. Answers: kept every fact the person gave? settings real for this AI? anything invented? Returns {ok, checks, problems, fixed_prompt?, fixed_ok?}. If problems are listed, fix them (or use fixed_prompt) before showing the person. When fixed_ok is true, fixed_prompt has already passed this check: show it without calling forge_check again. Pass the same request and answers you gave forge_brief.",
     inputSchema: {
       request: REQUEST,
       ai: AI,
