@@ -21,7 +21,7 @@ Files you can use (read only what you need):
    node scripts/forge.mjs --writer --model <id> --request "<what the user asked>"
    ```
    It prints the brief (Forge's draft, the settings, how this AI wants prompts, expert tips, RULES) and up to 3 questions. For long or quote-heavy text, save it to a file and use `--request-file <path>`.
-3. **Ask at most 3 questions**, and only if they would change the result: take them from the brief's QUESTIONS, skip anything the user already said. Ask them all in one message. If the user wants it now, skip this step. When they answer, run step 2 again with `--details "Question: answer"` (one per line) so the brief includes it.
+3. **Ask at most 3 questions**, and only if they would change the result: take them from the brief's QUESTIONS, skip anything the user already said. Ask them all at once: with your own question tool if you have one (in Claude Code, one AskUserQuestion call with 2 to 4 likely answers per question), otherwise in one short message. If the user wants it now, skip this step. When they answer, run step 2 again with `--details "Question: answer"` (one per line) so the brief includes it.
 4. **Write the final prompt yourself**, following the brief's RULES exactly:
    - keep every fact the user gave; never invent names, numbers, dates, prices or places;
    - write in this AI's own syntax, length and fields (the model file's master prompt shows the shape; do not copy its examples);

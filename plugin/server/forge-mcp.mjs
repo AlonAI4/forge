@@ -42547,6 +42547,13 @@ function rebuildBriefParts(text, m2) {
       if (ln) b.lens = ln;
     }
     if (LEX.light.test(t) && !/\b(?:no|not|without|avoid|never)\s+(?:\w+\s+){0,2}(?:studio|softbox|flash)/i.test(t)) b.light = [(t.match(LEX.light) || ["golden hour"])[0]];
+    if (m2.cat === "video" && !has(b.light)) {
+      const tl = t.match(/\bat (sunrise|sunset|dawn|dusk)\b/i);
+      if (tl) {
+        b.light = [tl[1].toLowerCase() + " light"];
+        for (const k2 of ["subject", "setting"]) if (typeof b[k2] === "string") b[k2] = String(b[k2]).replace(/\s+at (?:sunrise|sunset|dawn|dusk)\b/i, "");
+      }
+    }
     const md = found(t, opts("mood"));
     if (md.length) b.mood = md;
     if (m2.cat === "video") {
@@ -42590,8 +42597,12 @@ function rebuildBriefParts(text, m2) {
           const prep = (String(b.setting).match(/^(over|above|across|through|along|past|around)\b/i) || ["over"])[0].toLowerCase();
           b.subject = cap(String(b.setting).replace(/^(?:over|above|across|through|along|past|around)\s+/i, ""));
           const how = camLead[1] ? camLead[1].toLowerCase().replace(/^slow$/, "slowly").replace(/^fast$/, "quickly").replace(/^smooth$/, "smoothly") + " " : "";
-          const act = String(b.action || "").trim();
+          const act = String(b.action || "").trim().replace(/^at (?:sunrise|sunset|dawn|dusk)\s*,\s*/i, "");
           b.action = act && !/^\w+ing$/i.test(act) ? "the camera glides " + how + prep + " it as " + act.replace(/^\s*(?:and|as)\s+/i, "") : "the camera " + (act || "moving") + " " + how + prep + " it";
+          if (act) {
+            const i = suggested.indexOf("action");
+            if (i >= 0) suggested.splice(i, 1);
+          }
           delete b.setting;
         }
       }
@@ -42616,6 +42627,11 @@ function rebuildBriefParts(text, m2) {
       const kw = /\b(?:logo|sign|signage|label|banner|poster|badge|sticker|t-?shirt|mug|menu|storefront|shop ?front)\b/i.exec(t);
       const cm = kw ? t.slice(kw.index).match(/^[^.]{0,80}?\b(?:called|named)\s+((?:[A-Z0-9][\w'&-]*)(?:\s+(?:&\s+)?[A-Z0-9][\w'&-]*){0,4})/) : null;
       if (cm) b.imgtext = cm[1];
+    }
+    if (m2.cat === "image" && /\b(pixar|dreamworks|3d animat\w*|animated (?:movie|film) style)\b/i.test(t) && (!has(b.medium) || suggested.includes("medium"))) {
+      b.medium = "3D render";
+      const i = suggested.indexOf("medium");
+      if (i >= 0) suggested.splice(i, 1);
     }
     if (!has(b.palette) && m2.cat === "image") {
       const C2 = "(?:(?:bright|light|dark|pale|deep|soft|warm|cool|pastel|neon|bold|muted)\\s+)?(?:red|orange|yellow|green|blue|purple|pink|brown|black|white|gold|silver|teal|navy|cream|beige|mint|turquoise|grey|gray)";
@@ -42690,6 +42706,21 @@ function rebuildBriefParts(text, m2) {
     }
     const lf = askedFormat(t, "llm");
     if (lf && !(V.llmFormat || []).includes(String(b.format || ""))) b.format = lf;
+    {
+      const TONE = "polite|friendly|formal|casual|professional|kind|funny|warm|firm|respectful|clear|simple|honest|upbeat|calm";
+      const ki = t.match(new RegExp("\\b(?:keep it|make it)\\s+(short(?: and sweet)?|brief|quick)?(?:\\s*(?:and|,)\\s*)?((?:" + TONE + ")(?:\\s*(?:,|and|but)\\s+(?:not\\s+)?(?:" + TONE + "|rude|cheesy|boring|formal|long))*)?", "i"));
+      if (ki && (ki[1] || ki[2])) {
+        if (ki[1] && !has(b.length)) b.length = "A few sentences";
+        if (ki[2] && !has(b.rules)) b.rules = "Tone: " + ki[2].trim();
+        if (has(b.goal)) b.goal = String(b.goal).replace(new RegExp("\\s*,?\\s*(?:and\\s+)?" + ki[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), "").trim();
+        if (has(b.context)) {
+          const c = String(b.context).replace(new RegExp("\\s*,?\\s*(?:and\\s+)?" + ki[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[.!]?", "i"), "").trim();
+          if (c.split(/\s+/).length >= 3) b.context = c;
+          else delete b.context;
+        }
+      }
+      if (!has(b.format) && /\b(?:with (?:the )?answers? (?:at the end|at the bottom|after|separately)|answer key)\b/i.test(t)) b.format = "Numbered questions, then the answers at the end";
+    }
     sug("effort", "High");
     if (/\b(below|attached|pasted|these notes|my notes|the (document|article|transcript|report|data|email|notes))\b/i.test(t)) sug("rules", "Do not invent facts. If the answer is not in the material, say so");
   }
@@ -42697,7 +42728,8 @@ function rebuildBriefParts(text, m2) {
     const held = [b.goal, b.format, b.rules, b.length, b.pasted].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
     const ctx0 = has(b.context) ? String(b.context).trim().replace(/[.;,]+$/, "") : "";
     const clauses = t.split(/(?<=[.;!?])\s+|,\s+|\n+/).map((c) => c.trim().replace(/^(?:and|but|also|plus)\s+/i, "").replace(/[.;,]+$/, "")).filter((c) => c.split(/\s+/).length >= 1 && c.length > 2);
-    const left = clauses.filter((c) => !held.includes(c.toLowerCase()) && !saidIn(held, c) && !(ctx0 && saidIn(ctx0, c)));
+    const heldElsewhere = (c) => /^(?:keep it|make it)\b/i.test(c) && (has(b.length) || /^Tone:/.test(String(b.rules || "")));
+    const left = clauses.filter((c) => !held.includes(c.toLowerCase()) && !saidIn(held, c) && !(ctx0 && saidIn(ctx0, c)) && !heldElsewhere(c));
     if (left.length) {
       const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some((c) => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
       const seen = /* @__PURE__ */ new Set();
@@ -44866,7 +44898,14 @@ function questions(a) {
   const m2 = needModel(a.ai);
   const { res } = readRequest(a.request, m2, a.answers);
   const done = new Set(Object.keys(a.answers || {}).map((k2) => k2.toLowerCase()));
-  const qs = (res.ask || []).filter((q) => !done.has(String(q.f).toLowerCase()) && !done.has(String(q.q).toLowerCase())).slice(0, 3).map((q) => ({ field: q.f, question: q.q, ...q.why ? { why: q.why } : {} }));
+  const qs = (res.ask || []).filter((q) => !done.has(String(q.f).toLowerCase()) && !done.has(String(q.q).toLowerCase())).slice(0, 3).map((q) => {
+    const f2 = (
+      /** @type {any} */
+      engine_default.F[q.f] || {}
+    );
+    const options = Array.isArray(f2.o) ? f2.o.slice(0, 4).map(String) : [];
+    return { field: q.f, question: q.q, ...q.why ? { why: q.why } : {}, ...options.length >= 2 ? { options } : f2.ph ? { example: String(f2.ph) } : {} };
+  });
   return {
     ai: m2.id,
     name: m2.n + (m2.sub ? " " + m2.sub : ""),
@@ -45156,6 +45195,8 @@ var INSTRUCTIONS = [
   "Forge writes expert prompts for other AIs (image, video, voice, music, chat, coding, app builders, research). Forge is the expert; you (Claude) are the writer.",
   "The flow: forge_pick_ai (which AI fits the job) -> forge_questions (at most 3 short questions; ask the person, skip any they don't care about) -> forge_brief (Forge's full brief) -> you write the final prompt from the brief -> forge_check (fix every problem it lists, then show the person the prompt). Never show a prompt that has not passed forge_check: after any fix (yours or fixed_prompt), call forge_check again. Up to 3 tries; if it still fails, show it and say plainly which problems are left.",
   "If the person already named the AI, skip forge_pick_ai. Never ask a question the person already answered.",
+  // Oct 2026 (Alon: "not a website in Claude, actually in Claude"): everything happens in the chat itself
+  "Keep Forge inside the chat. Ask Forge's questions with your own question tool when you have one (in Claude Code: AskUserQuestion, all questions in one call, each question's options as choices; for a question without options, offer 2 or 3 likely answers yourself; the person can always type their own). Otherwise ask them in one short message. Show the result as a code block in the chat. Do not open the Forge panel (forge_open) unless the person asks for the panel or a form by name.",
   "Reverse Forge (a picture the person wants more of): if you can see it, YOU describe it precisely, call forge_reverse with that description (and image_path for a PNG file in Claude Code), write the prompt from its rules, then forge_check with request = your description.",
   '"Read this chat" is OFF by default. Only when the person turns it on (they say so in this chat, or the Read this chat setting is on) may you send the conversation to forge_chat_context. Otherwise use only the request they give you.',
   "After forge_check passes, always show the prompt in a code block so the person can copy it. Then offer, in one line, to use it now: if the prompt is for you (Claude, or any chat or coding job you can do here), you may run it yourself once they say yes; if a tool for the target AI is connected in this session (for example an image or video generator), offer to send it there and do so only after they say yes, because other AIs can cost credits. Otherwise, copying is the way.",
@@ -45262,7 +45303,7 @@ function createServer() {
   });
   K3(server, "forge_open", {
     title: "Open the Forge panel",
-    description: "Open the Forge panel: a small form where the person picks the AI, types what they want, answers Forge's few questions, and presses Write it (you then get a message asking you to write the prompt from Forge's brief) or Copy brief. Use it when the person asks to open Forge or wants to fill things in themselves. Pass the request and AI if you already know them. Hosts without panels (Claude Code) only get the text: then run the normal flow.",
+    description: "Open the Forge panel: a small form where the person picks the AI, types what they want, answers Forge's few questions, and presses Write it (you then get a message asking you to write the prompt from Forge's brief) or Copy brief. Use it ONLY when the person asks for the Forge panel or a form by name; for everything else run the normal flow right in the chat. Pass the request and AI if you already know them. Hosts without panels (Claude Code) only get the text: then run the normal flow.",
     inputSchema: {
       request: external_exports.string().optional().describe("What the person wants, if they already said it."),
       ai: external_exports.string().optional().describe("The Forge id of the AI, if already known (forge_pick_ai returns ids).")

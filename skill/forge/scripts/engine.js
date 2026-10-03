@@ -3526,6 +3526,9 @@ function rebuildBriefParts(text, m){
       const ln = (t.match(/\d{2,3}\s?mm/i)||[null])[0]; if(ln) b.lens = ln;
     }
     if(LEX.light.test(t) && !/\b(?:no|not|without|avoid|never)\s+(?:\w+\s+){0,2}(?:studio|softbox|flash)/i.test(t)) b.light = [(t.match(LEX.light)||["golden hour"])[0]];
+    // Oct 2026: "at sunrise" is the light they asked for (said once, as the light)
+    if(m.cat === "video" && !has(b.light)){ const tl = t.match(/\bat (sunrise|sunset|dawn|dusk)\b/i); // video only: on an image it grew into a long invented light line
+      if(tl){ b.light = [tl[1].toLowerCase() + " light"]; for(const k of ["subject", "setting"]) if(typeof b[k] === "string") b[k] = String(b[k]).replace(/\s+at (?:sunrise|sunset|dawn|dusk)\b/i, ""); } }
     const md = found(t, opts("mood")); if(md.length) b.mood = md; // 8.5.2: no guessed "calm", which clashed with dramatic asks
     if(m.cat==="video"){
       // v2.3: the length they said ("6 seconds feels right" was set to 8 by every video AI)
@@ -3567,8 +3570,9 @@ function rebuildBriefParts(text, m){
           const prep = (String(b.setting).match(/^(over|above|across|through|along|past|around)\b/i) || ["over"])[0].toLowerCase();
           b.subject = cap(String(b.setting).replace(/^(?:over|above|across|through|along|past|around)\s+/i, ""));
           const how = camLead[1] ? camLead[1].toLowerCase().replace(/^slow$/, "slowly").replace(/^fast$/, "quickly").replace(/^smooth$/, "smoothly") + " " : "";
-          const act = String(b.action || "").trim();
+          const act = String(b.action || "").trim().replace(/^at (?:sunrise|sunset|dawn|dusk)\s*,\s*/i, ""); // the light is said once, as the light
           b.action = act && !/^\w+ing$/i.test(act) ? "the camera glides " + how + prep + " it as " + act.replace(/^\s*(?:and|as)\s+/i, "") : "the camera " + (act || "moving") + " " + how + prep + " it"; // "flying" is the camera's own move
+          if(act){ const i = suggested.indexOf("action"); if(i >= 0) suggested.splice(i, 1); } // built from their words, so it counts as theirs
           delete b.setting;
         }
       }
@@ -3593,6 +3597,10 @@ function rebuildBriefParts(text, m){
       const kw = /\b(?:logo|sign|signage|label|banner|poster|badge|sticker|t-?shirt|mug|menu|storefront|shop ?front)\b/i.exec(t);
       const cm = kw ? t.slice(kw.index).match(/^[^.]{0,80}?\b(?:called|named)\s+((?:[A-Z0-9][\w'&-]*)(?:\s+(?:&\s+)?[A-Z0-9][\w'&-]*){0,4})/) : null;
       if(cm) b.imgtext = cm[1];
+    }
+    // Oct 2026: "pixar style" already answers "Photo, painting, 3D...?", so Forge does not ask it again
+    if(m.cat === "image" && /\b(pixar|dreamworks|3d animat\w*|animated (?:movie|film) style)\b/i.test(t) && (!has(b.medium) || suggested.includes("medium"))){
+      b.medium = "3D render"; const i = suggested.indexOf("medium"); if(i >= 0) suggested.splice(i, 1); // their words, not Forge's guess
     }
     // ... and a colour said on its own ("bright yellow, simple") is the palette. Not a colour that describes a thing ("a red fox").
     if(!has(b.palette) && m.cat === "image"){
@@ -3660,6 +3668,19 @@ function rebuildBriefParts(text, m){
     { const tw = t.match(/\b(?:i |we )?(?:don'?t|do not|dont) want (?:it |this |them |to )?(?:to )?(sound|come across|seem|look) (?:like |as )?([^,.;!?]{4,80}?)(?=\s+(?:even|but|because|since|and)\b|[,.;!?]|$)/i);
       if(tw){ const phrase = "sounding like " + tw[2].replace(/\b(?:i'?m|im)\b/i, "I'm").trim(); if(!has(b.avoid)) b.avoid = phrase; if(has(b.context)) b.context = String(b.context).replace(/[^.]*\b(?:don'?t|do not|dont) want[^.]*(?:sound|come across|seem|look)[^.]*\.?\s*/i, "").trim(); } }
     const lf = askedFormat(t, "llm"); if(lf && !(V.llmFormat || []).includes(String(b.format || ""))) b.format = lf;
+    // Oct 2026 (score fell when repeats stopped counting): the boxes the score counts, filled from THEIR words.
+    // "keep it short and polite" -> Length and the tone rule; "with answers at the end" -> the output format.
+    { const TONE = "polite|friendly|formal|casual|professional|kind|funny|warm|firm|respectful|clear|simple|honest|upbeat|calm";
+      const ki = t.match(new RegExp("\\b(?:keep it|make it)\\s+(short(?: and sweet)?|brief|quick)?(?:\\s*(?:and|,)\\s*)?((?:" + TONE + ")(?:\\s*(?:,|and|but)\\s+(?:not\\s+)?(?:" + TONE + "|rude|cheesy|boring|formal|long))*)?", "i"));
+      if(ki && (ki[1] || ki[2])){
+        if(ki[1] && !has(b.length)) b.length = "A few sentences";
+        if(ki[2] && !has(b.rules)) b.rules = "Tone: " + ki[2].trim();
+        if(has(b.goal)) b.goal = String(b.goal).replace(new RegExp("\\s*,?\\s*(?:and\\s+)?" + ki[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), "").trim();
+        // ... and they leave Context too, once they have their own boxes
+        if(has(b.context)){ const c = String(b.context).replace(new RegExp("\\s*,?\\s*(?:and\\s+)?" + ki[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[.!]?", "i"), "").trim(); if(c.split(/\s+/).length >= 3) b.context = c; else delete b.context; }
+      }
+      if(!has(b.format) && /\b(?:with (?:the )?answers? (?:at the end|at the bottom|after|separately)|answer key)\b/i.test(t)) b.format = "Numbered questions, then the answers at the end";
+    }
     sug("effort", "High");
     if(/\b(below|attached|pasted|these notes|my notes|the (document|article|transcript|report|data|email|notes))\b/i.test(t)) sug("rules", "Do not invent facts. If the answer is not in the material, say so"); // 8.5.2: only when there is material
   }
@@ -3669,7 +3690,9 @@ function rebuildBriefParts(text, m){
     const held = [b.goal, b.format, b.rules, b.length, b.pasted].filter(has).map(v => join(v)).join(" ").toLowerCase();
     const ctx0 = has(b.context) ? String(b.context).trim().replace(/[.;,]+$/, "") : "";
     const clauses = t.split(/(?<=[.;!?])\s+|,\s+|\n+/).map(c => c.trim().replace(/^(?:and|but|also|plus)\s+/i, "").replace(/[.;,]+$/, "")).filter(c => c.split(/\s+/).length >= 1 && c.length > 2);
-    const left = clauses.filter(c => !held.includes(c.toLowerCase()) && !saidIn(held, c) && !(ctx0 && saidIn(ctx0, c)));
+    // Oct 2026: "keep it short and polite" is held by Length and the tone rule, in other words
+    const heldElsewhere = (/** @type {string} */ c) => /^(?:keep it|make it)\b/i.test(c) && (has(b.length) || /^Tone:/.test(String(b.rules || "")));
+    const left = clauses.filter(c => !held.includes(c.toLowerCase()) && !saidIn(held, c) && !(ctx0 && saidIn(ctx0, c)) && !heldElsewhere(c));
     if(left.length){ const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some(c => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
       // one copy of each clause, whatever its capitals ("No big science words, no big science words")
       const seen = new Set(); const parts = [...keep, ...left].flatMap(x => String(x).split(/(?<=[.!?])\s+|,\s+/)).map(x => x.trim().replace(/[.;,]+$/, "")).filter(x => x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase()));

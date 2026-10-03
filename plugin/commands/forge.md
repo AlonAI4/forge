@@ -1,7 +1,7 @@
 ---
 description: Write an expert prompt for any AI with Forge (pick the AI, ask at most 3 questions, write, check)
 argument-hint: "[what you want made, and the AI if you know it]"
-allowed-tools: ["mcp__plugin_forge_forge__forge_pick_ai", "mcp__plugin_forge_forge__forge_questions", "mcp__plugin_forge_forge__forge_brief", "mcp__plugin_forge_forge__forge_check", "mcp__plugin_forge_forge__forge_chat_context"]
+allowed-tools: ["AskUserQuestion", "mcp__plugin_forge_forge__forge_pick_ai", "mcp__plugin_forge_forge__forge_questions", "mcp__plugin_forge_forge__forge_brief", "mcp__plugin_forge_forge__forge_check", "mcp__plugin_forge_forge__forge_chat_context"]
 ---
 
 Use Forge to write the best prompt for this request: $ARGUMENTS
@@ -10,7 +10,7 @@ If the request above is empty, ask the person in one short line what they want m
 If the forge skill (skills/forge in this plugin) is loaded, follow it as well; these steps are the minimum.
 
 1. **Pick the AI.** If the person named an AI, use it. Otherwise call `forge_pick_ai` with their request, and with `kind` when you can tell what they want (image, video, voice, sfx, music, text, code, app, research). Tell them the pick and its one-line reason in one sentence, and take the first pick unless they object.
-2. **Ask at most 3 questions.** Call `forge_questions` with the request and the AI id. Ask the person all returned questions at once, short, and say they can skip any. Never ask something they already said. If the list is empty, skip this step.
+2. **Ask at most 3 questions, right here in the chat.** Call `forge_questions` with the request and the AI id. If you have the AskUserQuestion tool (Claude Code), ask them all in ONE AskUserQuestion call: one question each, a short header, its `options` as the choices (up to 4); for a question with no `options`, offer 2 or 3 likely answers yourself, using its `example` as a guide. The person can always type their own or skip. Without that tool, ask them all in one short message and say they can skip any. Never ask something they already said. If the list is empty, skip this step.
 3. **Get the brief.** Call `forge_brief` with the request, the AI id, and their answers keyed by each question's `field` (leave out skipped ones). Do not show the brief.
 4. **Write the prompt yourself** from the brief: follow its RULES and its REPLY WITH shape.
 5. **Check it.** Call `forge_check` with the same request, AI id and answers, plus your prompt. If `ok` is false, fix every item in `problems` (or use `fixed_prompt`). **Never show a prompt that has not passed `forge_check`: after any fix (yours or fixed_prompt), call `forge_check` again. Up to 3 tries; if it still fails, show it and say plainly which problems are left.** Read `notes`, but they are hints, not errors.
