@@ -219,6 +219,28 @@ function chatContext(input){
     if(/\b(we agreed|plan is|i'?ll use|going with|decided)\b/i.test(x)) sum.decisions.push(x);
     if(/\b(done|fixed|built|added|created|finished|works now|now works|pass(?:es|ed)|committed|pushed|shipped|deployed|ready)\b|\u2705|\u2713/i.test(x) && !/\?$/.test(x)) sum.done.push(x);
   }
+  // v1 step 16: the person's answer to the AI's question is a decision ("What should it cover?" -> "race results, a member
+  // of the month, upcoming runs"); before, it was only kept when it said "let's" or "decided"
+  const up1 = (/** @type {string} */ x) => x.charAt(0).toUpperCase() + x.slice(1);
+  for(let i = 1; i < turns.length; i++){
+    const q = turns[i - 1], ans = turns[i];
+    if(q.role !== "assistant" || ans.role === "assistant" || !/\?\s*$/.test(String(q.text).trim())) continue;
+    const first = sents(ans.text)[0] || String(ans.text).trim();
+    if(!first || /^(yes|yeah|yep|no|nope|ok|okay|sure|thanks|thank you)\b[^.,]{0,12}$/i.test(first) || first.split(/\s+/).length > 30) continue;
+    const qs = sents(q.text).filter(x => /\?$/.test(x)).pop() || "";
+    // v1 step 16: undecided is not a decision ("havent decided if we do cake or cupcakes"): it stays an open question
+    if(/\b(?:haven'?t|have not|not yet) (?:decided|checked|looked|thought about it)\b|\bnot sure\b|\bdon'?t know\b|\bundecided\b/i.test(first)){ sum.open.push(first.replace(/[.]+$/, "")); continue; }
+    // a label only from a clean "What/Which X?" (judges: "Theme in mind:", "'s the setting time:")
+    const tm = qs.match(/^(?:(?:\w+[.!]\s+)?any|what|which)\s+(?!'s\b|is\b|are\b|do\b|does\b|did\b)(?:(?:should|would|will|do|does)\s+(?:it|i|we|you)\s+)?([a-z]+(?:\s+[a-z]+){0,2})\?$/i);
+    const topic = tm && !/\b(in mind|you|me|like)\b/i.test(tm[1]) ? tm[1] : "";
+    // a yes to "Should I include a training tip?" is the decision "Include a training tip"
+    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:i|we|it)?\s*(.+?)\?$/i);
+    const yes = /^(?:yes|yeah|yep|sure|ok|okay)\b[,!. ]*/i.exec(first);
+    const d = yesQ && yes ? up1(yesQ[1].trim()) + (first.slice(yes[0].length).trim() ? ", " + first.slice(yes[0].length).trim().replace(/[.]+$/, "") : "")
+      : (topic && first.split(/\s+/).length <= 14 ? up1(topic.trim()) + ": " : "") + (topic ? (x => x)(first.replace(/^(?:yes|yeah|ok|okay|sure)\s*,?\s*but\s+/i, "").replace(/[.]+$/, "")) : up1(first.replace(/^(?:yes|yeah|ok|okay|sure)\s*,?\s*but\s+/i, "").replace(/[.]+$/, "")));
+    // the whole answer, unless it is exactly one of the rules already ("friendly and a bit funny but no inside jokes" keeps the tone)
+    if(!sum.rules.some(r => String(r).toLowerCase().replace(/[.]+$/, "") === first.toLowerCase().replace(/[.]+$/, ""))) sum.decisions.push(d);
+  }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
   if(lastAi) sum.open.push(...sents(lastAi.text).filter(x => /\?$/.test(x)));
   if(lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter(x => /\?$/.test(x))); // answered when the AI spoke after it

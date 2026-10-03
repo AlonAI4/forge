@@ -6,7 +6,7 @@
 
 ### Midjourney (`midjourney`)
 
-V8.2 · Midjourney. Aesthetic-first diffusion. Write like you are briefing a cinematographer, not tagging a booru.
+V8.2 · Midjourney. Known for beautiful, artistic pictures. Describe the scene in plain sentences, like briefing a film camera crew, not a list of keywords.
 
 - Needs: What is the one thing the picture is about? Where is it, and what time of day? Photo, painting, 3D, or something else? Where will you use it? A post, a poster, a website?
 - Length: 40 to 150 words
@@ -70,7 +70,7 @@ gemini-3-pro-image · Google. Reasons about the picture before it renders it. Th
 
 ### Stable Diffusion (`sdxl`)
 
-SDXL / 3.5 · Stability AI. The control rig. Tag syntax, real weighting, a true negative field, and the deepest LoRA and ControlNet ecosystem.
+SDXL / 3.5 · Stability AI. The one you run and control yourself: short keyword prompts, word weights, a separate 'leave out' box, and many add-on styles you can download.
 
 - Needs: What is the one thing the picture is about? Where is it, and what time of day? Photo, painting, 3D, or something else? Where will you use it? A post, a poster, a website?
 - Length: 20 to 75 words
@@ -164,7 +164,7 @@ V4.1 · Recraft. The only model producing genuine editable SVG: real paths that 
 
 ### Leonardo (`leonardo`)
 
-Lucid Origin · Leonardo AI / Canva. A platform as much as a model. Trainable personal models and character LoRAs are the reason to be here.
+Lucid Origin · Leonardo AI / Canva. A full picture studio. Its big strength: you can train it on your own pictures so a character or style stays the same.
 
 - Needs: What is the one thing the picture is about? Where is it, and what time of day? Photo, painting, 3D, or something else? Where will you use it? A post, a poster, a website?
 - Length: 30 to 120 words
@@ -180,7 +180,7 @@ Lucid Origin · Leonardo AI / Canva. A platform as much as a model. Trainable pe
 
 ### Any other image model (`generic-image`)
 
-category wildcard. Not in the rack? Forge writes a model-agnostic image prompt that carries every layer a diffusion or autoregressive image model can use, plus the settings any of them expose.
+category wildcard. Your picture AI is not on the list? Forge writes a prompt that works for any picture AI, plus the settings most of them have.
 
 - Needs: What is the one thing the picture is about? Where is it, and what time of day? Photo, painting, 3D, or something else? Where will you use it? A post, a poster, a website?
 - Length: 50 to 180 words
@@ -570,7 +570,7 @@ Opus 5.5 / Sonnet 5.5 / Fable 5.1 · Anthropic. Wants XML tags, examples, and lo
 
 ### GPT (`gpt`)
 
-GPT-6 Astra / Sol / Luna · OpenAI. Prune, do not stack. OpenAI measured a 10–15% score gain from simplifying system prompts while cutting tokens by 41–66%.
+GPT-6 Astra / Sol / Luna · OpenAI. Clear and short beats long. OpenAI measured better results (10–15%) from simpler instructions that were also about half as long.
 
 - Needs: What exactly do you want back? What does the AI need to know first? What shape should the answer be? A list, a table, steps?
 - Best at: Knowledge work with browsing, coding agents, cybersecurity, computer use, design judgment.

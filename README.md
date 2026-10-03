@@ -53,6 +53,8 @@ Tested on 3 October 2026. The same new requests went to Forge and to other free 
 | The plugin for Claude | won 10 of 10 | won 7 of 7 |
 | The website, on its own (no AI) | won 4 of 5 (the version before won 1 of 5) | lost 5 of 7 (tested before the 3 October update; a re-test is coming) |
 
+Against Claude itself (a full AI writing the prompt), the website on its own still loses almost every time (0-5% across its features on 90 new requests, 3 October), though each feature got clearly better than its old version (Chat Context 82%, Anvil 63%, Doctor 61%). The plugin, where Claude writes from Forge's brief, is the strong one.
+
 Why the plugin wins, in the judges' words: it keeps every detail the person gave, uses each AI's current settings, and invents nothing.
 Limits: these are small tests. The other generators limit free use (GeneratePrompt.net stops after 10 prompts a day, Jotform after a few an hour), so each had only 5 to 7 requests. Forge has no limits, needs no account and keeps no data.
 

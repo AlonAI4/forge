@@ -38268,6 +38268,24 @@ function chatContext(input2) {
     if (/\b(we agreed|plan is|i'?ll use|going with|decided)\b/i.test(x)) sum.decisions.push(x);
     if (/\b(done|fixed|built|added|created|finished|works now|now works|pass(?:es|ed)|committed|pushed|shipped|deployed|ready)\b|\u2705|\u2713/i.test(x) && !/\?$/.test(x)) sum.done.push(x);
   }
+  const up1 = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+  for (let i = 1; i < turns.length; i++) {
+    const q = turns[i - 1], ans = turns[i];
+    if (q.role !== "assistant" || ans.role === "assistant" || !/\?\s*$/.test(String(q.text).trim())) continue;
+    const first = sents(ans.text)[0] || String(ans.text).trim();
+    if (!first || /^(yes|yeah|yep|no|nope|ok|okay|sure|thanks|thank you)\b[^.,]{0,12}$/i.test(first) || first.split(/\s+/).length > 30) continue;
+    const qs = sents(q.text).filter((x) => /\?$/.test(x)).pop() || "";
+    if (/\b(?:haven'?t|have not|not yet) (?:decided|checked|looked|thought about it)\b|\bnot sure\b|\bdon'?t know\b|\bundecided\b/i.test(first)) {
+      sum.open.push(first.replace(/[.]+$/, ""));
+      continue;
+    }
+    const tm = qs.match(/^(?:(?:\w+[.!]\s+)?any|what|which)\s+(?!'s\b|is\b|are\b|do\b|does\b|did\b)(?:(?:should|would|will|do|does)\s+(?:it|i|we|you)\s+)?([a-z]+(?:\s+[a-z]+){0,2})\?$/i);
+    const topic = tm && !/\b(in mind|you|me|like)\b/i.test(tm[1]) ? tm[1] : "";
+    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:i|we|it)?\s*(.+?)\?$/i);
+    const yes2 = /^(?:yes|yeah|yep|sure|ok|okay)\b[,!. ]*/i.exec(first);
+    const d2 = yesQ && yes2 ? up1(yesQ[1].trim()) + (first.slice(yes2[0].length).trim() ? ", " + first.slice(yes2[0].length).trim().replace(/[.]+$/, "") : "") : (topic && first.split(/\s+/).length <= 14 ? up1(topic.trim()) + ": " : "") + (topic ? /* @__PURE__ */ ((x) => x)(first.replace(/^(?:yes|yeah|ok|okay|sure)\s*,?\s*but\s+/i, "").replace(/[.]+$/, "")) : up1(first.replace(/^(?:yes|yeah|ok|okay|sure)\s*,?\s*but\s+/i, "").replace(/[.]+$/, "")));
+    if (!sum.rules.some((r2) => String(r2).toLowerCase().replace(/[.]+$/, "") === first.toLowerCase().replace(/[.]+$/, ""))) sum.decisions.push(d2);
+  }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
   if (lastAi) sum.open.push(...sents(lastAi.text).filter((x) => /\?$/.test(x)));
   if (lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter((x) => /\?$/.test(x)));
@@ -38825,7 +38843,7 @@ var MODELS = [
     ver: "V8.2",
     maker: "Midjourney",
     cat: "image",
-    blurb: "Aesthetic-first diffusion. Write like you are briefing a cinematographer, not tagging a booru.",
+    blurb: "Known for beautiful, artistic pictures. Describe the scene in plain sentences, like briefing a film camera crew, not a list of keywords.",
     tags: ["Prose prompt", ": weighting", "--no negatives", "2048px HD"],
     grammar: "prose",
     len: [40, 150],
@@ -38963,7 +38981,7 @@ var MODELS = [
     ver: "SDXL / 3.5",
     maker: "Stability AI",
     cat: "image",
-    blurb: "The control rig. Tag syntax, real weighting, a true negative field, and the deepest LoRA and ControlNet ecosystem.",
+    blurb: "The one you run and control yourself: short keyword prompts, word weights, a separate 'leave out' box, and many add-on styles you can download.",
     tags: ["Comma tags", "(word:1.2) weights", "True negative field", "Local"],
     grammar: "tags",
     len: [20, 75],
@@ -39165,7 +39183,7 @@ var MODELS = [
     ver: "Lucid Origin",
     maker: "Leonardo AI / Canva",
     cat: "image",
-    blurb: "A platform as much as a model. Trainable personal models and character LoRAs are the reason to be here.",
+    blurb: "A full picture studio. Its big strength: you can train it on your own pictures so a character or style stays the same.",
     tags: ["Custom model training", "Realtime canvas", "Style guidance levels", "Volume-friendly"],
     grammar: "prose",
     len: [30, 120],
@@ -39202,7 +39220,7 @@ var MODELS = [
     maker: "\u2014",
     cat: "image",
     wild: true,
-    blurb: "Not in the rack? Forge writes a model-agnostic image prompt that carries every layer a diffusion or autoregressive image model can use, plus the settings any of them expose.",
+    blurb: "Your picture AI is not on the list? Forge writes a prompt that works for any picture AI, plus the settings most of them have.",
     tags: ["Model-agnostic", "Both grammars", "Portable"],
     grammar: "prose",
     len: [50, 180],
@@ -40092,7 +40110,7 @@ MODELS.push(
     ver: "GPT-6 Astra / Sol / Luna",
     maker: "OpenAI",
     cat: "text",
-    blurb: "Prune, do not stack. OpenAI measured a 10\u201315% score gain from simplifying system prompts while cutting tokens by 41\u201366%.",
+    blurb: "Clear and short beats long. OpenAI measured better results (10\u201315%) from simpler instructions that were also about half as long.",
     tags: ["Identity\u2192Instructions\u2192Examples\u2192Context", "reasoning.effort", "verbosity", "1.05M context"],
     grammar: "llm",
     len: [0, 0],
@@ -41405,7 +41423,7 @@ var SHOT_LOOK = [
 ];
 var SUBJECT_LOOK = [
   [/\b(food|dish|meal|burger|taco|pizza|cake|cupcakes?|cookies?|dessert|pastry|bread|salad|soup|noodles|sushi|steak|sandwich|pie|donuts?|fruit|vegetables?|produce|apples?|squash|pumpkins?|tomatoes|berries|oranges|lemons|bananas|grapes|cheese)\b/i, "fresh, appetising texture: glistening surfaces, crisp edges and sharp focus on the food"],
-  [/\b(drink|coffee|latte|cocktail|beer|wine|smoothie|juice|soda)\b/i, "condensation and clear, glowing liquid, with the glass or cup sharp"],
+  [/\b(drink|coffee(?!\s+(?:shop|table|house|bar|maker|machine|beans?|cart|truck))|latte|cocktail|beer(?!\s+garden)|wine(?!\s+(?:bar|shop|cellar))|smoothie|juice|soda)\b/i, "condensation and clear, glowing liquid, with the glass or cup sharp"],
   [/\b(product|bottle|packaging|watch|sneakers?|shoes?|phone|headphones|perfume|jar|box)\b/i, "the product crisp and sharp, with clean edges and soft, controlled reflections"],
   [/\b(portrait|headshot|face|person|woman|man|girl|boy|kid|child|couple|family|team)\b/i, "natural skin texture and genuine expressions, with the eyes sharp"],
   [/\b(bird|parrot|owl|eagle|hawk|chicken|duck|swan|pigeon|crow|robin|penguin|feathers?)\b/i, "feather texture in fine detail and bright, alive eyes"],
@@ -41424,7 +41442,7 @@ function lookOf(table, v2) {
   return hit ? hit[1] : "";
 }
 function isDrawn(b) {
-  return /\b(vector|flat|line ?art|illustrat\w*|cartoon|anime|watercolou?r|gouache|ink|pixel|icon|logo|risograph|woodcut|chalk|crayon|pencil|painting|painted|3d render|clay|sticker|emblem|badge|drawing|comic|manga)\b/i.test(String(b.medium || ""));
+  return /\b(graphic design|design|vector|flat|line ?art|illustrat\w*|cartoon|anime|watercolou?r|gouache|ink|pixel|icon|logo|risograph|woodcut|chalk|crayon|pencil|painting|painted|3d render|clay|sticker|emblem|badge|drawing|comic|manga)\b/i.test(String(b.medium || ""));
 }
 function imageSections(b, m2) {
   const S = [];
@@ -41498,12 +41516,19 @@ function chatNeeds(all, b) {
   const uniq = [...new Set(need)];
   if (uniq.length) out.push("Stick to these exactly: " + uniq.join("; ") + ".");
   const lim = [];
-  for (const x of t.matchAll(/\b(?:no(?= [a-z])|not too|nothing (?:that|too)|don'?t (?:use|mention|include|add|make it)|do not (?:use|mention|include|add)|avoid)\b[^,.;!?:'"“‘]{2,40}/gi)) {
+  for (const x of t.matchAll(/\b(?:no(?= [a-z])|not too|nothing (?:that|too)|don'?t (?:use|mention|include|add|make it)|do not (?:use|mention|include|add)|avoid)\b[^,.;!?:"“]{2,40}/gi)) {
     if (/^no\b/i.test(x[0]) && x[0].split(/\s+/).length > 5) continue;
     const before = t.slice(Math.max(0, (x.index || 0) - 14), x.index).toLowerCase();
     if (/\b(i have|i've got|we have|there'?s|there is|with|had|has|i got)\s*$/.test(before) || /^no (?:experience|idea|clue|time|money|budget for ads?)\b/i.test(x[0]) && /\bi\b/.test(before)) continue;
     if (/^no (?:prior|job|work) experience/i.test(x[0])) continue;
-    lim.push(x[0].trim().replace(/\s+(?:and|but|so)$/i, ""));
+    if (/^no (?:degree|diploma|car|licen[cs]e|kids|children|pets|money|budget|savings|time|job|experience|clue)\b/i.test(x[0])) continue;
+    let l = x[0].trim().split(/\s+but\s+/i)[0];
+    const after = t.slice((x.index || 0) + x[0].length);
+    const q = after.match(/^\s*(['"“‘])([^'"”’]{1,40})['"”’]/);
+    if (q && /\b(?:like|such as|e\.g\.?|called|saying)\s*$/i.test(l)) l += " " + q[1] + q[2] + (q[1] === "\u201C" ? "\u201D" : q[1] === "\u2018" ? "\u2019" : q[1]);
+    else if (/\b(?:like|such as)\s*$/i.test(l)) l = l.replace(/\s+(?:like|such as)\s*$/i, "");
+    if (l === x[0].trim() && x[0].length >= 40 && /[a-z]$/i.test(x[0]) && /^[a-z]/i.test(after)) l = l.replace(/\s+\S+$/, "");
+    lim.push(l.replace(/\s+(?:and|but|so)$/i, ""));
   }
   const rules = String(b.rules || "").toLowerCase();
   const newLim = [...new Map(lim.map((l) => [l.toLowerCase(), l])).values()].filter((l) => !rules.includes(l.toLowerCase()));
@@ -42420,7 +42445,9 @@ function rebuildBriefParts(text, m2) {
       const pm = t.match(/\b(?:posters?|flyers?|signs?|banners?|invitations?|invites?|leaflets?)\s+(?:for|about|announcing)\s+(?:(?:my|our|a|an|the)\s+)?([^,.\n]{4,80})/i);
       if (pm && /\b(?:sale|party|fair|show|night|day|club|game|match|concert|festival|meeting|event|launch|opening|market|camp|class|birthday|wedding|fundraiser|drive|tryouts?|auditions?|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}\s*(?:am|pm)|\d{1,2}:\d\d)\b/i.test(pm[1])) {
         const kind = (pm[0].match(/^\w+/) || ["poster"])[0].toLowerCase().replace(/s$/, "");
-        const whole = pm[1].trim().replace(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, (w2) => cap(w2.toLowerCase())).replace(/\b(\d{1,2})\s*(am|pm)\b/gi, (x, n, ap) => n + " " + ap.toUpperCase());
+        const shows = (pm[1].match(/\s+((?:with|showing|featuring|that has|that shows)\b.*)$/i) || [])[1] || "";
+        if (shows) b.extra = [cap(shows.replace(/\bthe names?\b/i, "the names as [Name] & [Name]")), has(b.extra) ? join(b.extra) : ""].filter(Boolean).join(". ");
+        const whole = pm[1].trim().replace(/\s+(?:with|showing|featuring|that has|that shows|and the names?)\b.*$/i, "").replace(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, (w2) => cap(w2.toLowerCase())).replace(/\b(\d{1,2})\s*(am|pm)\b/gi, (x, n, ap) => n + " " + ap.toUpperCase());
         const ev = whole.split(/\s+(?=(?:on\s+)?(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|\d{1,2}(?::\d\d)?\s*(?:AM|PM)|\d{1,2}:\d\d|in the|at the)\b)/)[0];
         const details = whole.slice(ev.length).trim().split(/\s+(?=(?:in|at) the\b)/).filter(Boolean).map((x) => cap(x));
         const title = ev.replace(/\b[a-z]/g, (c) => c.toUpperCase());
@@ -42519,7 +42546,7 @@ function rebuildBriefParts(text, m2) {
     const q = t.match(/["“]([^"”]{2,40})["”]/);
     if (q) b.imgtext = q[1];
     if (!has(b.imgtext) && m2.cat === "image" && (m2.craft || []).includes("imgtext")) {
-      const sayRe = /\s*,?\s*(?:that|which)?\s*(?:says|reads|saying|reading|with the (?:words?|text))\s+([^,\n]{2,80}?)(?=\s*(?:,|$|\.\s|\s+(?:for|on|in|with)\s+(?:my|our|a|an|the)\b))/i;
+      const sayRe = /\s*,?\s*(?:that|which)?\s*(?:says|reads|saying|reading|with the (?:words?|text)|(?:should|must|has to|needs to|to|it should|that should|it must)\s+say)\s+([^,\n]{2,80}?)(?=\s*(?:,|$|\.\s|\s+(?:for|on|in|with)\s+(?:my|our|a|an|the)\b))/i;
       const sm = t.match(sayRe);
       if (sm && /[A-Z0-9$]/.test(sm[1])) {
         b.imgtext = sm[1].trim();
@@ -42604,7 +42631,7 @@ function rebuildBriefParts(text, m2) {
     const held = [b.goal, b.format, b.rules, b.length, b.pasted].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
     const ctx0 = has(b.context) ? String(b.context).trim().replace(/[.;,]+$/, "") : "";
     const clauses = t.split(/(?<=[.;!?])\s+|,\s+|\n+/).map((c) => c.trim().replace(/^(?:and|but|also|plus)\s+/i, "").replace(/[.;,]+$/, "")).filter((c) => c.split(/\s+/).length >= 1 && c.length > 2);
-    const left = clauses.filter((c) => !held.includes(c.toLowerCase()) && !saidIn(held, c));
+    const left = clauses.filter((c) => !held.includes(c.toLowerCase()) && !saidIn(held, c) && !(ctx0 && saidIn(ctx0, c)));
     if (left.length) {
       const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some((c) => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
       const seen = /* @__PURE__ */ new Set();
@@ -42736,7 +42763,7 @@ function forgeFromText(text, m2, level, more) {
   res.score = counted.score;
   res.parts = counted.parts;
   res.ask = counted.ask;
-  const asked = stripAsk(stripBanned(fixed.text).text);
+  const asked = stripAsk(stripBanned(fixed.text).text).replace(/\s*,(?:\s*,)+/g, ",").replace(/,\s*([.!?]|$)/g, "$1").replace(/\s{2,}/g, " ");
   const own2 = (["image", "video"].includes(m2.cat) ? notMine(deMeta(tidyRequest(asked))).text : ["sfx", "music"].includes(m2.cat) ? String(asked).replace(REQUEST_LEAD, "") : asked).trim();
   const before = scoreText(own2, m2);
   const lostTheirs = () => {
@@ -43858,6 +43885,8 @@ function reverseFromAI(text, m2, measures) {
       res.flat = own2 ? core.trim() : body.trim() + flags;
       res.blocks = [["Prompt", res.flat]];
       res.keptYours = true;
+      if (/\s--no\s/i.test(res.flat)) res.negative = "";
+      else if (sect("negative")) res.negative = sect("negative");
     }
   }
   const a = measures || {};
@@ -44027,9 +44056,26 @@ function forgeFromChat(read, answers, ask, m2) {
     if ((topic.match(/["\u201c\u201d]/g) || []).length % 2) {
       topic = line0.split(/\s+/).length <= 80 ? line0 : topic.slice(0, Math.max(topic.lastIndexOf('"'), topic.lastIndexOf("\u201C"))).replace(/[\s:,;-]+$/, "");
     }
-    topic = topic.replace(/[.?!,;:]+$/, "").replace(/[.?!,;:]+(["\u201d])$/, "$1");
-    const lead = topic && !saidIn(topic, String(b[main2])) ? "(Earlier: " + topic.charAt(0).toLowerCase() + topic.slice(1) + ".) Now: " : "";
-    res.flat = [lead + endMark(cap(stripDot(b[main2]))), facts, rule, tips.length ? "Please also " + tips.join(", and ") + "." : "", has(b.format) ? "Format: " + lc(stripDot(String(b.format))) + "." : ""].filter(has).join(" ").replace(/\s+/g, " ").trim();
+    topic = topic.replace(/^goal:\s*/i, "").replace(/[.?!,;:]+$/, "").replace(/[.?!,;:]+(["\u201d])$/, "$1");
+    const lead = topic && !saidIn(topic, String(b[main2])) ? "(Earlier: " + (/^I\b/.test(topic) ? topic : topic.charAt(0).toLowerCase() + topic.slice(1)) + ".) Now: " : "";
+    const section = (name) => {
+      const at = read.context.split("\n"), i = at.findIndex((l) => l.trim() === name + ":");
+      if (i < 0) return (
+        /** @type {string[]} */
+        []
+      );
+      const out = [];
+      for (const l of at.slice(i + 1)) {
+        if (!/^\s*-\s+/.test(l)) break;
+        out.push(l.replace(/^\s*-\s+/, "").trim().replace(/[.]+$/, ""));
+      }
+      return out;
+    };
+    const goalLine = (read.context.match(/^Goal: (.*)$/m) || [])[1] || "";
+    const keep = [...section("Decisions").filter((d2) => d2 && d2 !== goalLine), ...section("Rules and limits")].filter((d2, i, all) => all.findIndex((x) => x.toLowerCase() === d2.toLowerCase() || x.toLowerCase().includes(d2.toLowerCase())) === i).slice(0, 8);
+    const ask0 = String(b[main2]).replace(/^(?:To|Yes to) "[^"]+\?",?\s*(?:and\s+)?/i, "").split(/(?<=[.!?])\s+/).filter((x) => !keep.some((k2) => saidIn(k2, x.replace(/[.!?]+$/, "")))).join(" ").replace(/(^|[.!?]\s+)([a-z])/g, (_2, p2, c) => p2 + c.toUpperCase());
+    const body = [lead + endMark(cap(stripDot(ask0 || String(b[main2])))), facts, rule, tips.length ? "Please also " + tips.join(", and ") + "." : "", has(b.format) ? "Format: " + lc(stripDot(String(b.format))) + "." : ""].filter(has).join(" ").replace(/\s+/g, " ").trim();
+    res.flat = body + (keep.length ? "\n\nKeep to what we agreed:\n" + keep.map((k2) => "- " + cap(k2)).join("\n") : "");
     res.blocks = [["Next message", res.flat]];
     return res;
   }
@@ -44627,10 +44673,65 @@ function shrink(img) {
   return { w: w2, h: h2, data: out };
 }
 var fullPath = (p2) => resolve(String(p2).trim().replace(/^~(?=$|\/)/, homedir()));
+function headerSize(b) {
+  const u16 = (i) => b[i] << 8 | b[i + 1], le16 = (i) => b[i] | b[i + 1] << 8, le24 = (i) => b[i] | b[i + 1] << 8 | b[i + 2] << 16;
+  if (b[0] === 255 && b[1] === 216) {
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 255) {
+        i++;
+        continue;
+      }
+      const m2 = b[i + 1];
+      if (m2 === 216 || m2 === 1 || m2 >= 208 && m2 <= 215) {
+        i += 2;
+        continue;
+      }
+      const len = u16(i + 2);
+      if (m2 >= 192 && m2 <= 207 && m2 !== 196 && m2 !== 200 && m2 !== 204) return { width: u16(i + 7), height: u16(i + 5) };
+      i += 2 + len;
+    }
+    return null;
+  }
+  if (String.fromCharCode(...b.slice(0, 4)) === "RIFF" && String.fromCharCode(...b.slice(8, 12)) === "WEBP") {
+    const kind = String.fromCharCode(...b.slice(12, 16));
+    if (kind === "VP8 ") return { width: le16(26) & 16383, height: le16(28) & 16383 };
+    if (kind === "VP8L") {
+      const v2 = b[21] | b[22] << 8 | b[23] << 16 | b[24] << 24;
+      return { width: (v2 & 16383) + 1, height: (v2 >>> 14 & 16383) + 1 };
+    }
+    if (kind === "VP8X") return { width: le24(24) + 1, height: le24(27) + 1 };
+  }
+  return null;
+}
+var RATIOS = (
+  /** @type {[string, number][]} */
+  [["1:1", 1], ["4:5", 0.8], ["5:4", 1.25], ["2:3", 0.667], ["3:2", 1.5], ["3:4", 0.75], ["4:3", 1.333], ["9:16", 0.5625], ["16:9", 1.778], ["21:9", 2.333], ["1:2", 0.5], ["2:1", 2]]
+);
+var nearestRatio = (W, H2) => {
+  let best = RATIOS[0][0], d2 = Infinity;
+  for (const [n, r2] of RATIOS) {
+    const e = Math.abs(Math.log(W / H2 / r2));
+    if (e < d2) {
+      d2 = e;
+      best = n;
+    }
+  }
+  return best;
+};
 function measureFile(E2, path) {
   const p2 = fullPath(path);
   const web = "Measure it on the Forge website instead (Reverse Forge reads any picture in the browser), or go on with your description only.";
   const ext = extname(p2).toLowerCase();
+  if (/^\.(jpe?g|webp)$/.test(ext)) {
+    try {
+      const st = statSync(p2);
+      if (!st.isFile() || st.size > MAX_BYTES) return { ok: false, path: p2, why: "Forge could not read that file. " + web };
+      const size = headerSize(readFileSync(p2));
+      if (size && size.width && size.height) return { ok: true, path: p2, partial: true, measures: { w: size.width, h: size.height, ratio: nearestRatio(size.width, size.height) } };
+    } catch {
+    }
+  }
   if (/^\.(jpe?g|webp|gif|heic|heif|avif|bmp|tiff?)$/.test(ext)) return { ok: false, path: p2, why: "Forge can measure PNG files here, not " + ext.slice(1).toUpperCase() + ". " + web };
   try {
     const st = statSync(p2);

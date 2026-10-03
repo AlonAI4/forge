@@ -558,6 +558,19 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
 
     <!-- ANVIL -->
     <section class="pane" data-pane="bench" data-active="1">
+      <!-- v1 step 16: a first-time visitor landed on a technical model page with no idea what to do first -->
+      <div class="billet" id="welcome" hidden style="margin:0 0 14px">
+        <div class="billet-head"><h2>New here? Forge writes better prompts for AI tools</h2><button class="mini" type="button" id="welcomeClose" aria-label="Close this welcome">Got it</button></div>
+        <div class="billet-body">
+          <ol style="margin:0 0 8px;padding-left:20px;line-height:1.6">
+            <li><b>Pick the AI you use</b> with <b>Change model</b> (ChatGPT, Claude, Midjourney...).</li>
+            <li><b>Say what you want</b> in the boxes below. Only the first ones matter; the rest are optional.</li>
+            <li>Press <b>Strike</b>, then <b>Copy</b>, and paste the prompt into your AI.</li>
+          </ol>
+          <p style="margin:0 0 6px;font-size:0.875rem">Already wrote a prompt? <button class="mini" type="button" data-open-tab="doctor">Improve it in the Prompt Doctor</button></p>
+          <p style="margin:0;font-size:0.875rem">Not sure which AI to use? <button class="mini" type="button" data-open-tab="match">Ask the Matchmaker</button></p>
+        </div>
+      </div>
       <div class="bench">
         <div class="bay anvil">
           <div class="mhead">
@@ -575,7 +588,7 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
         <div class="bay" id="out" tabindex="-1" aria-live="polite">
           <div class="empty">
             <h2>Cold anvil</h2>
-            <p>Pick a model on the left, fill in the brief, and strike. Forge composes the prompt in that model's own grammar and lists the exact settings to match it.</p>
+            <p>Pick your AI with Change model, fill in the boxes, and press Strike. Forge composes the prompt in that model's own grammar and lists the exact settings to match it.</p>
           </div>
         </div>
       </div>
@@ -658,7 +671,8 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
           <ul class="notes">
             <li><span><b>Forge's own generator (this page, no AI)</b> against Jotform's AI Prompt Generator: won 4 of 5 (the version before the 3 October update won 1 of 5).</span></li>
             <li><span><b>Forge's plugin for Claude</b> against Jotform: won 10 of 10. Against GeneratePrompt.net: won 7 of 7.</span></li>
-            <li><span><b>Honest limits:</b> small tests, because the other generators limit free use (about 10 a day or a few an hour). Against GeneratePrompt.net, this page lost 5 of 7 before the 3 October update; a re-test is coming.</span></li>
+            <li><span><b>Against Claude itself</b> (a full AI writing the prompt): this page still loses almost every time (0-5% across Anvil, Doctor, Chat Context and Matchmaker, 90 new requests). It did get clearly better than before (Chat Context won 82% against its old version, Anvil 63%, Doctor 61%). Writing as well as an AI needs an AI: that is the next version.</span></li>
+            <li><span><b>Honest limits:</b> small tests against the other generators, because they limit free use (about 10 a day or a few an hour). Against GeneratePrompt.net, this page lost 5 of 7 before the 3 October update; a re-test is coming.</span></li>
           </ul>
         </div></div>
         <div class="billet"><div class="billet-head"><h2>The Forge Score</h2></div><div class="billet-body">
@@ -884,7 +898,7 @@ const IMG_CRAFT = ["shot","lens","aperture","light","film","grade","comp","mood"
 const MODELS = [
 {
   id:"midjourney", n:"Midjourney", ver:"V8.2", maker:"Midjourney", cat:"image",
-  blurb:"Aesthetic-first diffusion. Write like you are briefing a cinematographer, not tagging a booru.",
+  blurb:"Known for beautiful, artistic pictures. Describe the scene in plain sentences, like briefing a film camera crew, not a list of keywords.",
   tags:["Prose prompt",": weighting","--no negatives","2048px HD"],
   grammar:"prose", len:[40,150],
   core:IMG_CORE, craft:IMG_CRAFT, tech:["aspect"],
@@ -993,7 +1007,7 @@ const MODELS = [
 },
 {
   id:"sdxl", n:"Stable Diffusion", ver:"SDXL / 3.5", maker:"Stability AI", cat:"image",
-  blurb:"The control rig. Tag syntax, real weighting, a true negative field, and the deepest LoRA and ControlNet ecosystem.",
+  blurb:"The one you run and control yourself: short keyword prompts, word weights, a separate 'leave out' box, and many add-on styles you can download.",
   tags:["Comma tags","(word:1.2) weights","True negative field","Local"],
   grammar:"tags", len:[20,75],
   core:IMG_CORE, craft:IMG_CRAFT, tech:["aspect"],
@@ -1153,7 +1167,7 @@ const MODELS = [
 },
 {
   id:"leonardo", n:"Leonardo", ver:"Lucid Origin", maker:"Leonardo AI / Canva", cat:"image",
-  blurb:"A platform as much as a model. Trainable personal models and character LoRAs are the reason to be here.",
+  blurb:"A full picture studio. Its big strength: you can train it on your own pictures so a character or style stays the same.",
   tags:["Custom model training","Realtime canvas","Style guidance levels","Volume-friendly"],
   grammar:"prose", len:[30,120],
   core:IMG_CORE, craft:IMG_CRAFT, tech:["aspect"],
@@ -1182,7 +1196,7 @@ const MODELS = [
 },
 {
   id:"generic-image", n:"Any other image model", ver:"category wildcard", maker:"—", cat:"image", wild:true,
-  blurb:"Not in the rack? Forge writes a model-agnostic image prompt that carries every layer a diffusion or autoregressive image model can use, plus the settings any of them expose.",
+  blurb:"Your picture AI is not on the list? Forge writes a prompt that works for any picture AI, plus the settings most of them have.",
   tags:["Model-agnostic","Both grammars","Portable"],
   grammar:"prose", len:[50,180],
   core:IMG_CORE, craft:IMG_CRAFT, tech:["aspect"],
@@ -1863,7 +1877,7 @@ MODELS.push(
 },
 {
   id:"gpt", n:"GPT", ver:"GPT-6 Astra / Sol / Luna", maker:"OpenAI", cat:"text",
-  blurb:"Prune, do not stack. OpenAI measured a 10–15% score gain from simplifying system prompts while cutting tokens by 41–66%.",
+  blurb:"Clear and short beats long. OpenAI measured better results (10–15%) from simpler instructions that were also about half as long.",
   tags:["Identity→Instructions→Examples→Context","reasoning.effort","verbosity","1.05M context"],
   grammar:"llm", len:[0,0],
   core:LLM_CORE, craft:LLM_CRAFT, tech:["effort"],
@@ -3087,7 +3101,7 @@ const SHOT_LOOK = [
 /** what the kind of subject needs to look right @type {[RegExp, string][]} */
 const SUBJECT_LOOK = [
   [/\b(food|dish|meal|burger|taco|pizza|cake|cupcakes?|cookies?|dessert|pastry|bread|salad|soup|noodles|sushi|steak|sandwich|pie|donuts?|fruit|vegetables?|produce|apples?|squash|pumpkins?|tomatoes|berries|oranges|lemons|bananas|grapes|cheese)\b/i, "fresh, appetising texture: glistening surfaces, crisp edges and sharp focus on the food"],
-  [/\b(drink|coffee|latte|cocktail|beer|wine|smoothie|juice|soda)\b/i, "condensation and clear, glowing liquid, with the glass or cup sharp"],
+  [/\b(drink|coffee(?!\s+(?:shop|table|house|bar|maker|machine|beans?|cart|truck))|latte|cocktail|beer(?!\s+garden)|wine(?!\s+(?:bar|shop|cellar))|smoothie|juice|soda)\b/i, "condensation and clear, glowing liquid, with the glass or cup sharp"],
   [/\b(product|bottle|packaging|watch|sneakers?|shoes?|phone|headphones|perfume|jar|box)\b/i, "the product crisp and sharp, with clean edges and soft, controlled reflections"],
   [/\b(portrait|headshot|face|person|woman|man|girl|boy|kid|child|couple|family|team)\b/i, "natural skin texture and genuine expressions, with the eyes sharp"],
   [/\b(bird|parrot|owl|eagle|hawk|chicken|duck|swan|pigeon|crow|robin|penguin|feathers?)\b/i, "feather texture in fine detail and bright, alive eyes"], // 12.3: was "fur or feather" for every animal
@@ -3098,7 +3112,7 @@ const SUBJECT_LOOK = [
 /** @param {[RegExp, string][]} table @param {Value=} v */
 function lookOf(table, v){ if(!has(v)) return ""; const t = join(/** @type {Value} */ (v)); const hit = table.find(([re]) => re.test(t)); return hit ? hit[1] : ""; }
 /** 13.14: a photo look only for photos; a drawing does not get a lens or skin texture. @param {Brief} b */
-function isDrawn(b){ return /\b(vector|flat|line ?art|illustrat\w*|cartoon|anime|watercolou?r|gouache|ink|pixel|icon|logo|risograph|woodcut|chalk|crayon|pencil|painting|painted|3d render|clay|sticker|emblem|badge|drawing|comic|manga)\b/i.test(String(b.medium || "")); }
+function isDrawn(b){ return /\b(graphic design|design|vector|flat|line ?art|illustrat\w*|cartoon|anime|watercolou?r|gouache|ink|pixel|icon|logo|risograph|woodcut|chalk|crayon|pencil|painting|painted|3d render|clay|sticker|emblem|badge|drawing|comic|manga)\b/i.test(String(b.medium || "")); }
 /** @param {Brief} b @param {Model} m */
 function imageSections(b, m){
   const S=[];
@@ -3177,12 +3191,21 @@ function chatNeeds(all, b){
   // what they ruled out, word for word (not facts about them: "I have no job experience" is not a limit)
   /** @type {string[]} */
   const lim = [];
-  for(const x of t.matchAll(/\b(?:no(?= [a-z])|not too|nothing (?:that|too)|don'?t (?:use|mention|include|add|make it)|do not (?:use|mention|include|add)|avoid)\b[^,.;!?:'"“‘]{2,40}/gi)){
+  for(const x of t.matchAll(/\b(?:no(?= [a-z])|not too|nothing (?:that|too)|don'?t (?:use|mention|include|add|make it)|do not (?:use|mention|include|add)|avoid)\b[^,.;!?:"“]{2,40}/gi)){
     if(/^no\b/i.test(x[0]) && x[0].split(/\s+/).length > 5) continue; // "no X" is a short limit; a long one is usually a story
     const before = t.slice(Math.max(0, (x.index || 0) - 14), x.index).toLowerCase();
     if(/\b(i have|i've got|we have|there'?s|there is|with|had|has|i got)\s*$/.test(before) || /^no (?:experience|idea|clue|time|money|budget for ads?)\b/i.test(x[0]) && /\bi\b/.test(before)) continue;
     if(/^no (?:prior|job|work) experience/i.test(x[0])) continue;
-    lim.push(x[0].trim().replace(/\s+(?:and|but|so)$/i, ""));
+    // v1 step 16: "i have 6 years ..., no degree" is a fact about them, not a limit
+    if(/^no (?:degree|diploma|car|licen[cs]e|kids|children|pets|money|budget|savings|time|job|experience|clue)\b/i.test(x[0])) continue;
+    let l = x[0].trim().split(/\s+but\s+/i)[0];
+    // a quote right after ("no cliches like 'team player'") is part of the limit; a cut word is not ("explain what h")
+    const after = t.slice((x.index || 0) + x[0].length);
+    const q = after.match(/^\s*(['"“‘])([^'"”’]{1,40})['"”’]/);
+    if(q && /\b(?:like|such as|e\.g\.?|called|saying)\s*$/i.test(l)) l += " " + q[1] + q[2] + (q[1] === "“" ? "”" : q[1] === "‘" ? "’" : q[1]);
+    else if(/\b(?:like|such as)\s*$/i.test(l)) l = l.replace(/\s+(?:like|such as)\s*$/i, "");
+    if(l === x[0].trim() && x[0].length >= 40 && /[a-z]$/i.test(x[0]) && /^[a-z]/i.test(after)) l = l.replace(/\s+\S+$/, "");
+    lim.push(l.replace(/\s+(?:and|but|so)$/i, ""));
   }
   const rules = String(b.rules || "").toLowerCase();
   const newLim = [...new Map(lim.map(l => [l.toLowerCase(), l])).values()].filter(l => !rules.includes(l.toLowerCase()));
@@ -4179,7 +4202,10 @@ function rebuildBriefParts(text, m){
       const pm = t.match(/\b(?:posters?|flyers?|signs?|banners?|invitations?|invites?|leaflets?)\s+(?:for|about|announcing)\s+(?:(?:my|our|a|an|the)\s+)?([^,.\n]{4,80})/i);
       if(pm && /\b(?:sale|party|fair|show|night|day|club|game|match|concert|festival|meeting|event|launch|opening|market|camp|class|birthday|wedding|fundraiser|drive|tryouts?|auditions?|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}\s*(?:am|pm)|\d{1,2}:\d\d)\b/i.test(pm[1])){
         const kind = (pm[0].match(/^\w+/) || ["poster"])[0].toLowerCase().replace(/s$/, "");
-        const whole = pm[1].trim().replace(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, w => cap(w.toLowerCase())).replace(/\b(\d{1,2})\s*(am|pm)\b/gi, (x, n, ap) => n + " " + ap.toUpperCase());
+        // v1 step 16: "a poster for my cousins wedding with flowers and the names": what it shows is not the words on it
+        const shows = (pm[1].match(/\s+((?:with|showing|featuring|that has|that shows)\b.*)$/i) || [])[1] || "";
+        if(shows) b.extra = [cap(shows.replace(/\bthe names?\b/i, "the names as [Name] & [Name]")), has(b.extra) ? join(b.extra) : ""].filter(Boolean).join(". ");
+        const whole = pm[1].trim().replace(/\s+(?:with|showing|featuring|that has|that shows|and the names?)\b.*$/i, "").replace(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, w => cap(w.toLowerCase())).replace(/\b(\d{1,2})\s*(am|pm)\b/gi, (x, n, ap) => n + " " + ap.toUpperCase());
         // the event is the headline; the day, time and place are the details under it
         const ev = whole.split(/\s+(?=(?:on\s+)?(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|\d{1,2}(?::\d\d)?\s*(?:AM|PM)|\d{1,2}:\d\d|in the|at the)\b)/)[0];
         const details = whole.slice(ev.length).trim().split(/\s+(?=(?:in|at) the\b)/).filter(Boolean).map(x => cap(x));
@@ -4282,7 +4308,7 @@ function rebuildBriefParts(text, m){
     const q = t.match(/["“]([^"”]{2,40})["”]/); if(q) b.imgtext = q[1];
     // v1 step 14: "a menu board that says FRESH LEMONADE $2 and ICED TEA $1.50": the words to print, said without quotes
     if(!has(b.imgtext) && m.cat === "image" && (m.craft || []).includes("imgtext")){
-      const sayRe = /\s*,?\s*(?:that|which)?\s*(?:says|reads|saying|reading|with the (?:words?|text))\s+([^,\n]{2,80}?)(?=\s*(?:,|$|\.\s|\s+(?:for|on|in|with)\s+(?:my|our|a|an|the)\b))/i;
+      const sayRe = /\s*,?\s*(?:that|which)?\s*(?:says|reads|saying|reading|with the (?:words?|text)|(?:should|must|has to|needs to|to|it should|that should|it must)\s+say)\s+([^,\n]{2,80}?)(?=\s*(?:,|$|\.\s|\s+(?:for|on|in|with)\s+(?:my|our|a|an|the)\b))/i;
       const sm = t.match(sayRe);
       if(sm && /[A-Z0-9$]/.test(sm[1])){
         b.imgtext = sm[1].trim();
@@ -4357,7 +4383,7 @@ function rebuildBriefParts(text, m){
     const held = [b.goal, b.format, b.rules, b.length, b.pasted].filter(has).map(v => join(v)).join(" ").toLowerCase();
     const ctx0 = has(b.context) ? String(b.context).trim().replace(/[.;,]+$/, "") : "";
     const clauses = t.split(/(?<=[.;!?])\s+|,\s+|\n+/).map(c => c.trim().replace(/^(?:and|but|also|plus)\s+/i, "").replace(/[.;,]+$/, "")).filter(c => c.split(/\s+/).length >= 1 && c.length > 2);
-    const left = clauses.filter(c => !held.includes(c.toLowerCase()) && !saidIn(held, c));
+    const left = clauses.filter(c => !held.includes(c.toLowerCase()) && !saidIn(held, c) && !(ctx0 && saidIn(ctx0, c)));
     if(left.length){ const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some(c => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
       // one copy of each clause, whatever its capitals ("No big science words, no big science words")
       const seen = new Set(); const parts = [...keep, ...left].flatMap(x => String(x).split(/(?<=[.!?])\s+|,\s+/)).map(x => x.trim().replace(/[.;,]+$/, "")).filter(x => x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase()));
@@ -4520,7 +4546,8 @@ function forgeFromText(text, m, level, more){
   // the person's words without the talk to the AI ("make me a picture of") or filler
   // 12.4: sound and music AIs hear every word too, so "Need a phone ringtone loop" loses "Need" there as well
   // v1 bug hunt: "write a prompt for midjourney ... skip the questions" is the instruction, not the person's words to keep
-  const asked = stripAsk(stripBanned(fixed.text).text);
+  // v1 step 16: removing "8k, masterpiece" left ", ," in their words
+  const asked = stripAsk(stripBanned(fixed.text).text).replace(/\s*,(?:\s*,)+/g, ",").replace(/,\s*([.!?]|$)/g, "$1").replace(/\s{2,}/g, " ");
   const own = (["image","video"].includes(m.cat) ? notMine(deMeta(tidyRequest(asked))).text
     : ["sfx","music"].includes(m.cat) ? String(asked).replace(REQUEST_LEAD, "") : asked).trim(); // 12.2: no "my dog"
   const before = scoreText(own, m);
@@ -5615,6 +5642,8 @@ function reverseFromAI(text, m, measures){
       const flags = (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];
       const own = (core.match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];
       res.flat = own ? core.trim() : body.trim() + flags; res.blocks = [["Prompt", res.flat]]; res.keptYours = true;
+      // v1 step 16: its own keep-outs ("--no text, logos" in the prompt, or its Negative line) replace Forge's, not sit beside them
+      if(/\s--no\s/i.test(res.flat)) res.negative = ""; else if(sect("negative")) res.negative = sect("negative");
     } }
   const a = measures || {};
   // the shape the AI wrote (from the person's change: "as a 9:16 wallpaper") beats the shape measured from the picture
@@ -5762,9 +5791,18 @@ function forgeFromChat(read, answers, ask, m){
     let topic = line0.split(/\s+/).slice(0, 22).join(" ");
     // 13.6: never stop inside a quote (a contract clause was cut at "including preliminary."): the whole quote, or none of it
     if(((topic.match(/["\u201c\u201d]/g) || []).length) % 2){ topic = line0.split(/\s+/).length <= 80 ? line0 : topic.slice(0, Math.max(topic.lastIndexOf('"'), topic.lastIndexOf("\u201c"))).replace(/[\s:,;-]+$/, ""); }
-    topic = topic.replace(/[.?!,;:]+$/, "").replace(/[.?!,;:]+(["\u201d])$/, "$1");
-    const lead = topic && !saidIn(topic, String(b[main])) ? "(Earlier: " + topic.charAt(0).toLowerCase() + topic.slice(1) + ".) Now: " : "";
-    res.flat = [lead + endMark(cap(stripDot(b[main]))), facts, rule, tips.length ? "Please also " + tips.join(", and ") + "." : "", has(b.format) ? "Format: " + lc(stripDot(String(b.format))) + "." : ""].filter(has).join(" ").replace(/\s+/g, " ").trim();
+    topic = topic.replace(/^goal:\s*/i, "").replace(/[.?!,;:]+$/, "").replace(/[.?!,;:]+(["\u201d])$/, "$1");
+    const lead = topic && !saidIn(topic, String(b[main])) ? "(Earlier: " + (/^I\b/.test(topic) ? topic : topic.charAt(0).toLowerCase() + topic.slice(1)) + ".) Now: " : "";
+    // v1 step 16: the next message dropped every rule and decision of the chat ("no more than 300 words", what to cover, the
+    // tone): Chat Context lost all its rounds to Claude. They come back as a short list, from the person's own words only
+    const section = (/** @type {string} */ name) => { const at = read.context.split("\n"), i = at.findIndex(l => l.trim() === name + ":"); if(i < 0) return /** @type {string[]} */ ([]);
+      const out = []; for(const l of at.slice(i + 1)){ if(!/^\s*-\s+/.test(l)) break; out.push(l.replace(/^\s*-\s+/, "").trim().replace(/[.]+$/, "")); } return out; };
+    const goalLine = (read.context.match(/^Goal: (.*)$/m) || [])[1] || "";
+    const keep = [...section("Decisions").filter(d => d && d !== goalLine), ...section("Rules and limits")]
+      .filter((d, i, all) => all.findIndex(x => x.toLowerCase() === d.toLowerCase() || x.toLowerCase().includes(d.toLowerCase())) === i).slice(0, 8);
+    const ask0 = String(b[main]).replace(/^(?:To|Yes to) "[^"]+\?",?\s*(?:and\s+)?/i, "").split(/(?<=[.!?])\s+/).filter(x => !keep.some(k => saidIn(k, x.replace(/[.!?]+$/, "")))).join(" ").replace(/(^|[.!?]\s+)([a-z])/g, (_, p, c) => p + c.toUpperCase());
+    const body = [lead + endMark(cap(stripDot(ask0 || String(b[main])))), facts, rule, tips.length ? "Please also " + tips.join(", and ") + "." : "", has(b.format) ? "Format: " + lc(stripDot(String(b.format))) + "." : ""].filter(has).join(" ").replace(/\s+/g, " ").trim();
+    res.flat = body + (keep.length ? "\n\nKeep to what we agreed:\n" + keep.map(k => "- " + cap(k)).join("\n") : "");
     res.blocks = [["Next message", res.flat]];
     return res;
   }
@@ -7029,6 +7067,28 @@ function chatContext(input){
     if(/\b(we agreed|plan is|i'?ll use|going with|decided)\b/i.test(x)) sum.decisions.push(x);
     if(/\b(done|fixed|built|added|created|finished|works now|now works|pass(?:es|ed)|committed|pushed|shipped|deployed|ready)\b|\u2705|\u2713/i.test(x) && !/\?$/.test(x)) sum.done.push(x);
   }
+  // v1 step 16: the person's answer to the AI's question is a decision ("What should it cover?" -> "race results, a member
+  // of the month, upcoming runs"); before, it was only kept when it said "let's" or "decided"
+  const up1 = (/** @type {string} */ x) => x.charAt(0).toUpperCase() + x.slice(1);
+  for(let i = 1; i < turns.length; i++){
+    const q = turns[i - 1], ans = turns[i];
+    if(q.role !== "assistant" || ans.role === "assistant" || !/\?\s*$/.test(String(q.text).trim())) continue;
+    const first = sents(ans.text)[0] || String(ans.text).trim();
+    if(!first || /^(yes|yeah|yep|no|nope|ok|okay|sure|thanks|thank you)\b[^.,]{0,12}$/i.test(first) || first.split(/\s+/).length > 30) continue;
+    const qs = sents(q.text).filter(x => /\?$/.test(x)).pop() || "";
+    // v1 step 16: undecided is not a decision ("havent decided if we do cake or cupcakes"): it stays an open question
+    if(/\b(?:haven'?t|have not|not yet) (?:decided|checked|looked|thought about it)\b|\bnot sure\b|\bdon'?t know\b|\bundecided\b/i.test(first)){ sum.open.push(first.replace(/[.]+$/, "")); continue; }
+    // a label only from a clean "What/Which X?" (judges: "Theme in mind:", "'s the setting time:")
+    const tm = qs.match(/^(?:(?:\w+[.!]\s+)?any|what|which)\s+(?!'s\b|is\b|are\b|do\b|does\b|did\b)(?:(?:should|would|will|do|does)\s+(?:it|i|we|you)\s+)?([a-z]+(?:\s+[a-z]+){0,2})\?$/i);
+    const topic = tm && !/\b(in mind|you|me|like)\b/i.test(tm[1]) ? tm[1] : "";
+    // a yes to "Should I include a training tip?" is the decision "Include a training tip"
+    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:i|we|it)?\s*(.+?)\?$/i);
+    const yes = /^(?:yes|yeah|yep|sure|ok|okay)\b[,!. ]*/i.exec(first);
+    const d = yesQ && yes ? up1(yesQ[1].trim()) + (first.slice(yes[0].length).trim() ? ", " + first.slice(yes[0].length).trim().replace(/[.]+$/, "") : "")
+      : (topic && first.split(/\s+/).length <= 14 ? up1(topic.trim()) + ": " : "") + (topic ? (x => x)(first.replace(/^(?:yes|yeah|ok|okay|sure)\s*,?\s*but\s+/i, "").replace(/[.]+$/, "")) : up1(first.replace(/^(?:yes|yeah|ok|okay|sure)\s*,?\s*but\s+/i, "").replace(/[.]+$/, "")));
+    // the whole answer, unless it is exactly one of the rules already ("friendly and a bit funny but no inside jokes" keeps the tone)
+    if(!sum.rules.some(r => String(r).toLowerCase().replace(/[.]+$/, "") === first.toLowerCase().replace(/[.]+$/, ""))) sum.decisions.push(d);
+  }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
   if(lastAi) sum.open.push(...sents(lastAi.text).filter(x => /\?$/.test(x)));
   if(lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter(x => /\?$/.test(x))); // answered when the AI spoke after it
@@ -7416,6 +7476,10 @@ const store = {
   /** 5.11: delete everything Forge saved on this device. */
   wipe(){ try{ Object.keys(localStorage).filter(k => k.startsWith("forge.")).forEach(k => localStorage.removeItem(k)); }catch(e){} }
 };
+// v1 step 16: the welcome shows until it is closed once (the only thing stored is that it was closed)
+{ const showWelcome = ()=>{ const w = document.getElementById("welcome"); if(w && !store.get("welcomed", false)) w.hidden = false; };
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", showWelcome); else showWelcome(); }
+document.addEventListener("click", e=>{ if(e.target.closest("#welcomeClose")){ document.getElementById("welcome").hidden = true; store.set("welcomed", true); } });
 const ST = {
   model: store.get("model","midjourney"),
   pins: store.get("pins",["midjourney","el-tts","claude"]),
