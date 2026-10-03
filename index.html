@@ -512,6 +512,60 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
 .tip-row{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:0.875rem;line-height:1.4;cursor:pointer}
 .tip-row input{margin-top:3px;flex:none}
 .tip-preview{white-space:pre-wrap;font-family:var(--f-mono);font-size:0.8125rem;margin:10px 0 0;padding:10px;border:1px solid var(--line, #444);border-radius:6px}
+
+/* ============================================================
+   Oct 2026 (Dad's feedback: "cluttered, too much text"): a calmer layer on top.
+   Readable sentence-case labels instead of tiny all-caps typewriter text, no stripes,
+   softer edges, more room. Typewriter text stays only where it is code or a prompt.
+   ============================================================ */
+:root{--r:8px;--r-lg:12px}
+body::before{display:none}
+.tab,.ghost,.mini,.chip,.flabel,.billet-head h2,.picker-group,.rail-label,.sect-l,.anvilctx summary,.midcraft-h,.heat-t,.axis-n,.tbl th,.brand-sub,.rail-toggle .cue{
+  font-family:var(--f-body);text-transform:none;letter-spacing:0;
+}
+.tabs{gap:4px;padding:4px;border-radius:10px;border-color:transparent;background:var(--surface-2)}
+.tab{font-size:0.875rem;font-weight:500;padding:8px 14px;min-height:36px;border-radius:7px}
+.tab[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.08);color:var(--ink)}
+.ghost,.mini{font-size:0.8125rem;font-weight:500;border-radius:8px;border-color:var(--line);min-height:34px;padding:6px 12px}
+.flabel{font-size:0.875rem;font-weight:600;color:var(--ink);letter-spacing:0;margin-bottom:6px}
+.craft .flabel{font-size:0.875rem;color:var(--ink)}
+.fhint{font-weight:400;font-size:0.8125rem}
+.fset{margin-bottom:22px}
+.inp,textarea.inp,select.inp,.picker-btn{border-color:var(--line);border-radius:8px;padding:10px 12px}
+.opt{border-radius:999px;border-color:var(--line);padding:6px 12px}
+.seg{border-radius:8px;border-color:var(--line)}
+.billet{border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.billet-head{background:transparent;padding:12px 16px 4px;border-bottom:0}
+.billet-head h2{font-size:0.9375rem;font-weight:600;color:var(--ink)}
+.billet-body{padding:8px 16px 16px}
+.chip{font-size:0.75rem;border-radius:999px;padding:3px 9px}
+.picker-group{font-size:0.75rem;font-weight:600}
+.rail-label{font-size:0.75rem;font-weight:600}
+.sec-sub{max-width:60ch}
+.bay{padding:28px 32px 90px}
+.mhead h1{font-size:2.25rem}
+.mver{font-family:var(--f-body);letter-spacing:0}
+/* the empty right side before the first Strike: lighter, so the form is what you see first */
+.empty{opacity:.7}
+/* model details (version, docs, feature tags) are folded away under "About this AI" */
+.aboutai{margin:8px 0 18px}
+.aboutai summary{cursor:pointer;font-size:0.8125rem;color:var(--ink-dim);min-height:24px;width:max-content}
+.aboutai summary:hover{color:var(--ink)}
+.aboutai .chips{margin:10px 0 4px}
+/* "Use in Claude": the setup steps */
+.setup-steps{display:grid;gap:12px;margin:6px 0 0;padding:0;list-style:none;counter-reset:st}
+.setup-steps[hidden]{display:none}
+.setup-steps li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start;counter-increment:st}
+.setup-steps li::before{content:counter(st);width:26px;height:26px;border-radius:50%;background:var(--ember);color:var(--surface);display:grid;place-items:center;font-weight:700;font-size:0.8125rem}
+.cmd{display:flex;gap:8px;align-items:center;margin-top:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 6px 6px 12px}
+.cmd{min-width:0}
+.cmd code{flex:1;min-width:0;font-family:var(--f-mono);font-size:0.8125rem;white-space:normal;overflow-wrap:anywhere}
+.setup-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px}
+.setup-tabs .opt[aria-pressed="true"]{font-weight:600}
+@media (max-width:820px){
+  .tab{overflow-wrap:normal;word-break:normal;hyphens:none;font-size:0.8125rem;padding:8px 4px;letter-spacing:0}
+  .bay{padding:22px 18px 80px}
+}
 </style>
 </head>
 <body>
@@ -550,6 +604,8 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
         <button class="tab" type="button" data-tip="How to use Forge: every tab, the levels and the score, explained simply." data-pane="manual" aria-pressed="false">Manual</button>
       </nav>
       <div class="spacer"></div>
+      <!-- Oct 2026 (feedback: "hard to connect Claude Code"): setup is one click from anywhere -->
+      <button class="ghost" type="button" data-get-forge data-tip="Add Forge to Claude Code, the Claude app or ChatGPT: copy-paste steps">Use in Claude</button>
       <button class="ghost" id="themeBtn" aria-pressed="false">
         <svg id="themeIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"></svg>
         <span id="themeLabel">Dark</span>
@@ -560,15 +616,14 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
     <section class="pane" data-pane="bench" data-active="1">
       <!-- v1 step 16: a first-time visitor landed on a technical model page with no idea what to do first -->
       <div class="billet" id="welcome" hidden style="margin:0 0 14px">
-        <div class="billet-head"><h2>New here? Forge writes better prompts for AI tools</h2><button class="mini" type="button" id="welcomeClose" aria-label="Close this welcome">Got it</button></div>
+        <div class="billet-head"><h2>New here? Forge writes better prompts for any AI</h2><button class="mini" type="button" id="welcomeClose" aria-label="Close this welcome">Got it</button></div>
         <div class="billet-body">
-          <ol style="margin:0 0 8px;padding-left:20px;line-height:1.6">
-            <li><b>Pick the AI you use</b> (ChatGPT, Claude, Midjourney...): in the list on the left, or with <b>Change model</b> on a phone.</li>
-            <li><b>Say what you want</b> in the boxes below. Only the first ones matter; the rest are optional.</li>
-            <li>Press <b>Strike</b>, then <b>Copy</b>, and paste the prompt into your AI.</li>
+          <ol class="setup-steps" style="margin-bottom:12px">
+            <li><span><b>Pick your AI</b> on the left (on a phone: <b>Change model</b>).</span></li>
+            <li><span><b>Say what you want</b> in the first box. The rest are optional.</span></li>
+            <li><span>Press <b>Strike</b>, then <b>Copy</b>.</span></li>
           </ol>
-          <p style="margin:0 0 6px;font-size:0.875rem">Already wrote a prompt? <button class="mini" type="button" data-open-tab="doctor">Improve it in the Prompt Doctor</button></p>
-          <p style="margin:0;font-size:0.875rem">Not sure which AI to use? <button class="mini" type="button" data-open-tab="match">Ask the Matchmaker</button></p>
+          <p style="margin:0;font-size:0.875rem;display:flex;gap:8px;flex-wrap:wrap"><button class="mini" type="button" data-open-tab="doctor">I already have a prompt</button><button class="mini" type="button" data-open-tab="match">Which AI should I use?</button><button class="mini" type="button" data-get-forge>Use Forge in Claude or ChatGPT</button></p>
         </div>
       </div>
       <div class="bench">
@@ -576,19 +631,23 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
           <div class="mhead">
             <div style="flex:1;min-width:0">
               <h1 id="mName">Midjourney</h1>
-              <div class="mver" id="mVer">V8.2</div>
               <div class="mmeta" id="mMeta"></div>
-              <div class="msrc" id="mSrc"></div>
             </div>
           </div>
-          <div class="chips" id="mChips"></div>
+          <!-- Oct 2026 (feedback: too much text): version, docs and feature tags are folded away -->
+          <details class="aboutai">
+            <summary>About this AI</summary>
+            <div class="mver" id="mVer">V8.2</div>
+            <div class="msrc" id="mSrc"></div>
+            <div class="chips" id="mChips"></div>
+          </details>
           <div id="form" role="group" aria-label="Brief"></div>
           <button data-tip="Write the prompt for this AI, with its settings and a score out of 100." class="strike" id="forgeBtn">Strike</button>
         </div>
         <div class="bay" id="out" tabindex="-1" aria-live="polite">
           <div class="empty">
             <h2>Cold anvil</h2>
-            <p>Pick your AI (the list on the left, or Change model on a phone), fill in the boxes, and press Strike. Forge composes the prompt in that model's own grammar and lists the exact settings to match it.</p>
+            <p>Your prompt appears here after you press Strike.</p>
           </div>
         </div>
       </div>
@@ -661,19 +720,36 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
       <div class="manual">
         <h1 class="sec-title">Manual</h1>
         <p class="sec-sub">Forge writes prompts for AI tools. A prompt is the message you give an AI; a good one gets you what you wanted the first time. Everything runs in your browser: nothing you type is sent anywhere.</p>
+        <div class="billet" id="get-forge" style="scroll-margin-top:90px"><div class="billet-head"><h2>Use Forge in Claude or ChatGPT</h2></div><div class="billet-body">
+          <p style="margin:0 0 10px">This page works on its own. Added to your AI, Forge gives it an expert brief and checks what it writes: the strongest way to use Forge. Free, and it keeps no data.</p>
+          <div class="setup-tabs" role="group" aria-label="Which app do you use?">
+            <button class="opt" type="button" data-setup="code" aria-pressed="true">Claude Code</button>
+            <button class="opt" type="button" data-setup="app" aria-pressed="false">Claude app</button>
+            <button class="opt" type="button" data-setup="gpt" aria-pressed="false">ChatGPT</button>
+          </div>
+          <ol class="setup-steps" data-setup-pane="code">
+            <li><span>Open Claude Code and paste this, then press Enter:<span class="cmd"><code>/plugin marketplace add AlonAI4/forge</code><button class="mini" type="button" data-copy="/plugin marketplace add AlonAI4/forge">Copy</button></span></span></li>
+            <li><span>Then this:<span class="cmd"><code>/plugin install forge@forge</code><button class="mini" type="button" data-copy="/plugin install forge@forge">Copy</button></span></span></li>
+            <li><span>Try it:<span class="cmd"><code>/forge:forge a fox in the snow for Midjourney</code><button class="mini" type="button" data-copy="/forge:forge a fox in the snow for Midjourney">Copy</button></span></span></li>
+          </ol>
+          <ol class="setup-steps" data-setup-pane="app" hidden>
+            <li><span><a href="forge-skill.zip" download>Download the Forge skill</a> (one small zip file).</span></li>
+            <li><span>In Claude (claude.ai or the desktop app): <b>Settings, Capabilities</b>, and turn on <b>Code execution</b>.</span></li>
+            <li><span><b>Customize, Skills, Upload</b>, and pick the zip you downloaded.</span></li>
+            <li><span>Ask as normal: "write me a Midjourney prompt for a fox in the snow".</span></li>
+          </ol>
+          <ol class="setup-steps" data-setup-pane="gpt" hidden>
+            <li><span><a href="forge-skill.zip" download>Download the Forge skill</a> and unzip it: you get a folder called <b>forge</b>.</span></li>
+            <li><span>In ChatGPT: <b>Skills, Create, Upload from your computer</b>, and pick the <b>forge</b> folder.</span></li>
+            <li><span>Ask as normal: "write me a Midjourney prompt for a fox in the snow".</span></li>
+          </ol>
+          <p class="fhint" style="margin:12px 0 0">Code and full instructions: <a href="https://github.com/AlonAI4/forge" target="_blank" rel="noopener">github.com/AlonAI4/forge</a></p>
+        </div></div>
         <div class="billet"><div class="billet-head"><h2>Anvil</h2><button class="mini" type="button" data-open-tab="bench">Open Anvil</button></div><div class="billet-body"><p>Build a prompt from scratch.</p><ol><li>Pick the AI you are writing for in the list on the left (or <b>Change model</b> on a phone). You can search it by name.</li><li>Pick a level: <b>Basic</b> for a few boxes, <b>Intermediate</b> for the details that matter most, <b>Professional</b> for every box. Each button shows how many boxes it has.</li><li>Fill in the boxes. Leave out anything you do not care about.</li><li>Press <b>Strike</b>. You get the prompt in that AI's own style, the settings to use with it, and a score out of 100.</li><li>Answer the questions under the prompt to make it better, then <b>Copy</b> it into the AI.</li></ol><p class="mtip"><b>Tip:</b> only the boxes you can see are used. If you fill a box on Professional and switch to Basic, your answer is kept but not used.</p></div></div>
         <div class="billet"><div class="billet-head"><h2>Prompt Doctor</h2><button class="mini" type="button" data-open-tab="doctor">Open Prompt Doctor</button></div><div class="billet-body"><p>Make a prompt you already wrote better.</p><ol><li>Choose the AI the prompt is for.</li><li>Paste your prompt exactly as you sent it.</li><li>Press <b>Diagnose</b>. Forge shows the score, what is not doing any work, and a better version.</li></ol><p class="mtip"><b>Tip:</b> Forge fixes spelling and cuts filler like &quot;8k, masterpiece&quot;. It always shows what it changed, and anything it added on its own is marked as a suggestion.</p></div></div>
         <div class="billet"><div class="billet-head"><h2>Reverse Forge</h2><button class="mini" type="button" data-open-tab="intake">Open Reverse Forge</button></div><div class="billet-body"><p>Start from something you already have: a picture you like, or a text file.</p><ol><li>Drop in images or files, or click the box to choose them.</li><li>Forge measures what it can: the shape, the main colours, how bright it is, how much detail.</li><li>It asks about the parts only you can see, like the subject and the mood.</li><li>It writes the prompt that would make something like it.</li></ol><p class="mtip"><b>Tip:</b> for a text file, <b>Diagnose</b> sends it to the Prompt Doctor.</p></div></div>
         <div class="billet"><div class="billet-head"><h2>Chat Context</h2><button class="mini" type="button" data-open-tab="context">Open Chat Context</button></div><div class="billet-body"><p>Keep a long chat with an AI on track.</p><ol><li>Copy a chat from Claude, ChatGPT or any AI and paste it in. Lines starting &quot;You:&quot; and &quot;AI:&quot; tell Forge who said what. ChatGPT's own &quot;You said:&quot; works too.</li><li>Press <b>Read the chat</b>. Forge shows what the chat is about, and which of the 9 things a good prompt needs you have already said.</li><li>Say what you want now, and answer up to 3 questions.</li><li>Press <b>Write the prompt</b>. You get a prompt with the chat's context built in. Paste it into the AI, or improve it in the Prompt Doctor.</li></ol><p class="mtip"><b>Tip:</b> the <b>Context block</b> is a short summary of the chat. Paste it at the start of a new chat so the AI remembers what you were doing.</p></div></div>
         <div class="billet"><div class="billet-head"><h2>Matchmaker</h2><button class="mini" type="button" data-open-tab="match">Open Matchmaker</button></div><div class="billet-body"><p>Not sure which AI to use? Ask here.</p><ol><li>Say what you want to make, like &quot;a 15-second video ad with music&quot;.</li><li>Pick what matters most to you, like speed or words inside the image.</li><li>Press <b>Find the tool</b>. Forge ranks the AIs that are best at it and says why.</li></ol></div></div>
-        <div class="billet" id="get-forge" style="scroll-margin-top:90px"><div class="billet-head"><h2>Forge inside Claude or ChatGPT</h2></div><div class="billet-body">
-          <p>This page works on its own. If you use Claude or ChatGPT, you can also add Forge to them: Forge gives the AI its expert brief, the AI writes the prompt, and Forge checks it. That is the strongest way to use Forge. All free, and it keeps no data.</p>
-          <ul class="notes">
-            <li><span><b>Plugin for Claude Code</b> (best): type these two lines in Claude Code, one at a time:<br><code>/plugin marketplace add AlonAI4/forge</code><br><code>/plugin install forge@forge</code><br>Then type <code>/forge:forge</code> and what you want, like <code>/forge:forge a fox in the snow for Midjourney</code>. Drop in a picture and type <code>/forge:forge-reverse midjourney</code> for a prompt that makes more like it.</span></li>
-            <li><span><b>Skill for the Claude app or ChatGPT:</b> download the <code>skill/forge</code> folder from GitHub. In Claude: zip the folder, then upload it in Customize, Skills (Code execution must be on in Settings). In ChatGPT: Skills, Create, Upload from your computer. Then just ask &quot;write me a Midjourney prompt for…&quot;.</span></li>
-            <li><span><b>Code and full instructions:</b> <a href="https://github.com/AlonAI4/forge" target="_blank" rel="noopener">github.com/AlonAI4/forge</a></span></li>
-          </ul>
-        </div></div>
         <div class="billet"><div class="billet-head"><h2>How Forge compares</h2></div><div class="billet-body">
           <p>Tested on 3 October 2026: the same new requests went to Forge and to other free prompt generators, and a blind judge picked the better prompt, with a reason each time.</p>
           <ul class="notes">
@@ -3167,7 +3243,7 @@ function chatNeeds(all, b){
   const teach = /\b(explain|teach|what is|what are|how (?:does|do|to)|help me understand|lesson|quiz|study)\b/.test(lo);
   const forTeacher = /\b(lesson plans?|rubrics?|worksheets?|curriculum|unit plan|i'?m a teacher|i teach|my (?:students|class|pupils))\b/.test(lo);
   if(n && n < 18 && forTeacher) out.push("The activities and words are for " + n + "-year-olds; what you write is for the teacher.");
-  else if(n && n < 18) out.push("Write for a " + n + "-year-old: " + (n <= 8 ? "very short sentences and everyday words" : n <= 13 ? "short sentences and everyday words" : "plain words, with any jargon defined once") + (teach ? (n <= 13 ? "; explain any new word the first time and use one concrete example from their life." : "; use one concrete example.") : "."));
+  else if(n && n < 18) out.push("Write for " + (n === 8 || n === 11 ? "an " : "a ") + n + "-year-old: " + (n <= 8 ? "very short sentences and everyday words" : n <= 13 ? "short sentences and everyday words" : "plain words, with any jargon defined once") + (teach ? (n <= 13 ? "; explain any new word the first time and use one concrete example from their life." : "; use one concrete example.") : "."));
   else if(/\b(complete beginner|total beginner|beginner|never (?:coded|done|used|played|cooked)|no experience with|new to|someone who has never|for dummies|non-?technical|layman)\b/.test(lo) && !/\bno (?:job|work) experience\b/.test(lo)) out.push("Assume no background: no jargon, or explain each term in one line, and build from what they already know.");
   // exact numbers they gave: counts, lengths, time, money
   /** @type {string[]} */
@@ -3183,7 +3259,7 @@ function chatNeeds(all, b){
     const limit = next && /^(limit|max|maximum|cap)$/i.test(next[1]);
     if(/^(words?|pages?|minutes?|mins?|sentences?|lines?|paragraphs?|slides?)$/.test(what) && (limit || !/s$/.test(what))){ need.push((limit ? "at most " : "about ") + num + " " + what.replace(/s?$/, Number(num) === 1 ? "" : "s")); continue; }
     if(/^(days?|weeks?|minutes?|mins?|hours?)$/.test(what) && !q) continue; // "3 day trip", "45 minutes" stay in the task as they are
-    need.push((q === "max" || q === "maximum" || q === "at most" || q === "no more than" || q === "up to" ? "at most " : q === "under" ? "under " : q === "about" || q === "around" ? "about " : q === "at least" || q === "over" ? "at least " : "exactly ") + said);
+    need.push((q === "max" || q === "maximum" || q === "at most" || q === "no more than" || q === "up to" ? "at most " : q === "under" ? "under " : q === "about" || q === "around" ? "about " : q === "at least" || q === "over" ? "at least " : "exactly ") + said.replace(/^(\d+)(\s.*?)?\b(caption|idea|question|bullet point|bullet|tip|example|version|script|exercise|name|option|title|hook|slide|step|reason|point|paragraph|sentence|line|meal|recipe|song|hashtag|level|panel)$/i, (m0, k, mid, w) => Number(k) > 1 ? k + (mid || " ") + w + "s" : m0)); // Oct 2026: "exactly 5 question"
   }
   for(const x of t.matchAll(/(?:under|below|less than|max(?:imum)?|within|no more than|budget(?: of)?) (?:[$€£]\d[\d,]*(?:\.\d+)?|\d[\d,]*(?:\.\d+)? ?(?:dollars|euros?|pounds|usd|eur|gbp|bucks))(?: ?(?:total|a month|per month|a week|per week|each|per person))?/gi)) need.push(x[0].trim());
   if(/\bone page\b/i.test(t)) need.push("fits on one page");
@@ -3301,13 +3377,13 @@ json(b, m){
   };
   if(m.neg && m.neg.mode !== "field" && arr(b.avoid).length) o.style_description = [o.style_description, "Keep out: " + lc(stripDot(join(b.avoid)))].filter(has).join(". "); // 8.7.25: no negative field in the 4.0 API
   if(has(b.medium) && /photo|cinematic/i.test(b.medium)) o.photo = { lens: b.lens||"50mm normal", lighting: lightClause(b)||"natural light" };
-  else o.art_style = has(b.palette) ? { medium: b.medium||"illustration", palette: b.palette } : { medium: b.medium||"illustration" }; // 8.7.31: no empty fields
+  else o.art_style = { medium: b.medium||"illustration" }; // 8.7.31: no empty fields; Oct 2026: the palette is said once, in color_palette
   if(has(b.imgtext)){ // 8.7.31: the box follows the shape (one box for every shape read as boilerplate)
     const r = ratioOf(String(b.aspect || "1x1")) || 1;
     const box = r > 1.4 ? [380,120,620,880] : r < 0.75 ? [120,150,300,850] : [300,150,520,850];
     o.text_elements = [{ content: stripDot(b.imgtext), placement: r < 0.75 ? "top third, centred" : "primary focal area", box }];
   }
-  if(has(b.palette)) o.color_palette = { description: b.palette };
+  if(has(b.palette)){ o.color_palette = { description: b.palette }; o.style_description = String(o.style_description).replace(/(?:[.,]\s*)?\bpalette:[^.]*/i, ""); }
   const flat = JSON.stringify(o, null, 2);
   return {blocks:[["JSON prompt", flat]], flat, mono:true};
 },
@@ -4112,6 +4188,8 @@ function pickAspect(t, m){
     else if(/\b(ultra-?wide|cinemascope|anamorphic|2\.39|letterbox\w*)\b/i.test(t)) want = 21/9;
     else if(/\b(widescreen|landscape (orientation|format|mode)|youtube (video|thumbnail|banner|intro)|desktop wallpaper|thumbnail|banner|header|16 by 9)\b/i.test(t)) want = 16/9;
     else if(/\b(wide shot|wide-angle|wide angle|panoram\w*|landscape view|establishing shot|vista)\b/i.test(t)) want = 16/9; // v1 bug hunt: a "wide shot" came out square
+    else if(/(?:^|[,;]\s*)wide(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 16/9; // Oct 2026 fake test: "..., pixar style, wide" came out square
+    else if(/(?:^|[,;]\s*)tall(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2/3;
     // v2.6: a clip for social media is vertical unless it is for YouTube (judges: "16:9 for a social clip")
     else if(m.cat === "video" && /\b(social(?: media)?|instagram|insta|ig|tiktok|reels?|stories|phone)\b/i.test(t) && !/\byoutube\b(?!\s+shorts?)/i.test(t)) want = 9/16;
     else if(m.cat === "video" && /\byoutube\b/i.test(t)) want = 16/9;
@@ -4304,9 +4382,15 @@ function rebuildBriefParts(text, m){
         if(/\btime-?lapse\b/i.test(t) && !has(b.motion)) b.motion = ["time-lapse"];
         if(/\bcinematic\b/i.test(t) && !has(b.grade) && !has(b.mood)) b.mood = ["cinematic"];
         // "drone shot flying over a misty lake": the shot is the camera, and the lake is what is in the frame
-        if(/^(?:an? )?(?:aerial|drone|wide|establishing|tracking)(?: drone)? shot$/i.test(String(b.subject || "").trim()) && has(b.setting)){
+        // Oct 2026 fake test: "slow drone shot over a foggy forest, a lone deer steps into a clearing" said the shot twice and
+        // would have glued the deer onto the camera; a word before the shot ("slow") and an action of its own are kept apart
+        const camLead = String(b.subject || "").trim().match(/^(?:an? )?(?:(slow|fast|smooth|sweeping|high|low)\s+)?(?:aerial|drone|wide|establishing|tracking)(?: drone)? shot$/i);
+        if(camLead && has(b.setting)){
+          const prep = (String(b.setting).match(/^(over|above|across|through|along|past|around)\b/i) || ["over"])[0].toLowerCase();
           b.subject = cap(String(b.setting).replace(/^(?:over|above|across|through|along|past|around)\s+/i, ""));
-          b.action = "the camera " + String(b.action || "moving") + " " + (String(b.setting).match(/^(over|above|across|through|along|past|around)\b/i) || ["over"])[0].toLowerCase() + " it";
+          const how = camLead[1] ? camLead[1].toLowerCase().replace(/^slow$/, "slowly").replace(/^fast$/, "quickly").replace(/^smooth$/, "smoothly") + " " : "";
+          const act = String(b.action || "").trim();
+          b.action = act && !/^\w+ing$/i.test(act) ? "the camera glides " + how + prep + " it as " + act.replace(/^\s*(?:and|as)\s+/i, "") : "the camera " + (act || "moving") + " " + how + prep + " it"; // "flying" is the camera's own move
           delete b.setting;
         }
       }
@@ -4324,6 +4408,20 @@ function rebuildBriefParts(text, m){
       }
     }
     if((m.tech || []).includes("aspect")){ const a = pickAspect(t, m); if(a) b.aspect = a; } // 8.7.17
+    // Oct 2026 fake test: "logo for a lemonade stand called Joya Lemonade ... the words must be spelled right" printed no words.
+    // A logo, sign, label or poster "called/named" a Capitalised Name prints that name.
+    if(!has(b.imgtext) && m.cat === "image" && !/\bno (?:text|words|lettering)\b|\bwithout (?:text|words)\b/i.test(t)){
+      // the thing in any case ("Logo for..."), the name in capitals
+      const kw = /\b(?:logo|sign|signage|label|banner|poster|badge|sticker|t-?shirt|mug|menu|storefront|shop ?front)\b/i.exec(t);
+      const cm = kw ? t.slice(kw.index).match(/^[^.]{0,80}?\b(?:called|named)\s+((?:[A-Z0-9][\w'&-]*)(?:\s+(?:&\s+)?[A-Z0-9][\w'&-]*){0,4})/) : null;
+      if(cm) b.imgtext = cm[1];
+    }
+    // ... and a colour said on its own ("bright yellow, simple") is the palette. Not a colour that describes a thing ("a red fox").
+    if(!has(b.palette) && m.cat === "image"){
+      const C = "(?:(?:bright|light|dark|pale|deep|soft|warm|cool|pastel|neon|bold|muted)\\s+)?(?:red|orange|yellow|green|blue|purple|pink|brown|black|white|gold|silver|teal|navy|cream|beige|mint|turquoise|grey|gray)";
+      const pc = t.match(new RegExp("(?:^|[,;.]\\s*|\\bin\\s+)(" + C + "(?:(?:\\s*,\\s*|\\s+(?:and|&)\\s+)" + C + ")*)(?=\\s*(?:[,;.]|$|\\s+(?:colou?rs?|palette|tones?|theme)\\b))", "i"));
+      if(pc) b.palette = pc[1].trim();
+    }
     { const av = avoidFrom(t); if(av) b.avoid = av; } // 8.7.16
     // v1 bug hunt: the keep-out stays only in the keep-outs ("no text i'll add it after" was also left in Anything else? and came back as a second --no)
     if(has(b.avoid) && typeof b.extra === "string"){
@@ -4377,6 +4475,8 @@ function rebuildBriefParts(text, m){
       if(ac.context && (!has(b.context) || /^(?:for|and|to|with|but|or|so|because|of|in|on|at)\b/i.test(String(b.context)) || ac.context.length > String(b.context).length * 1.5)) b.context = ac.context;
     }
     else { const ac = askAndContext(t); b.goal = ac.ask; if(ac.context && !has(b.context)) b.context = ac.context; } // 10.1
+    // Oct 2026 fake test: context that only repeats words already in the task ("Because of a dentist appointment") goes
+    if(has(b.context) && has(b.goal) && String(b.goal).toLowerCase().includes(String(b.context).toLowerCase().replace(/[.!]+$/, "").trim())) delete b.context;
     // 12.1: "i dont want to sound like im throwing him under the bus" is the most important rule of the job; it was
     // left in the story. It becomes the keep-out ("Avoid: sounding like ...") and leaves the context.
     { const tw = t.match(/\b(?:i |we )?(?:don'?t|do not|dont) want (?:it |this |them |to )?(?:to )?(sound|come across|seem|look) (?:like |as )?([^,.;!?]{4,80}?)(?=\s+(?:even|but|because|since|and)\b|[,.;!?]|$)/i);
@@ -4489,8 +4589,9 @@ function askAndContext(t){
     .replace(/\b(?:cuz|cause|bc|coz)\b/gi, "because").replace(/\bwanna\b/gi, "want to").replace(/\bgonna\b/gi, "going to").replace(/\bdont\b/gi, "don't").replace(/\bcant\b/gi, "can't").replace(/\bim\b/gi, "I'm").replace(/\bidk\b/gi, "I don't know").replace(/\b(doesn|isn|won|didn|wasn|aren|shouldn|couldn|wouldn)t\b/gi, "$1't").replace(/\b(that|what|there|it)s\b(?=\s+(?:a|an|the|not|just|so|really|my|how|what|why|\w+ing)\b)/gi, "$1's").replace(/\byoure\b/gi, "you're").replace(/\bgotta\b/gi, "have to").replace(/\bgot to\b/gi, "have to").replace(/\blike\s+(?=\d)/gi, "").replace(/\bsuper\s+(?=\w+)/gi, "")
     .replace(/\b([A-Z]{2,})(?:\s+([A-Z]{2,}))?\b/g, (w, a, b2) => /^(AI|API|CSV|PDF|SQL|HR|US|UK|EU|CEO|ER|IRS|FDA|CDC|NHS)$/.test(a) ? w : (b2 ? a.toLowerCase() + " " + b2.toLowerCase() : a.toLowerCase()));
   const SUBJ = "(?:i|i'm|i've|my|she|he|they|we|it|now|then|the|her|his|our|their|this|that|there)";
-  const clauses = norm.split(new RegExp("\\s*[.;!?]+\\s*|,\\s*|\\s+(?:and now|and then|and|but|because|so|since|plus)\\s+(?=" + SUBJ + "\\b)|(?<!\\b(?:get|understand|know|sure|explain|tell me|show me|figure out|see|wonder|ask|asking|decide|idea))\\s+(?=(?:like\\s+)?(?:how|what|why|which|can you|could you)\\b)|(?<!\\b(?:think|thinks|say|says|feel|feels|know|knows|believe|that|realize|like|worried|sure|to|for|with|from|about|of|at|by|email|text|message|tell|ask|thank|invite|remind|call|help))\\s+(?=(?:i|my|she|he|they|we|her|his|our|their|now)\\s+(?:teacher|boss|mom|dad|kid|son|daughter|went|was|have|has|had|already|need|don't|can't|keep)\\b)", "i")).map(c => c.trim()).filter(c => c.split(/\s+/).length >= 2);
-  const ASK = /\b(how|what|why|which|where|when|can you|could you|would you|help|write|draft|make|create|explain|show|fix|figure out|tell me|teach|plan|compare|should i|is it|are there|need (?:a|an|some|help|to)|want (?:a|an|to)|have to (?:send|write|reply|respond|tell|ask|email|text|give|make|draft|post|announce)|looking for|i don'?t (?:get|understand))\b/i;
+  const clauses = norm.split(new RegExp("\\s*[.;!?]+\\s*|,\\s*|\\s+(?:and now|and then|and|but|because|so|since|plus)\\s+(?=" + SUBJ + "\\b)|(?<!\\b(?:get|understand|know|sure|explain|tell me|show me|figure out|see|wonder|ask|asking|decide|idea))\\s+(?=(?:like\\s+)?(?:how|what|why|which|can you|could you)\\b)|(?<!\\b(?:think|thinks|say|says|saying|said|telling|explaining|mentioning|feel|feels|know|knows|believe|that|realize|like|worried|sure|to|for|with|from|about|of|at|by|email|text|message|tell|ask|thank|invite|remind|call|help))\\s+(?=(?:i|my|she|he|they|we|her|his|our|their|now)\\s+(?:teacher|boss|mom|dad|kid|son|daughter|went|was|have|has|had|already|need|don't|can't|keep)\\b)", "i")).map(c => c.trim()).filter(c => c.split(/\s+/).length >= 2);
+  // Oct 2026 fake test: "keep it short and polite" is an instruction, not background
+  const ASK = /\b(keep (?:it|them|this|the \w+)\b|how|what|why|which|where|when|can you|could you|would you|help|write|draft|make|create|explain|show|fix|figure out|tell me|teach|plan|compare|should i|is it|are there|need (?:a|an|some|help|to)|want (?:a|an|to)|have to (?:send|write|reply|respond|tell|ask|email|text|give|make|draft|post|announce)|looking for|i don'?t (?:get|understand))\b/i;
   const NOT_ASK = /\b(?:don'?t|do not|didn'?t|never) (?:want|wanna|need)\b|\balready\b/i;
   const asks = [], ctx = [];
   for(const c of clauses){ if(ASK.test(c) && !NOT_ASK.test(c)) asks.push(c); else ctx.push(c); }
@@ -5197,6 +5298,8 @@ function defaultMedium(b){
   const t = [b.subject, b.purpose, b.setting, b.extra].filter(has).map(v => join(v)).join(" ").toLowerCase();
   // 6.2.1: only when the THING is a graphic ("a logo", "a sign"); a dog on a beach FOR a card is still a photo
   if(/\b(logos?|icons?|stickers?|signs?|posters?|flyers?|cards?|invitations?|menus?|labels?|badges?|banners?|infographics?|charts?|diagrams?|packaging|designs?|panels?|murals?|patterns?|wraps?|decals?|t-?shirts?|merch|brackets?|storyboards?|leaderboards?|flowcharts?|timelines?|wireframes?|thumbnails?|book covers?|covers?)\b/.test(join(b.subject).toLowerCase())) return "clean graphic design";
+  // Oct 2026 fake test: "pixar style" came out as a "Photograph of a hamster astronaut"
+  if(/\b(pixar|dreamworks|disney|3d animat\w*|animated (?:movie|film)|cgi)\b/.test(t)) return "3D render";
   if(/\b(storybook|children'?s book|fantasy|dragon|wizard|fairy|cartoon|comic|mascot|character art|concept art|game art|illustrat\w*)\b/.test(t)) return "illustration";
   return "photograph";
 }
@@ -5868,7 +5971,7 @@ function trustTheirWords(b, theirWords){
     if(noun && !desc.includes(noun) && theirs) delete out.vArch;
   }
   // a look they named in their own words beats a different look in the box ("a chalk sign" with "ink line art")
-  const MEDIA = [["chalk", "chalk lettering on a chalkboard"], ["chalkboard", "chalk lettering on a chalkboard"], ["watercolou?r", "watercolour illustration"], ["neon (?:signs?|lettering|text|words?|logo)", "glowing neon sign"], ["embroider\\w*", "embroidered patch"], ["stained glass", "stained glass"], ["pixel art", "pixel art"], ["claymation|clay", "clay animation style"], ["woodcut|linocut", "woodcut print"], ["pencil", "pencil drawing"], ["crayon", "crayon drawing"], ["oil paint\\w*", "oil painting"], ["vector", "flat vector"], ["cartoon", "cartoon illustration"], ["anime", "anime illustration"], ["3d|three-?d", "3D render"], ["photo\\w*|realistic", "photograph"]];
+  const MEDIA = [["chalk", "chalk lettering on a chalkboard"], ["chalkboard", "chalk lettering on a chalkboard"], ["watercolou?r", "watercolour illustration"], ["neon (?:signs?|lettering|text|words?|logo)", "glowing neon sign"], ["embroider\\w*", "embroidered patch"], ["stained glass", "stained glass"], ["pixel art", "pixel art"], ["claymation|clay", "clay animation style"], ["woodcut|linocut", "woodcut print"], ["pencil", "pencil drawing"], ["crayon", "crayon drawing"], ["oil paint\\w*", "oil painting"], ["vector", "flat vector"], ["cartoon", "cartoon illustration"], ["anime", "anime illustration"], ["3d|three-?d|pixar|dreamworks", "3D render"], ["photo\\w*|realistic", "photograph"]];
   if(has(b.medium)){
     const typed = [b.subject, b.extra, b.purpose].filter(has).map(v => join(v)).join(" ").toLowerCase(), box = String(b.medium).toLowerCase();
     const hit = MEDIA.find(([re]) => new RegExp("\\b(?:" + re + ")\\b").test(typed) && !new RegExp("\\b(?:no|not|without|never|instead of)\\s+(?:a\\s+|an\\s+)?(?:" + re + ")").test(typed));
@@ -6995,6 +7098,9 @@ function glFromJson(t){
   return found.map(f => ({role: f.role, text: f.text}));
 }
 
+/** Oct 2026: a sentence that asks for the work ("can you write it now", "fix it please", "make the plan as a table") */
+const GL_ASK = /^(?:(?:so|ok(?:ay)?|now|and|then)[, ]+)?(?:(?:can|could|would|will) you\b|(?:please|pls)\b|(?:make|write|fix|give|send|create|draft|plan|do|build|show|turn)\b)/i;
+
 /** 10.6: the latest ask, with what a bare "yes" answered: "yes, and no stock photos" after "Want an order form?"
  *  is 'Yes to "Want an order form?", and no stock photos', not "And no stock photos". @param {Turn[]} turns */
 function glLatestAsk(turns){
@@ -7008,6 +7114,8 @@ function glLatestAsk(turns){
   // the new request is what comes after it
   const no = said.match(/^(?:no|nope|nah)\b[^.!?\n]*[.!?\n]+\s*(\S.*)$/is);
   if(no && q) return glTidyAsk(no[1]);
+  // Oct 2026 fake test: "mostly warm with one joke. can you write it now" - the first sentence answered the AI; the ask is after it
+  if(q){ const ss = said.split(/(?<=[.!?])\s+|\n+/); const k = ss.findIndex((x, n) => n > 0 && GL_ASK.test(x.trim())); if(k > 0) return glTidyAsk(ss.slice(k).join(" ")); }
   return glTidyAsk(said);
 }
 
@@ -7072,7 +7180,7 @@ function chatContext(input){
   for(const t of user) for(const x of sents(t.text)){
     // v1 step 14: "no stock photos" is a rule too (a real /forge-map run listed it as "not tagged as a rule")
     // Oct 2026: "not too scary", "nothing too heavy", "has to finish by 4pm" and allergies are rules too
-    const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it|not too|nothing too|has to|have to|no later than|allerg\w*)\b|\bby \d{1,2}(?::\d\d)?\s*(?:am|pm)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
+    const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it|not too|nothing too|has to|have to|no later than|allerg\w*|hates?|can'?t stand|doesn'?t like|does not like|not a fan of)\b|\bby \d{1,2}(?::\d\d)?\s*(?:am|pm)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
     if(RULE.test(x)){ const cl = x.split(/,\s*|;\s*|\s+but\s+|\s+and\s+(?=(?:never|don'?t|do not|no|only|without|must|keep)\b)/i).filter(c => RULE.test(c)); sum.rules.push(...(cl.length ? cl : [x]).map(c => c.replace(/^\s*(?:and|but|also|plus|then)\s+/i, "").replace(/^it\s+(?=has to|have to)/i, "").replace(/[.!]+$/, ""))); }
     else if(/\b(let'?s|we'?ll|go with|going with|decided|i chose|i choose|i picked|use the|yes,? (?:do|go)|ok,? (?:do|go)|i want)\b/i.test(x)) sum.decisions.push(x);
   }
@@ -7093,7 +7201,8 @@ function chatContext(input){
     const first = (String(ans.text).trim().split(/(?<=[.!?])\s+|\n+/)[0] || "").replace(/^\s*(?:[-*\u2022#>]+|\d+[.)])\s*/, "").replace(/[.!]+$/, "").trim();
     const qs = sents(q.text).filter(x => /\?$/.test(x)).pop() || "";
     // the yes/no question it answers ("Should I include a cake recipe?" -> "include a cake recipe")
-    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:i|we|it)?\s*(.+?)\?$/i);
+    // Oct 2026 fake test: "Want me to include the Vatican?" gave "nclude" (the optional "i" took include's first letter)
+    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:(?:i|we|it)\s+)?(.+?)\?$/i);
     for(const x of sents(q.text)) if(/\?$/.test(x)) answered.add(x.toLowerCase());
     const noA = /^(?:no|nope|nah)\b[,!. ]*/i.exec(first);
     if(yesQ && noA){ const why = first.slice(noA[0].length).trim(); sum.decisions.push("Don't " + yesQ[1].trim() + (why ? " (" + why + ")" : "")); continue; }
@@ -7116,6 +7225,17 @@ function chatContext(input){
     const ruleSet = new Set(sum.rules.map(r => String(r).toLowerCase().replace(/[.!]+$/, "").trim()));
     const kept = d.split(/,\s*/).filter(c => !ruleSet.has(c.toLowerCase().replace(/[.!]+$/, "").trim()));
     if(kept.length && !sum.rules.some(r => String(r).toLowerCase().replace(/[.]+$/, "") === first.toLowerCase().replace(/[.]+$/, ""))) sum.decisions.push(up1(kept.join(", ")));
+    // Oct 2026 fake test: an answer to two questions ("How long, and any stories?") lost everything after its first sentence
+    // ("the story about her teaching me to bake bread"). The rest counts too, minus rules and the new request.
+    const rest = String(ans.text).trim().split(/(?<=[.!?])\s+|\n+/).slice(1).map(x => x.replace(/[.!]+$/, "").trim()).filter(Boolean);
+    for(const x of rest){
+      if(GL_ASK.test(x) || /\?$/.test(x)) continue;
+      for(const c0 of x.split(/,\s*/)){
+        const c = c0.replace(/^\s*(?:and|but|also|plus)\s+/i, "").trim();
+        if(c.split(/\s+/).length < 2 || ruleSet.has(c.toLowerCase()) || sum.rules.some(r => String(r).toLowerCase() === c.toLowerCase())) continue;
+        sum.decisions.push(up1(c));
+      }
+    }
   }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
   if(lastAi) sum.open.push(...sents(lastAi.text).filter(x => /\?$/.test(x) && !answered.has(x.toLowerCase())));
@@ -8363,6 +8483,17 @@ $$(".tab").forEach(t=>t.addEventListener("click", ()=>{
   $$(".pane").forEach(p=>p.setAttribute("data-active", p.getAttribute("data-pane")===t.getAttribute("data-pane") ? "1":"0"));
   window.scrollTo(0, 0); // 2.3.2: a new tab starts at its top, not at the old tab's scroll position
 }));
+// Oct 2026: "Use in Claude" buttons, the setup tabs and their Copy buttons
+function openGetForge(){ const t = document.querySelector('.tab[data-pane="manual"]'); if(t) t.click(); const g = document.getElementById("get-forge");
+  // below the sticky top bar, whatever its height (it is taller on a phone)
+  if(g) setTimeout(()=>{ const bar = document.querySelector(".topbar"); window.scrollTo(0, g.getBoundingClientRect().top + window.scrollY - (bar ? bar.offsetHeight : 0) - 12); }, 50); }
+document.addEventListener("click", e=>{
+  const g = e.target.closest("[data-get-forge]"); if(g){ openGetForge(); return; }
+  const st = e.target.closest("[data-setup]");
+  if(st){ for(const b of document.querySelectorAll("[data-setup]")) b.setAttribute("aria-pressed", b === st ? "true" : "false");
+    for(const p of document.querySelectorAll("[data-setup-pane]")) p.hidden = p.getAttribute("data-setup-pane") !== st.dataset.setup; return; }
+  const c = e.target.closest("[data-copy]"); if(c) copy(c.dataset.copy, "Command");
+});
 // A link to #manual or #get-forge (from the GitHub README) opens the Manual tab at that part.
 if(/^#(manual|get-forge)$/.test(location.hash)){ const t = document.querySelector('.tab[data-pane="manual"]'); if(t){ t.click(); const g = document.getElementById(location.hash.slice(1)); if(g) setTimeout(()=>g.scrollIntoView(), 50); } }
 

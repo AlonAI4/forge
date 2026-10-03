@@ -139,6 +139,9 @@ function glFromJson(t){
   return found.map(f => ({role: f.role, text: f.text}));
 }
 
+/** Oct 2026: a sentence that asks for the work ("can you write it now", "fix it please", "make the plan as a table") */
+const GL_ASK = /^(?:(?:so|ok(?:ay)?|now|and|then)[, ]+)?(?:(?:can|could|would|will) you\b|(?:please|pls)\b|(?:make|write|fix|give|send|create|draft|plan|do|build|show|turn)\b)/i;
+
 /** 10.6: the latest ask, with what a bare "yes" answered: "yes, and no stock photos" after "Want an order form?"
  *  is 'Yes to "Want an order form?", and no stock photos', not "And no stock photos". @param {Turn[]} turns */
 function glLatestAsk(turns){
@@ -152,6 +155,8 @@ function glLatestAsk(turns){
   // the new request is what comes after it
   const no = said.match(/^(?:no|nope|nah)\b[^.!?\n]*[.!?\n]+\s*(\S.*)$/is);
   if(no && q) return glTidyAsk(no[1]);
+  // Oct 2026 fake test: "mostly warm with one joke. can you write it now" - the first sentence answered the AI; the ask is after it
+  if(q){ const ss = said.split(/(?<=[.!?])\s+|\n+/); const k = ss.findIndex((x, n) => n > 0 && GL_ASK.test(x.trim())); if(k > 0) return glTidyAsk(ss.slice(k).join(" ")); }
   return glTidyAsk(said);
 }
 
@@ -216,7 +221,7 @@ function chatContext(input){
   for(const t of user) for(const x of sents(t.text)){
     // v1 step 14: "no stock photos" is a rule too (a real /forge-map run listed it as "not tagged as a rule")
     // Oct 2026: "not too scary", "nothing too heavy", "has to finish by 4pm" and allergies are rules too
-    const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it|not too|nothing too|has to|have to|no later than|allerg\w*)\b|\bby \d{1,2}(?::\d\d)?\s*(?:am|pm)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
+    const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it|not too|nothing too|has to|have to|no later than|allerg\w*|hates?|can'?t stand|doesn'?t like|does not like|not a fan of)\b|\bby \d{1,2}(?::\d\d)?\s*(?:am|pm)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
     if(RULE.test(x)){ const cl = x.split(/,\s*|;\s*|\s+but\s+|\s+and\s+(?=(?:never|don'?t|do not|no|only|without|must|keep)\b)/i).filter(c => RULE.test(c)); sum.rules.push(...(cl.length ? cl : [x]).map(c => c.replace(/^\s*(?:and|but|also|plus|then)\s+/i, "").replace(/^it\s+(?=has to|have to)/i, "").replace(/[.!]+$/, ""))); }
     else if(/\b(let'?s|we'?ll|go with|going with|decided|i chose|i choose|i picked|use the|yes,? (?:do|go)|ok,? (?:do|go)|i want)\b/i.test(x)) sum.decisions.push(x);
   }
@@ -237,7 +242,8 @@ function chatContext(input){
     const first = (String(ans.text).trim().split(/(?<=[.!?])\s+|\n+/)[0] || "").replace(/^\s*(?:[-*\u2022#>]+|\d+[.)])\s*/, "").replace(/[.!]+$/, "").trim();
     const qs = sents(q.text).filter(x => /\?$/.test(x)).pop() || "";
     // the yes/no question it answers ("Should I include a cake recipe?" -> "include a cake recipe")
-    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:i|we|it)?\s*(.+?)\?$/i);
+    // Oct 2026 fake test: "Want me to include the Vatican?" gave "nclude" (the optional "i" took include's first letter)
+    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:(?:i|we|it)\s+)?(.+?)\?$/i);
     for(const x of sents(q.text)) if(/\?$/.test(x)) answered.add(x.toLowerCase());
     const noA = /^(?:no|nope|nah)\b[,!. ]*/i.exec(first);
     if(yesQ && noA){ const why = first.slice(noA[0].length).trim(); sum.decisions.push("Don't " + yesQ[1].trim() + (why ? " (" + why + ")" : "")); continue; }
@@ -260,6 +266,17 @@ function chatContext(input){
     const ruleSet = new Set(sum.rules.map(r => String(r).toLowerCase().replace(/[.!]+$/, "").trim()));
     const kept = d.split(/,\s*/).filter(c => !ruleSet.has(c.toLowerCase().replace(/[.!]+$/, "").trim()));
     if(kept.length && !sum.rules.some(r => String(r).toLowerCase().replace(/[.]+$/, "") === first.toLowerCase().replace(/[.]+$/, ""))) sum.decisions.push(up1(kept.join(", ")));
+    // Oct 2026 fake test: an answer to two questions ("How long, and any stories?") lost everything after its first sentence
+    // ("the story about her teaching me to bake bread"). The rest counts too, minus rules and the new request.
+    const rest = String(ans.text).trim().split(/(?<=[.!?])\s+|\n+/).slice(1).map(x => x.replace(/[.!]+$/, "").trim()).filter(Boolean);
+    for(const x of rest){
+      if(GL_ASK.test(x) || /\?$/.test(x)) continue;
+      for(const c0 of x.split(/,\s*/)){
+        const c = c0.replace(/^\s*(?:and|but|also|plus)\s+/i, "").trim();
+        if(c.split(/\s+/).length < 2 || ruleSet.has(c.toLowerCase()) || sum.rules.some(r => String(r).toLowerCase() === c.toLowerCase())) continue;
+        sum.decisions.push(up1(c));
+      }
+    }
   }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
   if(lastAi) sum.open.push(...sents(lastAi.text).filter(x => /\?$/.test(x) && !answered.has(x.toLowerCase())));

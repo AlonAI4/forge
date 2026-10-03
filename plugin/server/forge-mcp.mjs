@@ -38178,6 +38178,7 @@ function glFromJson(t) {
   if (found2.every((f2) => f2.at > 1e6)) found2.sort((a, b) => a.at - b.at);
   return found2.map((f2) => ({ role: f2.role, text: f2.text }));
 }
+var GL_ASK = /^(?:(?:so|ok(?:ay)?|now|and|then)[, ]+)?(?:(?:can|could|would|will) you\b|(?:please|pls)\b|(?:make|write|fix|give|send|create|draft|plan|do|build|show|turn)\b)/i;
 function glLatestAsk(turns) {
   const i = turns.map((t) => t.role !== "assistant").lastIndexOf(true);
   if (i < 0) return "";
@@ -38191,6 +38192,11 @@ function glLatestAsk(turns) {
   }
   const no = said.match(/^(?:no|nope|nah)\b[^.!?\n]*[.!?\n]+\s*(\S.*)$/is);
   if (no && q) return glTidyAsk(no[1]);
+  if (q) {
+    const ss = said.split(/(?<=[.!?])\s+|\n+/);
+    const k2 = ss.findIndex((x, n) => n > 0 && GL_ASK.test(x.trim()));
+    if (k2 > 0) return glTidyAsk(ss.slice(k2).join(" "));
+  }
   return glTidyAsk(said);
 }
 var CHAT_SUMMARY_ASK = [
@@ -38260,7 +38266,7 @@ function chatContext(input2) {
   sum.goal = user.length ? glTidyAsk(user[0].text) : "";
   sum.latest = user.length > 1 ? glLatestAsk(turns) : "";
   for (const t of user) for (const x of sents(t.text)) {
-    const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it|not too|nothing too|has to|have to|no later than|allerg\w*)\b|\bby \d{1,2}(?::\d\d)?\s*(?:am|pm)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
+    const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it|not too|nothing too|has to|have to|no later than|allerg\w*|hates?|can'?t stand|doesn'?t like|does not like|not a fan of)\b|\bby \d{1,2}(?::\d\d)?\s*(?:am|pm)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
     if (RULE.test(x)) {
       const cl = x.split(/,\s*|;\s*|\s+but\s+|\s+and\s+(?=(?:never|don'?t|do not|no|only|without|must|keep)\b)/i).filter((c) => RULE.test(c));
       sum.rules.push(...(cl.length ? cl : [x]).map((c) => c.replace(/^\s*(?:and|but|also|plus|then)\s+/i, "").replace(/^it\s+(?=has to|have to)/i, "").replace(/[.!]+$/, "")));
@@ -38277,7 +38283,7 @@ function chatContext(input2) {
     if (q.role !== "assistant" || ans.role === "assistant" || !/\?\s*$/.test(String(q.text).trim())) continue;
     const first = (String(ans.text).trim().split(/(?<=[.!?])\s+|\n+/)[0] || "").replace(/^\s*(?:[-*\u2022#>]+|\d+[.)])\s*/, "").replace(/[.!]+$/, "").trim();
     const qs = sents(q.text).filter((x) => /\?$/.test(x)).pop() || "";
-    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:i|we|it)?\s*(.+?)\?$/i);
+    const yesQ = qs.match(/^(?:should|shall|can|could|do you want me to|would you like me to|want me to)\s+(?:(?:i|we|it)\s+)?(.+?)\?$/i);
     for (const x of sents(q.text)) if (/\?$/.test(x)) answered.add(x.toLowerCase());
     const noA = /^(?:no|nope|nah)\b[,!. ]*/i.exec(first);
     if (yesQ && noA) {
@@ -38299,6 +38305,15 @@ function chatContext(input2) {
     const ruleSet = new Set(sum.rules.map((r2) => String(r2).toLowerCase().replace(/[.!]+$/, "").trim()));
     const kept = d2.split(/,\s*/).filter((c) => !ruleSet.has(c.toLowerCase().replace(/[.!]+$/, "").trim()));
     if (kept.length && !sum.rules.some((r2) => String(r2).toLowerCase().replace(/[.]+$/, "") === first.toLowerCase().replace(/[.]+$/, ""))) sum.decisions.push(up1(kept.join(", ")));
+    const rest = String(ans.text).trim().split(/(?<=[.!?])\s+|\n+/).slice(1).map((x) => x.replace(/[.!]+$/, "").trim()).filter(Boolean);
+    for (const x of rest) {
+      if (GL_ASK.test(x) || /\?$/.test(x)) continue;
+      for (const c0 of x.split(/,\s*/)) {
+        const c = c0.replace(/^\s*(?:and|but|also|plus)\s+/i, "").trim();
+        if (c.split(/\s+/).length < 2 || ruleSet.has(c.toLowerCase()) || sum.rules.some((r2) => String(r2).toLowerCase() === c.toLowerCase())) continue;
+        sum.decisions.push(up1(c));
+      }
+    }
   }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
   if (lastAi) sum.open.push(...sents(lastAi.text).filter((x) => /\?$/.test(x) && !answered.has(x.toLowerCase())));
@@ -41512,7 +41527,7 @@ function chatNeeds(all, b) {
   const teach = /\b(explain|teach|what is|what are|how (?:does|do|to)|help me understand|lesson|quiz|study)\b/.test(lo);
   const forTeacher = /\b(lesson plans?|rubrics?|worksheets?|curriculum|unit plan|i'?m a teacher|i teach|my (?:students|class|pupils))\b/.test(lo);
   if (n && n < 18 && forTeacher) out.push("The activities and words are for " + n + "-year-olds; what you write is for the teacher.");
-  else if (n && n < 18) out.push("Write for a " + n + "-year-old: " + (n <= 8 ? "very short sentences and everyday words" : n <= 13 ? "short sentences and everyday words" : "plain words, with any jargon defined once") + (teach ? n <= 13 ? "; explain any new word the first time and use one concrete example from their life." : "; use one concrete example." : "."));
+  else if (n && n < 18) out.push("Write for " + (n === 8 || n === 11 ? "an " : "a ") + n + "-year-old: " + (n <= 8 ? "very short sentences and everyday words" : n <= 13 ? "short sentences and everyday words" : "plain words, with any jargon defined once") + (teach ? n <= 13 ? "; explain any new word the first time and use one concrete example from their life." : "; use one concrete example." : "."));
   else if (/\b(complete beginner|total beginner|beginner|never (?:coded|done|used|played|cooked)|no experience with|new to|someone who has never|for dummies|non-?technical|layman)\b/.test(lo) && !/\bno (?:job|work) experience\b/.test(lo)) out.push("Assume no background: no jargon, or explain each term in one line, and build from what they already know.");
   const need = [];
   for (const x of t.matchAll(/\b(max(?:imum)? |at most |no more than |up to |exactly |about |around |under |over |at least )?(?<!\b(?:i'?m|im|am|age|aged|like) )(\d{1,3}) (?:(?!(?:day|week|month|minute|min|hour|year|with|and|or|an?|the|of|to|for|in|on|at|from|by)s?\b)[a-z-]+ ){0,2}(captions?|ideas?|(?:quiz )?questions?|bullet points?|bullets?|tips?|examples?|versions?|scripts?|exercises?|names?|options?|titles?|hooks?|slides?|steps?|ways?|reasons?|things|points?|paragraphs?|sentences?|lines?|days?|weeks?|meals?|lunches|recipes?|activities|songs?|hashtags?(?: each)?|words?|minutes?|mins?|hours?|pages?|levels?|panels?)\b/gi)) {
@@ -41527,7 +41542,7 @@ function chatNeeds(all, b) {
       continue;
     }
     if (/^(days?|weeks?|minutes?|mins?|hours?)$/.test(what) && !q) continue;
-    need.push((q === "max" || q === "maximum" || q === "at most" || q === "no more than" || q === "up to" ? "at most " : q === "under" ? "under " : q === "about" || q === "around" ? "about " : q === "at least" || q === "over" ? "at least " : "exactly ") + said);
+    need.push((q === "max" || q === "maximum" || q === "at most" || q === "no more than" || q === "up to" ? "at most " : q === "under" ? "under " : q === "about" || q === "around" ? "about " : q === "at least" || q === "over" ? "at least " : "exactly ") + said.replace(/^(\d+)(\s.*?)?\b(caption|idea|question|bullet point|bullet|tip|example|version|script|exercise|name|option|title|hook|slide|step|reason|point|paragraph|sentence|line|meal|recipe|song|hashtag|level|panel)$/i, (m0, k2, mid, w2) => Number(k2) > 1 ? k2 + (mid || " ") + w2 + "s" : m0));
   }
   for (const x of t.matchAll(/(?:under|below|less than|max(?:imum)?|within|no more than|budget(?: of)?) (?:[$€£]\d[\d,]*(?:\.\d+)?|\d[\d,]*(?:\.\d+)? ?(?:dollars|euros?|pounds|usd|eur|gbp|bucks))(?: ?(?:total|a month|per month|a week|per week|each|per person))?/gi)) need.push(x[0].trim());
   if (/\bone page\b/i.test(t)) need.push("fits on one page");
@@ -41637,13 +41652,16 @@ var COMPOSE = {
     };
     if (m2.neg && m2.neg.mode !== "field" && arr(b.avoid).length) o.style_description = [o.style_description, "Keep out: " + lc(stripDot(join(b.avoid)))].filter(has).join(". ");
     if (has(b.medium) && /photo|cinematic/i.test(b.medium)) o.photo = { lens: b.lens || "50mm normal", lighting: lightClause(b) || "natural light" };
-    else o.art_style = has(b.palette) ? { medium: b.medium || "illustration", palette: b.palette } : { medium: b.medium || "illustration" };
+    else o.art_style = { medium: b.medium || "illustration" };
     if (has(b.imgtext)) {
       const r2 = ratioOf(String(b.aspect || "1x1")) || 1;
       const box = r2 > 1.4 ? [380, 120, 620, 880] : r2 < 0.75 ? [120, 150, 300, 850] : [300, 150, 520, 850];
       o.text_elements = [{ content: stripDot(b.imgtext), placement: r2 < 0.75 ? "top third, centred" : "primary focal area", box }];
     }
-    if (has(b.palette)) o.color_palette = { description: b.palette };
+    if (has(b.palette)) {
+      o.color_palette = { description: b.palette };
+      o.style_description = String(o.style_description).replace(/(?:[.,]\s*)?\bpalette:[^.]*/i, "");
+    }
     const flat = JSON.stringify(o, null, 2);
     return { blocks: [["JSON prompt", flat]], flat, mono: true };
   },
@@ -42388,6 +42406,8 @@ function pickAspect(t, m2) {
     else if (/\b(ultra-?wide|cinemascope|anamorphic|2\.39|letterbox\w*)\b/i.test(t)) want = 21 / 9;
     else if (/\b(widescreen|landscape (orientation|format|mode)|youtube (video|thumbnail|banner|intro)|desktop wallpaper|thumbnail|banner|header|16 by 9)\b/i.test(t)) want = 16 / 9;
     else if (/\b(wide shot|wide-angle|wide angle|panoram\w*|landscape view|establishing shot|vista)\b/i.test(t)) want = 16 / 9;
+    else if (/(?:^|[,;]\s*)wide(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 16 / 9;
+    else if (/(?:^|[,;]\s*)tall(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2 / 3;
     else if (m2.cat === "video" && /\b(social(?: media)?|instagram|insta|ig|tiktok|reels?|stories|phone)\b/i.test(t) && !/\byoutube\b(?!\s+shorts?)/i.test(t)) want = 9 / 16;
     else if (m2.cat === "video" && /\byoutube\b/i.test(t)) want = 16 / 9;
   }
@@ -42565,9 +42585,13 @@ function rebuildBriefParts(text, m2) {
         if (/\bslow[- ]?(?:motion|mo)\b/i.test(t) && !has(b.motion)) b.motion = ["slow-motion 120fps"];
         if (/\btime-?lapse\b/i.test(t) && !has(b.motion)) b.motion = ["time-lapse"];
         if (/\bcinematic\b/i.test(t) && !has(b.grade) && !has(b.mood)) b.mood = ["cinematic"];
-        if (/^(?:an? )?(?:aerial|drone|wide|establishing|tracking)(?: drone)? shot$/i.test(String(b.subject || "").trim()) && has(b.setting)) {
+        const camLead = String(b.subject || "").trim().match(/^(?:an? )?(?:(slow|fast|smooth|sweeping|high|low)\s+)?(?:aerial|drone|wide|establishing|tracking)(?: drone)? shot$/i);
+        if (camLead && has(b.setting)) {
+          const prep = (String(b.setting).match(/^(over|above|across|through|along|past|around)\b/i) || ["over"])[0].toLowerCase();
           b.subject = cap(String(b.setting).replace(/^(?:over|above|across|through|along|past|around)\s+/i, ""));
-          b.action = "the camera " + String(b.action || "moving") + " " + (String(b.setting).match(/^(over|above|across|through|along|past|around)\b/i) || ["over"])[0].toLowerCase() + " it";
+          const how = camLead[1] ? camLead[1].toLowerCase().replace(/^slow$/, "slowly").replace(/^fast$/, "quickly").replace(/^smooth$/, "smoothly") + " " : "";
+          const act = String(b.action || "").trim();
+          b.action = act && !/^\w+ing$/i.test(act) ? "the camera glides " + how + prep + " it as " + act.replace(/^\s*(?:and|as)\s+/i, "") : "the camera " + (act || "moving") + " " + how + prep + " it";
           delete b.setting;
         }
       }
@@ -42587,6 +42611,16 @@ function rebuildBriefParts(text, m2) {
     if ((m2.tech || []).includes("aspect")) {
       const a = pickAspect(t, m2);
       if (a) b.aspect = a;
+    }
+    if (!has(b.imgtext) && m2.cat === "image" && !/\bno (?:text|words|lettering)\b|\bwithout (?:text|words)\b/i.test(t)) {
+      const kw = /\b(?:logo|sign|signage|label|banner|poster|badge|sticker|t-?shirt|mug|menu|storefront|shop ?front)\b/i.exec(t);
+      const cm = kw ? t.slice(kw.index).match(/^[^.]{0,80}?\b(?:called|named)\s+((?:[A-Z0-9][\w'&-]*)(?:\s+(?:&\s+)?[A-Z0-9][\w'&-]*){0,4})/) : null;
+      if (cm) b.imgtext = cm[1];
+    }
+    if (!has(b.palette) && m2.cat === "image") {
+      const C2 = "(?:(?:bright|light|dark|pale|deep|soft|warm|cool|pastel|neon|bold|muted)\\s+)?(?:red|orange|yellow|green|blue|purple|pink|brown|black|white|gold|silver|teal|navy|cream|beige|mint|turquoise|grey|gray)";
+      const pc = t.match(new RegExp("(?:^|[,;.]\\s*|\\bin\\s+)(" + C2 + "(?:(?:\\s*,\\s*|\\s+(?:and|&)\\s+)" + C2 + ")*)(?=\\s*(?:[,;.]|$|\\s+(?:colou?rs?|palette|tones?|theme)\\b))", "i"));
+      if (pc) b.palette = pc[1].trim();
     }
     {
       const av = avoidFrom(t);
@@ -42645,6 +42679,7 @@ function rebuildBriefParts(text, m2) {
       b.goal = ac.ask;
       if (ac.context && !has(b.context)) b.context = ac.context;
     }
+    if (has(b.context) && has(b.goal) && String(b.goal).toLowerCase().includes(String(b.context).toLowerCase().replace(/[.!]+$/, "").trim())) delete b.context;
     {
       const tw = t.match(/\b(?:i |we )?(?:don'?t|do not|dont) want (?:it |this |them |to )?(?:to )?(sound|come across|seem|look) (?:like |as )?([^,.;!?]{4,80}?)(?=\s+(?:even|but|because|since|and)\b|[,.;!?]|$)/i);
       if (tw) {
@@ -42733,8 +42768,8 @@ function askAndContext(t) {
   if (src.split(/\s+/).length < 14) return { ask: tidyRequest(src), context: "" };
   const norm = src.replace(/\bu\b/gi, "you").replace(/\bur\b/gi, "your").replace(/\btmrw\b|\btmr\b/gi, "tomorrow").replace(/\bhw\b/gi, "homework").replace(/\b(?:cuz|cause|bc|coz)\b/gi, "because").replace(/\bwanna\b/gi, "want to").replace(/\bgonna\b/gi, "going to").replace(/\bdont\b/gi, "don't").replace(/\bcant\b/gi, "can't").replace(/\bim\b/gi, "I'm").replace(/\bidk\b/gi, "I don't know").replace(/\b(doesn|isn|won|didn|wasn|aren|shouldn|couldn|wouldn)t\b/gi, "$1't").replace(/\b(that|what|there|it)s\b(?=\s+(?:a|an|the|not|just|so|really|my|how|what|why|\w+ing)\b)/gi, "$1's").replace(/\byoure\b/gi, "you're").replace(/\bgotta\b/gi, "have to").replace(/\bgot to\b/gi, "have to").replace(/\blike\s+(?=\d)/gi, "").replace(/\bsuper\s+(?=\w+)/gi, "").replace(/\b([A-Z]{2,})(?:\s+([A-Z]{2,}))?\b/g, (w2, a, b2) => /^(AI|API|CSV|PDF|SQL|HR|US|UK|EU|CEO|ER|IRS|FDA|CDC|NHS)$/.test(a) ? w2 : b2 ? a.toLowerCase() + " " + b2.toLowerCase() : a.toLowerCase());
   const SUBJ = "(?:i|i'm|i've|my|she|he|they|we|it|now|then|the|her|his|our|their|this|that|there)";
-  const clauses = norm.split(new RegExp("\\s*[.;!?]+\\s*|,\\s*|\\s+(?:and now|and then|and|but|because|so|since|plus)\\s+(?=" + SUBJ + "\\b)|(?<!\\b(?:get|understand|know|sure|explain|tell me|show me|figure out|see|wonder|ask|asking|decide|idea))\\s+(?=(?:like\\s+)?(?:how|what|why|which|can you|could you)\\b)|(?<!\\b(?:think|thinks|say|says|feel|feels|know|knows|believe|that|realize|like|worried|sure|to|for|with|from|about|of|at|by|email|text|message|tell|ask|thank|invite|remind|call|help))\\s+(?=(?:i|my|she|he|they|we|her|his|our|their|now)\\s+(?:teacher|boss|mom|dad|kid|son|daughter|went|was|have|has|had|already|need|don't|can't|keep)\\b)", "i")).map((c) => c.trim()).filter((c) => c.split(/\s+/).length >= 2);
-  const ASK = /\b(how|what|why|which|where|when|can you|could you|would you|help|write|draft|make|create|explain|show|fix|figure out|tell me|teach|plan|compare|should i|is it|are there|need (?:a|an|some|help|to)|want (?:a|an|to)|have to (?:send|write|reply|respond|tell|ask|email|text|give|make|draft|post|announce)|looking for|i don'?t (?:get|understand))\b/i;
+  const clauses = norm.split(new RegExp("\\s*[.;!?]+\\s*|,\\s*|\\s+(?:and now|and then|and|but|because|so|since|plus)\\s+(?=" + SUBJ + "\\b)|(?<!\\b(?:get|understand|know|sure|explain|tell me|show me|figure out|see|wonder|ask|asking|decide|idea))\\s+(?=(?:like\\s+)?(?:how|what|why|which|can you|could you)\\b)|(?<!\\b(?:think|thinks|say|says|saying|said|telling|explaining|mentioning|feel|feels|know|knows|believe|that|realize|like|worried|sure|to|for|with|from|about|of|at|by|email|text|message|tell|ask|thank|invite|remind|call|help))\\s+(?=(?:i|my|she|he|they|we|her|his|our|their|now)\\s+(?:teacher|boss|mom|dad|kid|son|daughter|went|was|have|has|had|already|need|don't|can't|keep)\\b)", "i")).map((c) => c.trim()).filter((c) => c.split(/\s+/).length >= 2);
+  const ASK = /\b(keep (?:it|them|this|the \w+)\b|how|what|why|which|where|when|can you|could you|would you|help|write|draft|make|create|explain|show|fix|figure out|tell me|teach|plan|compare|should i|is it|are there|need (?:a|an|some|help|to)|want (?:a|an|to)|have to (?:send|write|reply|respond|tell|ask|email|text|give|make|draft|post|announce)|looking for|i don'?t (?:get|understand))\b/i;
   const NOT_ASK = /\b(?:don'?t|do not|didn'?t|never) (?:want|wanna|need)\b|\balready\b/i;
   const asks = [], ctx = [];
   for (const c of clauses) {
@@ -43451,6 +43486,7 @@ var STOP_WORDS = new Set("the and for with from into that this these those its t
 function defaultMedium(b) {
   const t = [b.subject, b.purpose, b.setting, b.extra].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
   if (/\b(logos?|icons?|stickers?|signs?|posters?|flyers?|cards?|invitations?|menus?|labels?|badges?|banners?|infographics?|charts?|diagrams?|packaging|designs?|panels?|murals?|patterns?|wraps?|decals?|t-?shirts?|merch|brackets?|storyboards?|leaderboards?|flowcharts?|timelines?|wireframes?|thumbnails?|book covers?|covers?)\b/.test(join(b.subject).toLowerCase())) return "clean graphic design";
+  if (/\b(pixar|dreamworks|disney|3d animat\w*|animated (?:movie|film)|cgi)\b/.test(t)) return "3D render";
   if (/\b(storybook|children'?s book|fantasy|dragon|wizard|fairy|cartoon|comic|mascot|character art|concept art|game art|illustrat\w*)\b/.test(t)) return "illustration";
   return "photograph";
 }
@@ -44153,7 +44189,7 @@ function trustTheirWords(b, theirWords) {
     const theirs = /\b(wizard|witch|villain|pirate|robot|vampire|dragon|monster|knight|princess|king|queen|alien|ghost|kid|child|grandma|grandpa|teacher|coach|narrator|detective|announcer|host|dj)\b/.exec(desc);
     if (noun && !desc.includes(noun) && theirs) delete out.vArch;
   }
-  const MEDIA = [["chalk", "chalk lettering on a chalkboard"], ["chalkboard", "chalk lettering on a chalkboard"], ["watercolou?r", "watercolour illustration"], ["neon (?:signs?|lettering|text|words?|logo)", "glowing neon sign"], ["embroider\\w*", "embroidered patch"], ["stained glass", "stained glass"], ["pixel art", "pixel art"], ["claymation|clay", "clay animation style"], ["woodcut|linocut", "woodcut print"], ["pencil", "pencil drawing"], ["crayon", "crayon drawing"], ["oil paint\\w*", "oil painting"], ["vector", "flat vector"], ["cartoon", "cartoon illustration"], ["anime", "anime illustration"], ["3d|three-?d", "3D render"], ["photo\\w*|realistic", "photograph"]];
+  const MEDIA = [["chalk", "chalk lettering on a chalkboard"], ["chalkboard", "chalk lettering on a chalkboard"], ["watercolou?r", "watercolour illustration"], ["neon (?:signs?|lettering|text|words?|logo)", "glowing neon sign"], ["embroider\\w*", "embroidered patch"], ["stained glass", "stained glass"], ["pixel art", "pixel art"], ["claymation|clay", "clay animation style"], ["woodcut|linocut", "woodcut print"], ["pencil", "pencil drawing"], ["crayon", "crayon drawing"], ["oil paint\\w*", "oil painting"], ["vector", "flat vector"], ["cartoon", "cartoon illustration"], ["anime", "anime illustration"], ["3d|three-?d|pixar|dreamworks", "3D render"], ["photo\\w*|realistic", "photograph"]];
   if (has(b.medium)) {
     const typed = [b.subject, b.extra, b.purpose].filter(has).map((v2) => join(v2)).join(" ").toLowerCase(), box = String(b.medium).toLowerCase();
     const hit = MEDIA.find(([re]) => new RegExp("\\b(?:" + re + ")\\b").test(typed) && !new RegExp("\\b(?:no|not|without|never|instead of)\\s+(?:a\\s+|an\\s+)?(?:" + re + ")").test(typed));
