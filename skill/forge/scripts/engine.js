@@ -2121,6 +2121,9 @@ function sfxDuration(b, max){
   const d = SFX_SHAPE[String(b.sfxKind || "")]; return d ? d[0] : "";
 }
 // 8.5.2: words that make a text a request for something, not the thing itself
+/** v1 step 14: a request that DESCRIBES the read is not the read ("30 second radio ad for my bakery weekend sale, energetic,
+ *  for elevenlabs" was checked as a script to speak word for word, and the plugin's check failed three times) */
+const DESCRIBES_READ = /\b\d+[- ]?(?:seconds?|secs?|minutes?|mins?)\b[^.!?]{0,30}\b(?:ads?|adverts?|commercials?|spots?|promos?|announcements?|intros?|outros?|reads?|narrations?|voice ?overs?|greetings?|messages?|trailers?)\b|^\s*(?:an? |the |my |our )?(?:[\w-]+ ){0,3}(?:ads?|adverts?|commercials?|spots?|promos?|announcements?|intros?|outros?|greetings?|voice ?mail greetings?|narrations?)\s+(?:for|about|announcing|promoting)\b|\bfor (?:eleven ?labs|cartesia|hume|text to speech|tts)\b/i;
 const ASKS_FOR = /\b(make|makes|making|want|wanted|need|create|generate|give me|can you|could you|write|voice ?over|sound(s)? like|say something|line where|read (this|it|out)|fix (it|this)|improve|redo|record)\b/i;
 /** 8.5.2: the Doctor's first pass. Takes out talk ABOUT a reference ("I saw this photo online", "something like
  * that", "you know that...") and filler ("idk", "super", "4k"), which judges saw pasted into prompts. @param {string} t */
@@ -3136,7 +3139,7 @@ const FIND = {
   // 8.5.2: a tempo is a number ("Disco at upbeat BPM"); a tempo word becomes a typical BPM
   mBpm: t => firstMatch(t, /\b(\d{2,3})\s?bpm\b/i) || ({slow:"70", "mid-tempo":"100", midtempo:"100", upbeat:"120", fast:"128"})[String(firstMatch(t, /\b(mid-?tempo|upbeat|slow|fast)\b/i)).toLowerCase()] || "",
   // 8.5.2: a request ABOUT a line ("make a line where a dwarf says hi") is not the line; only a quote or plain text is
-  script: t => firstMatch(t, /["“]([^"”]{3,})["”]/) || (t.trim().split(/\s+/).length >= 3 && !ASKS_FOR.test(t) ? t.trim() : ""),
+  script: t => firstMatch(t, /["“]([^"”]{3,})["”]/) || (t.trim().split(/\s+/).length >= 3 && !ASKS_FOR.test(t) && !DESCRIBES_READ.test(t) ? t.trim() : ""),
   useCase: t => found(t, WORDS.useCase()).join(" ") || firstMatch(t, PURPOSE),
   voiceChar: t => found(t, WORDS.voiceChar()).join(", "), // 8.5.2: not the bare word "voice"
   vArch: t => found(t, WORDS.vArch())[0] || "",
@@ -3438,7 +3441,7 @@ function rebuildBrief(text, m){
     const body = /\b(person|people|man|men|woman|women|kid|kids|child|children|girl|boy|baby|hands?|face|dog|cat|animal|character|dancer|player|chef|couple|family|portrait|headshot|model|athlete|runner|bird|horse|dragon|creature)\b/i.test(String(b.subject || first).replace(/\bhand[- ]?(painted|made|drawn|lettered|crafted|written)\b/gi, "")); // 8.5.15: the subject, not "for my kids' party"
     // 13.23: no guessed keep-outs from the Doctor either (judges: "filler negatives"); forge() adds the few that fit
   } else if(m.cat==="voice"){
-    if(!b.script && (m.core||[]).includes("script") && !ASKS_FOR.test(t)) b.script = t; // 8.5.2: never a request as the script
+    if(!b.script && (m.core||[]).includes("script") && !ASKS_FOR.test(t) && !DESCRIBES_READ.test(t)) b.script = t; // 8.5.2: never a request as the script
     const tone = found(t, opts("vTone")); if(tone.length) b.vTone = tone;
     if(b.voiceChar && tone.length) b.voiceChar = b.voiceChar.split(", ").filter(/** @param {string} w */ w=>!tone.includes(w)).join(", ") || b.voiceChar;
     // 8.5.2: no guessed "Corporate narration", "warm" or "neutral adult voice": they overrode what people asked for
@@ -4749,7 +4752,9 @@ function checkWritten(raw, o){
   // 6.2.5: not filler Forge itself cuts ("beautiful"), and not the "what it is for" words, which the box check covers
   const forUse = new Set((join((o.brief || {}).purpose).toLowerCase().match(/[a-z0-9']+/g) || []).map(stemOf));
   const plain = /** @type {Record<string, string>} */ ({});
-  const said = (String(o.request || "").toLowerCase().match(/[a-z0-9']{4,}/g) || []).filter(w => isWord(w) && !STOP_WORDS.has(w) && !TALK_WORDS.has(w.replace(/'/g, "")) && !stripBanned(w).removed.length && !/^(want|need|make|like|please|something|really|just|some|could|would|should|write|create|give|help|good|nice|cool|pic|picture|image|photo|video|clip|song|prompt)$/.test(w)).map(w => { const st = stemOf(w); plain[st] = plain[st] || w.replace(/'s$/, ""); return st; }).filter(w => !forUse.has(w));
+  // v1 step 14: the AI's own name ("for elevenlabs") is who the prompt is for, not a word it must contain
+  const aiNames = new Set(MODELS.flatMap(x => [x.n, x.maker || "", x.id].join(" ").toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/)).filter(x => x.length >= 4));
+  const said = (String(o.request || "").toLowerCase().match(/[a-z0-9']{4,}/g) || []).filter(w => isWord(w) && !STOP_WORDS.has(w) && !aiNames.has(w) && !TALK_WORDS.has(w.replace(/'/g, "")) && !stripBanned(w).removed.length && !/^(want|need|make|like|please|something|really|just|some|could|would|should|write|create|give|help|good|nice|cool|pic|picture|image|photo|video|clip|song|prompt)$/.test(w)).map(w => { const st = stemOf(w); plain[st] = plain[st] || w.replace(/'s$/, ""); return st; }).filter(w => !forUse.has(w));
   const outList = [...out];
   const present = /** @param {string} w */ w => out.has(w) || (w.length >= 5 && outList.some(x => x.length >= 5 && (x.startsWith(w) || w.startsWith(x))));
   const gone = [...new Set(said.filter(w => !present(w) && !res.flat.toLowerCase().includes("no " + w)))];

@@ -41171,6 +41171,7 @@ function sfxDuration(b, max) {
   const d2 = SFX_SHAPE[String(b.sfxKind || "")];
   return d2 ? d2[0] : "";
 }
+var DESCRIBES_READ = /\b\d+[- ]?(?:seconds?|secs?|minutes?|mins?)\b[^.!?]{0,30}\b(?:ads?|adverts?|commercials?|spots?|promos?|announcements?|intros?|outros?|reads?|narrations?|voice ?overs?|greetings?|messages?|trailers?)\b|^\s*(?:an? |the |my |our )?(?:[\w-]+ ){0,3}(?:ads?|adverts?|commercials?|spots?|promos?|announcements?|intros?|outros?|greetings?|voice ?mail greetings?|narrations?)\s+(?:for|about|announcing|promoting)\b|\bfor (?:eleven ?labs|cartesia|hume|text to speech|tts)\b/i;
 var ASKS_FOR = /\b(make|makes|making|want|wanted|need|create|generate|give me|can you|could you|write|voice ?over|sound(s)? like|say something|line where|read (this|it|out)|fix (it|this)|improve|redo|record)\b/i;
 function cleanDraft(t) {
   let x = String(t || "").replace(/\b(?:i (?:saw|found|like|love)|there'?s|here'?s|check out) (?:this|a|that) (?:photo|image|pic|picture|video|clip|song|track|sound|ad|poster|logo|design|one|scene|shot|look|style|vibe|aesthetic|thing)(?: (?:online|on \w+|i saw|i found))?\b[,.:!]?\s*/gi, "").replace(/\byou know (?:that|the|those|how|when)\s+/gi, "").replace(/[,.]?\s*\b(?:i want|i need|i'?d like|want|need)? ?(?:something|one|it|a sound|a song|a voice|a pic|an image) (?:kinda |kind of |sort of |just )?like (?:that|this|it)\b[.!?]?/gi, "").replace(/\b(?:idk|lol|lmao|tbh|ngl|pls|plz|super|4k|8k|hd|high quality|ultra hd)\b[,.!]?\s*/gi, "").replace(/\?\s*/g, ". ").replace(/\s+([,.])/g, "$1").replace(/([,.]){2,}/g, "$1").replace(/\s{2,}/g, " ").replace(/^[\s,.]+|[\s,]+$/g, "").trim();
@@ -42117,7 +42118,7 @@ var FIND = {
   // 8.5.2: a tempo is a number ("Disco at upbeat BPM"); a tempo word becomes a typical BPM
   mBpm: (t) => firstMatch(t, /\b(\d{2,3})\s?bpm\b/i) || { slow: "70", "mid-tempo": "100", midtempo: "100", upbeat: "120", fast: "128" }[String(firstMatch(t, /\b(mid-?tempo|upbeat|slow|fast)\b/i)).toLowerCase()] || "",
   // 8.5.2: a request ABOUT a line ("make a line where a dwarf says hi") is not the line; only a quote or plain text is
-  script: (t) => firstMatch(t, /["“]([^"”]{3,})["”]/) || (t.trim().split(/\s+/).length >= 3 && !ASKS_FOR.test(t) ? t.trim() : ""),
+  script: (t) => firstMatch(t, /["“]([^"”]{3,})["”]/) || (t.trim().split(/\s+/).length >= 3 && !ASKS_FOR.test(t) && !DESCRIBES_READ.test(t) ? t.trim() : ""),
   useCase: (t) => found(t, WORDS.useCase()).join(" ") || firstMatch(t, PURPOSE),
   voiceChar: (t) => found(t, WORDS.voiceChar()).join(", "),
   // 8.5.2: not the bare word "voice"
@@ -42415,7 +42416,7 @@ function rebuildBrief(text, m2) {
     }
     const body = /\b(person|people|man|men|woman|women|kid|kids|child|children|girl|boy|baby|hands?|face|dog|cat|animal|character|dancer|player|chef|couple|family|portrait|headshot|model|athlete|runner|bird|horse|dragon|creature)\b/i.test(String(b.subject || first).replace(/\bhand[- ]?(painted|made|drawn|lettered|crafted|written)\b/gi, ""));
   } else if (m2.cat === "voice") {
-    if (!b.script && (m2.core || []).includes("script") && !ASKS_FOR.test(t)) b.script = t;
+    if (!b.script && (m2.core || []).includes("script") && !ASKS_FOR.test(t) && !DESCRIBES_READ.test(t)) b.script = t;
     const tone = found(t, opts("vTone"));
     if (tone.length) b.vTone = tone;
     if (b.voiceChar && tone.length) b.voiceChar = b.voiceChar.split(", ").filter(
@@ -43743,7 +43744,8 @@ function checkWritten(raw, o) {
     /** @type {Record<string, string>} */
     {}
   );
-  const said = (String(o.request || "").toLowerCase().match(/[a-z0-9']{4,}/g) || []).filter((w2) => isWord(w2) && !STOP_WORDS.has(w2) && !TALK_WORDS.has(w2.replace(/'/g, "")) && !stripBanned(w2).removed.length && !/^(want|need|make|like|please|something|really|just|some|could|would|should|write|create|give|help|good|nice|cool|pic|picture|image|photo|video|clip|song|prompt)$/.test(w2)).map((w2) => {
+  const aiNames = new Set(MODELS.flatMap((x) => [x.n, x.maker || "", x.id].join(" ").toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/)).filter((x) => x.length >= 4));
+  const said = (String(o.request || "").toLowerCase().match(/[a-z0-9']{4,}/g) || []).filter((w2) => isWord(w2) && !STOP_WORDS.has(w2) && !aiNames.has(w2) && !TALK_WORDS.has(w2.replace(/'/g, "")) && !stripBanned(w2).removed.length && !/^(want|need|make|like|please|something|really|just|some|could|would|should|write|create|give|help|good|nice|cool|pic|picture|image|photo|video|clip|song|prompt)$/.test(w2)).map((w2) => {
     const st = stemOf(w2);
     plain[st] = plain[st] || w2.replace(/'s$/, "");
     return st;
