@@ -44,6 +44,18 @@ Use the Forge method inside Claude or ChatGPT. The skill is the `skill/forge` fo
 
 Then just ask: "write me a Midjourney prompt for a red fox in the snow", or "make this prompt better".
 
+## How Forge compares
+
+Tested on 3 October 2026. The same new requests went to Forge and to other free prompt generators, and a blind judge (it did not know which tool wrote which prompt) picked the prompt likely to get the better result, with a reason for every pick.
+
+| Forge | vs Jotform AI Prompt Generator | vs GeneratePrompt.net |
+|---|---|---|
+| The plugin for Claude | won 10 of 10 | won 7 of 7 |
+| The website, on its own (no AI) | won 4 of 5 (the version before won 1 of 5) | lost 5 of 7 (tested before the 3 October update; a re-test is coming) |
+
+Why the plugin wins, in the judges' words: it keeps every detail the person gave, uses each AI's current settings, and invents nothing.
+Limits: these are small tests. The other generators limit free use (GeneratePrompt.net stops after 10 prompts a day, Jotform after a few an hour), so each had only 5 to 7 requests. Forge has no limits, needs no account and keeps no data.
+
 ## Community
 
 Forge is free while it is being built. Found a bug, a model that is out of date, or have an idea?

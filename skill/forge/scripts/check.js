@@ -29,7 +29,8 @@ const stem = (w) => w.toLowerCase().replace(/'s$/, "").replace(/(ing|ed|es|s)$/,
 const words = (t) => (String(t).toLowerCase().match(/[a-z0-9']{3,}/g) || []).filter((w) => !STOP.has(w));
 
 /** --flags written anywhere in a text. @param {string} t */
-const flagsIn = (t) => (String(t).match(/(?:^|\s)--[a-z][a-z0-9-]*/gi) || []).map((f) => f.trim().toLowerCase());
+// v1 step 15: a flag inside Forge's own settings data is written "--raw" (in quotes), and was not learned, so Forge's own --raw was called unknown
+const flagsIn = (t) => (String(t).match(/(?:^|[\s"'\[(,])--[a-z][a-z0-9-]*/gi) || []).map((f) => f.replace(/^[\s"'\[(,]+/, "").toLowerCase());
 
 /**
  * @param {any} E the Forge engine
@@ -108,7 +109,9 @@ export function checkPrompt(E, o) {
   const known = (o.written + "\n" + o.said + "\n" + knowledge).toLowerCase();
   // 10.10: camera and sound craft (35mm, f/2.8, 24fps, 4K, 3200K, 16:9, 120 BPM, 85mm) is the writer's job, not an invented fact
   const written = (reply.prompt + "\n" + reply.settings).replace(/\b\d+(?:\.\d+)?\s*(?:mm|fps|k|bpm|hz|khz|db)\b|\bf\/\d+(?:\.\d+)?|\b(?:1:1|4:5|5:4|2:3|3:2|3:4|4:3|9:16|16:9|21:9|9:21|1:2|2:1)\b/gi, " ")
-    .replace(/--[a-z]+\s+[\d.:]+/gi, " "); // v1 bug hunt: a parameter value (--stylize 250, --chaos 20) is the writer's craft too // only real aspect ratios: an invented time like 8:00 is still caught
+    .replace(/--[a-z]+\s+[\d.:]+/gi, " ") // v1 bug hunt: a parameter value (--stylize 250, --chaos 20) is the writer's craft too
+    // v1 step 15: Stable Diffusion's weights "(rain:1.3)" and a length target ("about 225 words", "250-word") are craft, not facts
+    .replace(/:\s*\d(?:\.\d+)?\s*\)/g, ")").replace(/\b\d{2,4}(?:\s*[-–]\s*\d{2,4})?[- ]?(?:words?|characters?|seconds?|secs?|sentences?|lines?)\b/gi, " ");
   const nums = [...new Set((written.match(/\$?\d+(?:[.,:/]\d+)*%?/g) || []).filter((n) => !known.includes(n.toLowerCase().replace(/^\$/, ""))))];
   if (nums.length) P.invented.push("Numbers the person never gave and the brief does not hold: " + nums.slice(0, 5).join(", ") + ". Remove them, or ask the person.");
   const names = new Set();
@@ -118,6 +121,9 @@ export function checkPrompt(E, o) {
       const w = ws[i].replace(/^[("'“]+|[)"'”.,;!?]+$/g, "");
       if (!/^[A-Z][a-zA-Z'-]+$/.test(w)) continue;
       if (/^[A-Z]-[a-z]/.test(w)) continue; // 11.4: V-shaped, T-shirt, U-turn, X-ray are shapes and things, not names
+      // v1 step 15: days and months are not invented names, and "S-C-I-E-N-C-E" spells out the person's own words
+      if (/^(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)$/i.test(w) || /^(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)$/i.test(w)) continue;
+      if (/^(?:[A-Z]-){2,}[A-Z]$/.test(w) && known.includes(w.replace(/-/g, "").toLowerCase())) continue;
       const lw = w.toLowerCase().replace(/'s$/, "");
       if (known.includes(lw) || (E.isWord && E.isWord(lw))) continue;
       names.add(w);

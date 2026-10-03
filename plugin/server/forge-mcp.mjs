@@ -41461,12 +41461,15 @@ function chatNeeds(all, b) {
   const grade = lo.match(/\b(\d{1,2})(?:st|nd|rd|th) grad(?:e|ers?)\b|\bgrade (\d{1,2})\b|\byear (\d{1,2}) (?:students|pupils|class)\b/);
   const n = age ? Number(age[1] || age[2] || age[3]) : grade ? Number(grade[1] || grade[2] || grade[3]) + 5 : 0;
   const teach = /\b(explain|teach|what is|what are|how (?:does|do|to)|help me understand|lesson|quiz|study)\b/.test(lo);
-  if (n && n < 18) out.push("Write for a " + n + "-year-old: " + (n <= 8 ? "very short sentences and everyday words" : n <= 13 ? "short sentences and everyday words" : "plain words, with any jargon defined once") + (teach ? n <= 13 ? "; explain any new word the first time and use one concrete example from their life." : "; use one concrete example." : "."));
+  const forTeacher = /\b(lesson plans?|rubrics?|worksheets?|curriculum|unit plan|i'?m a teacher|i teach|my (?:students|class|pupils))\b/.test(lo);
+  if (n && n < 18 && forTeacher) out.push("The activities and words are for " + n + "-year-olds; what you write is for the teacher.");
+  else if (n && n < 18) out.push("Write for a " + n + "-year-old: " + (n <= 8 ? "very short sentences and everyday words" : n <= 13 ? "short sentences and everyday words" : "plain words, with any jargon defined once") + (teach ? n <= 13 ? "; explain any new word the first time and use one concrete example from their life." : "; use one concrete example." : "."));
   else if (/\b(complete beginner|total beginner|beginner|never (?:coded|done|used|played|cooked)|no experience with|new to|someone who has never|for dummies|non-?technical|layman)\b/.test(lo) && !/\bno (?:job|work) experience\b/.test(lo)) out.push("Assume no background: no jargon, or explain each term in one line, and build from what they already know.");
   const need = [];
   for (const x of t.matchAll(/\b(max(?:imum)? |at most |no more than |up to |exactly |about |around |under |over |at least )?(?<!\b(?:i'?m|im|am|age|aged|like) )(\d{1,3}) (?:(?!(?:day|week|month|minute|min|hour|year|with|and|or|an?|the|of|to|for|in|on|at|from|by)s?\b)[a-z-]+ ){0,2}(captions?|ideas?|(?:quiz )?questions?|bullet points?|bullets?|tips?|examples?|versions?|scripts?|exercises?|names?|options?|titles?|hooks?|slides?|steps?|ways?|reasons?|things|points?|paragraphs?|sentences?|lines?|days?|weeks?|meals?|lunches|recipes?|activities|songs?|hashtags?(?: each)?|words?|minutes?|mins?|hours?|pages?|levels?|panels?)\b/gi)) {
     const q = (x[1] || "").trim().toLowerCase(), num = x[2], what = x[3].toLowerCase();
     const said = x[0].slice((x[1] || "").length).trim();
+    if (!x[1] && /\b(?:for|of|on|about|grade|grading|mark|marking) (?:a|an|the|my|our)\s*$/i.test(t.slice(Math.max(0, (x.index || 0) - 16), x.index))) continue;
     const next = t.slice((x.index || 0) + x[0].length).match(/^\s+([a-z-]+)/i);
     if (next && /^(thesis|draft|document|doc|essay|report|book|paper|pdf|manuscript|transcript|article|file|contract|chapter|script|lecture|video|podcast|recording)$/i.test(next[1])) continue;
     const limit = next && /^(limit|max|maximum|cap)$/i.test(next[1]);
@@ -41488,13 +41491,14 @@ function chatNeeds(all, b) {
   const span = lo.match(/\b(\d{1,2})[- ](day|week|month)s?\b[^.]{0,30}\b(plan|schedule|routine|itinerary|program|programme|challenge)\b|\b(plan|schedule|routine|itinerary|program|programme)\b[^.]{0,30}\b(\d{1,2})[- ](day|week|month)s?\b/);
   if (span) {
     const unit = span[2] || span[6];
-    const per = lo.match(/\b(\d{1,3}) ?(?:min|mins|minutes|hours?|hrs?)\b(?: (?:a|per|each) (?:day|session|night)| each| a day)?|\$\d[\d,]*/);
+    const times = lo.match(/\b\d{1,3} ?(?:min|mins|minutes|hours?|hrs?)\b/g) || [];
+    const per = times.length > 1 ? null : lo.match(/\b(\d{1,3}) ?(?:min|mins|minutes|hours?|hrs?)\b(?: (?:a|per|each) (?:day|session|night)| each| a day)?|\$\d[\d,]*/);
     need.push("laid out " + unit + " by " + unit + (per ? ", each day's part fitting in " + per[0].trim().replace(/ (?:a|per|each) day$/, "") + (/\$/.test(per[0]) ? "" : " a day") : ""));
   }
   const uniq = [...new Set(need)];
   if (uniq.length) out.push("Stick to these exactly: " + uniq.join("; ") + ".");
   const lim = [];
-  for (const x of t.matchAll(/\b(?:no(?= [a-z])|not too|nothing (?:that|too)|don'?t (?:use|mention|include|rewrite|add|make it)|do not (?:use|mention|include|rewrite|add)|avoid)\b[^,.;!?]{2,40}/gi)) {
+  for (const x of t.matchAll(/\b(?:no(?= [a-z])|not too|nothing (?:that|too)|don'?t (?:use|mention|include|add|make it)|do not (?:use|mention|include|add)|avoid)\b[^,.;!?:'"“‘]{2,40}/gi)) {
     if (/^no\b/i.test(x[0]) && x[0].split(/\s+/).length > 5) continue;
     const before = t.slice(Math.max(0, (x.index || 0) - 14), x.index).toLowerCase();
     if (/\b(i have|i've got|we have|there'?s|there is|with|had|has|i got)\s*$/.test(before) || /^no (?:experience|idea|clue|time|money|budget for ads?)\b/i.test(x[0]) && /\bi\b/.test(before)) continue;
@@ -42596,9 +42600,19 @@ function rebuildBriefParts(text, m2) {
     sug("effort", "High");
     if (/\b(below|attached|pasted|these notes|my notes|the (document|article|transcript|report|data|email|notes))\b/i.test(t)) sug("rules", "Do not invent facts. If the answer is not in the material, say so");
   }
+  if (["text"].includes(m2.cat) && has(b.goal)) {
+    const held = [b.goal, b.format, b.rules, b.length, b.pasted].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
+    const ctx0 = has(b.context) ? String(b.context).trim().replace(/[.;,]+$/, "") : "";
+    const clauses = t.split(/(?<=[.;!?])\s+|,\s+|\n+/).map((c) => c.trim().replace(/^(?:and|but|also|plus)\s+/i, "").replace(/[.;,]+$/, "")).filter((c) => c.split(/\s+/).length >= 1 && c.length > 2);
+    const left = clauses.filter((c) => !held.includes(c.toLowerCase()) && !saidIn(held, c));
+    if (left.length) {
+      const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some((c) => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
+      b.context = cap([...keep, ...left].join(", "));
+    }
+  }
   if (["text", "code", "research", "app"].includes(m2.cat) && !has(b.rules) && (m2.craft || []).includes("rules")) {
     const placed = [b.goal, b.context, b.format, b.extra, b.avoid].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
-    const lim = (t.match(/\b(?:not (?:too|very|overly) [a-z-]+|nothing (?:too )?[a-z-]+|keep it (?:short|simple|clean|kind|polite|light|friendly|under \d+ \w+)|don'?t make it [a-z-]+|no (?:jargon|swearing|gore|spoilers|emojis|hashtags|clich[eé]s|fluff|preamble)|without (?:jargon|swearing|spoilers|emojis|hashtags))\b/gi) || []).filter((x) => !placed.includes(x.toLowerCase()));
+    const lim = (t.match(/\b(?:not (?:too|very|overly) [a-z-]+|nothing too [a-z-]+|nothing (?:that|which) [a-z][^,.;!?]{2,40}|keep it (?:short|simple|clean|kind|polite|light|friendly|under \d+ \w+)|don'?t make it [a-z-]+|no (?:jargon|swearing|gore|spoilers|emojis|hashtags|clich[eé]s|fluff|preamble)|without (?:jargon|swearing|spoilers|emojis|hashtags))\b/gi) || []).filter((x) => !placed.includes(x.toLowerCase()));
     if (lim.length) b.rules = lim.map((x) => cap(x)).join(". ");
   }
   if (typeof b.extra === "string" && (has(b.lens) || has(b.light))) {
@@ -42731,7 +42745,8 @@ function forgeFromText(text, m2, level, more) {
   };
   if (own2 && res.score < before.total && (!READS_BACKGROUND.includes(m2.cat) || lostTheirs())) {
     const flags = /\s--[a-z]/i.test(own2) ? "" : (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];
-    res.flat = cap(own2) + flags;
+    const ownWords = flags && /--ar\s/.test(flags) ? String(own2).replace(/[,.]?\s*\b(?:(?:wide|vertical|horizontal|square|portrait|landscape)\s*)?\d{1,2}\s*:\s*\d{1,2}\b|[,.]?\s*\b(?:wide|vertical|square)(?= *(?:[,.]|$))/gi, "").replace(/\s+([,.])/g, "$1").replace(/[,.]\s*[,.]/g, ".").trim() : own2;
+    res.flat = cap(ownWords).replace(/([.!?]\s+)([a-z])/g, (_2, p2, c) => p2 + c.toUpperCase()) + flags;
     res.blocks = [["Prompt", res.flat]];
     res.keptYours = true;
     applyStyle(res, brief2, m2, text, true);
@@ -43404,6 +43419,7 @@ var WRITE_WHY = (
   }
 );
 function whyFor(m2, query) {
+  if (m2.cat === "text" && ["claude", "gpt", "gemini"].includes(m2.id) && /\b(learn\w*|understand\w*|student|homework|teach me|explain\w* to me|beginner|first year|study\w*)\b/i.test(String(query || ""))) return "Explains step by step at your level, answers follow-up questions, and can quiz you to check you understood.";
   if (m2.cat === "text" && WRITE_WHY[m2.id] && !/\b(code|coding|bugs?|debug\w*|function|repo|compile|stack trace|exception|script error|program|crash\w*|keeps? failing|failing for|error|checkout|server|deploy\w*|database|queries)\b/i.test(String(query || ""))) return WRITE_WHY[m2.id];
   return String(m2.best || "");
 }
@@ -43421,7 +43437,7 @@ function matchReason(top, query, second) {
   const parts = /\.\s/.test(why.replace(/\.$/, "")) ? [] : why.replace(/\.$/, "").split(/,\s*/).filter(has);
   if (parts.length > 2) {
     const st = (x) => x.toLowerCase().replace(/(ing|ed|es|s)$/, "");
-    const asked = new Set((String(query || "").toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter((x) => !/^(track|song|music|video|clip|image|picture|photo|voice|app|website|site|the|and|for|with|my|our)s?$/.test(x)).map(st));
+    const asked = new Set((String(query || "").toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter((x) => !/^(track|song|music|video|clip|image|picture|photo|voice|app|website|site|the|and|for|with|my|our|motion|shot|sound|style|look|quality|make|want|need)s?$/.test(x)).map(st));
     const hits = parts.filter(fits).map((p0, i) => ({ p0, i, n: (p0.toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter((x) => asked.has(st(x))).length }));
     const best = hits.filter((h2) => h2.n).sort((a, b) => b.n - a.n || a.i - b.i).slice(0, 2);
     wordHit = best.length > 0;
@@ -43431,7 +43447,8 @@ function matchReason(top, query, second) {
   const F0 = AI_FACTS[top.m.id];
   if (F0) {
     const hit = (F0.facts || []).find((f2) => fits(f2.say) && f2.when.test(String(query || "")));
-    const say = hit ? hit.say : wordHit || !fits(F0.default || "") ? "" : F0.default;
+    const say = hit ? hit.say : wordHit || !fits(F0.default || "") || top.m.cat === "text" && whyFor(top.m, query) !== String(top.m.best || "") ? "" : F0.default;
+    if (!say && !hit && top.m.cat === "text" && whyFor(top.m, query) !== String(top.m.best || "")) why = top.m.n + ": " + whyFor(top.m, query);
     if (say) why = top.m.n + (top.m.sub ? " " + top.m.sub : "") + ": " + say.replace(/^\s*/, "");
   }
   return (job ? 'For "' + job + '": ' : "") + why + (w2.length && !AI_FACTS[top.m.id] ? " You mentioned " + w2.map((x) => "'" + x + "'").join(", ") + "." : "") + (second && second.m && second.m.id !== top.m.id && second.m.cat === top.m.cat && /** @type {any} */
@@ -44356,7 +44373,7 @@ function splitReply(raw) {
 var STOP2 = new Set("the and for with that this from your you are was were has have had not but all any can will into over under than then them they their there what when where which while who why how its it's our out off too very just also only more most some such each every about after before again".split(" "));
 var stem = (w2) => w2.toLowerCase().replace(/'s$/, "").replace(/(ing|ed|es|s)$/, "");
 var words = (t) => (String(t).toLowerCase().match(/[a-z0-9']{3,}/g) || []).filter((w2) => !STOP2.has(w2));
-var flagsIn = (t) => (String(t).match(/(?:^|\s)--[a-z][a-z0-9-]*/gi) || []).map((f2) => f2.trim().toLowerCase());
+var flagsIn = (t) => (String(t).match(/(?:^|[\s"'\[(,])--[a-z][a-z0-9-]*/gi) || []).map((f2) => f2.replace(/^[\s"'\[(,]+/, "").toLowerCase());
 function checkPrompt(E2, o) {
   const { m: m2, res } = o, name = m2.n + (m2.sub ? " " + m2.sub : "");
   const reply2 = splitReply(o.prompt);
@@ -44418,7 +44435,7 @@ function checkPrompt(E2, o) {
     }
   }
   const known = (o.written + "\n" + o.said + "\n" + knowledge).toLowerCase();
-  const written = (reply2.prompt + "\n" + reply2.settings).replace(/\b\d+(?:\.\d+)?\s*(?:mm|fps|k|bpm|hz|khz|db)\b|\bf\/\d+(?:\.\d+)?|\b(?:1:1|4:5|5:4|2:3|3:2|3:4|4:3|9:16|16:9|21:9|9:21|1:2|2:1)\b/gi, " ").replace(/--[a-z]+\s+[\d.:]+/gi, " ");
+  const written = (reply2.prompt + "\n" + reply2.settings).replace(/\b\d+(?:\.\d+)?\s*(?:mm|fps|k|bpm|hz|khz|db)\b|\bf\/\d+(?:\.\d+)?|\b(?:1:1|4:5|5:4|2:3|3:2|3:4|4:3|9:16|16:9|21:9|9:21|1:2|2:1)\b/gi, " ").replace(/--[a-z]+\s+[\d.:]+/gi, " ").replace(/:\s*\d(?:\.\d+)?\s*\)/g, ")").replace(/\b\d{2,4}(?:\s*[-–]\s*\d{2,4})?[- ]?(?:words?|characters?|seconds?|secs?|sentences?|lines?)\b/gi, " ");
   const nums = [...new Set((written.match(/\$?\d+(?:[.,:/]\d+)*%?/g) || []).filter((n) => !known.includes(n.toLowerCase().replace(/^\$/, ""))))];
   if (nums.length) P2.invented.push("Numbers the person never gave and the brief does not hold: " + nums.slice(0, 5).join(", ") + ". Remove them, or ask the person.");
   const names = /* @__PURE__ */ new Set();
@@ -44428,6 +44445,8 @@ function checkPrompt(E2, o) {
       const w2 = ws[i].replace(/^[("'“]+|[)"'”.,;!?]+$/g, "");
       if (!/^[A-Z][a-zA-Z'-]+$/.test(w2)) continue;
       if (/^[A-Z]-[a-z]/.test(w2)) continue;
+      if (/^(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)$/i.test(w2) || /^(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)$/i.test(w2)) continue;
+      if (/^(?:[A-Z]-){2,}[A-Z]$/.test(w2) && known.includes(w2.replace(/-/g, "").toLowerCase())) continue;
       const lw = w2.toLowerCase().replace(/'s$/, "");
       if (known.includes(lw) || E2.isWord && E2.isWord(lw)) continue;
       names.add(w2);

@@ -2419,7 +2419,9 @@ function chatNeeds(all, b){
   const grade = lo.match(/\b(\d{1,2})(?:st|nd|rd|th) grad(?:e|ers?)\b|\bgrade (\d{1,2})\b|\byear (\d{1,2}) (?:students|pupils|class)\b/);
   const n = age ? Number(age[1] || age[2] || age[3]) : grade ? Number(grade[1] || grade[2] || grade[3]) + 5 : 0;
   const teach = /\b(explain|teach|what is|what are|how (?:does|do|to)|help me understand|lesson|quiz|study)\b/.test(lo);
-  if(n && n < 18) out.push("Write for a " + n + "-year-old: " + (n <= 8 ? "very short sentences and everyday words" : n <= 13 ? "short sentences and everyday words" : "plain words, with any jargon defined once") + (teach ? (n <= 13 ? "; explain any new word the first time and use one concrete example from their life." : "; use one concrete example.") : "."));
+  const forTeacher = /\b(lesson plans?|rubrics?|worksheets?|curriculum|unit plan|i'?m a teacher|i teach|my (?:students|class|pupils))\b/.test(lo);
+  if(n && n < 18 && forTeacher) out.push("The activities and words are for " + n + "-year-olds; what you write is for the teacher.");
+  else if(n && n < 18) out.push("Write for a " + n + "-year-old: " + (n <= 8 ? "very short sentences and everyday words" : n <= 13 ? "short sentences and everyday words" : "plain words, with any jargon defined once") + (teach ? (n <= 13 ? "; explain any new word the first time and use one concrete example from their life." : "; use one concrete example.") : "."));
   else if(/\b(complete beginner|total beginner|beginner|never (?:coded|done|used|played|cooked)|no experience with|new to|someone who has never|for dummies|non-?technical|layman)\b/.test(lo) && !/\bno (?:job|work) experience\b/.test(lo)) out.push("Assume no background: no jargon, or explain each term in one line, and build from what they already know.");
   // exact numbers they gave: counts, lengths, time, money
   /** @type {string[]} */
@@ -2427,6 +2429,7 @@ function chatNeeds(all, b){
   for(const x of t.matchAll(/\b(max(?:imum)? |at most |no more than |up to |exactly |about |around |under |over |at least )?(?<!\b(?:i'?m|im|am|age|aged|like) )(\d{1,3}) (?:(?!(?:day|week|month|minute|min|hour|year|with|and|or|an?|the|of|to|for|in|on|at|from|by)s?\b)[a-z-]+ ){0,2}(captions?|ideas?|(?:quiz )?questions?|bullet points?|bullets?|tips?|examples?|versions?|scripts?|exercises?|names?|options?|titles?|hooks?|slides?|steps?|ways?|reasons?|things|points?|paragraphs?|sentences?|lines?|days?|weeks?|meals?|lunches|recipes?|activities|songs?|hashtags?(?: each)?|words?|minutes?|mins?|hours?|pages?|levels?|panels?)\b/gi)){
     const q = (x[1] || "").trim().toLowerCase(), num = x[2], what = x[3].toLowerCase();
     const said = x[0].slice((x[1] || "").length).trim(); // "10 instagram caption ideas", their words
+    if(!x[1] && /\b(?:for|of|on|about|grade|grading|mark|marking) (?:a|an|the|my|our)\s*$/i.test(t.slice(Math.max(0, (x.index || 0) - 16), x.index))) continue; // "a rubric for a 5 paragraph essay" describes the thing graded
     const next = t.slice((x.index || 0) + x[0].length).match(/^\s+([a-z-]+)/i);
     // "my 90 page thesis" describes what they have, not what they want back
     if(next && /^(thesis|draft|document|doc|essay|report|book|paper|pdf|manuscript|transcript|article|file|contract|chapter|script|lecture|video|podcast|recording)$/i.test(next[1])) continue;
@@ -2443,14 +2446,14 @@ function chatNeeds(all, b){
   if(/\b(as|in) a table\b|\btable format\b/.test(lo) && !/table/i.test(String(b.format || ""))) need.push("laid out as a table");
   // a plan over days or weeks: laid out in those units, each one fitting the time or money they gave
   const span = lo.match(/\b(\d{1,2})[- ](day|week|month)s?\b[^.]{0,30}\b(plan|schedule|routine|itinerary|program|programme|challenge)\b|\b(plan|schedule|routine|itinerary|program|programme)\b[^.]{0,30}\b(\d{1,2})[- ](day|week|month)s?\b/);
-  if(span){ const unit = span[2] || span[6]; const per = lo.match(/\b(\d{1,3}) ?(?:min|mins|minutes|hours?|hrs?)\b(?: (?:a|per|each) (?:day|session|night)| each| a day)?|\$\d[\d,]*/);
+  if(span){ const unit = span[2] || span[6]; const times = lo.match(/\b\d{1,3} ?(?:min|mins|minutes|hours?|hrs?)\b/g) || []; const per = times.length > 1 ? null : lo.match(/\b(\d{1,3}) ?(?:min|mins|minutes|hours?|hrs?)\b(?: (?:a|per|each) (?:day|session|night)| each| a day)?|\$\d[\d,]*/);
     need.push("laid out " + unit + " by " + unit + (per ? ", each day's part fitting in " + per[0].trim().replace(/ (?:a|per|each) day$/, "") + (/\$/.test(per[0]) ? "" : " a day") : "")); }
   const uniq = [...new Set(need)];
   if(uniq.length) out.push("Stick to these exactly: " + uniq.join("; ") + ".");
   // what they ruled out, word for word (not facts about them: "I have no job experience" is not a limit)
   /** @type {string[]} */
   const lim = [];
-  for(const x of t.matchAll(/\b(?:no(?= [a-z])|not too|nothing (?:that|too)|don'?t (?:use|mention|include|rewrite|add|make it)|do not (?:use|mention|include|rewrite|add)|avoid)\b[^,.;!?]{2,40}/gi)){
+  for(const x of t.matchAll(/\b(?:no(?= [a-z])|not too|nothing (?:that|too)|don'?t (?:use|mention|include|add|make it)|do not (?:use|mention|include|add)|avoid)\b[^,.;!?:'"“‘]{2,40}/gi)){
     if(/^no\b/i.test(x[0]) && x[0].split(/\s+/).length > 5) continue; // "no X" is a short limit; a long one is usually a story
     const before = t.slice(Math.max(0, (x.index || 0) - 14), x.index).toLowerCase();
     if(/\b(i have|i've got|we have|there'?s|there is|with|had|has|i got)\s*$/.test(before) || /^no (?:experience|idea|clue|time|money|budget for ads?)\b/i.test(x[0]) && /\bi\b/.test(before)) continue;
@@ -3624,11 +3627,21 @@ function rebuildBriefParts(text, m){
     sug("effort", "High");
     if(/\b(below|attached|pasted|these notes|my notes|the (document|article|transcript|report|data|email|notes))\b/i.test(t)) sug("rules", "Do not invent facts. If the answer is not in the material, say so"); // 8.5.2: only when there is material
   }
+  // v1 step 15: the chat reader kept only the first clause as the task and dropped the rest ("45 minutes, a hands-on
+  // activity and 5 quiz questions" vanished from a lesson plan). Every clause of theirs that no box holds goes to Context.
+  if(["text"].includes(m.cat) && has(b.goal)){
+    const held = [b.goal, b.format, b.rules, b.length, b.pasted].filter(has).map(v => join(v)).join(" ").toLowerCase();
+    const ctx0 = has(b.context) ? String(b.context).trim().replace(/[.;,]+$/, "") : "";
+    const clauses = t.split(/(?<=[.;!?])\s+|,\s+|\n+/).map(c => c.trim().replace(/^(?:and|but|also|plus)\s+/i, "").replace(/[.;,]+$/, "")).filter(c => c.split(/\s+/).length >= 1 && c.length > 2);
+    const left = clauses.filter(c => !held.includes(c.toLowerCase()) && !saidIn(held, c));
+    if(left.length){ const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some(c => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
+      b.context = cap([...keep, ...left].join(", ")); }
+  }
   // v1 bug hunt: "not too gory" vanished from a campfire story for Claude (judge: "drops the not too gory constraint").
   // A limit the person set is a rule, whatever box the rest went to
   if(["text","code","research","app"].includes(m.cat) && !has(b.rules) && (m.craft || []).includes("rules")){
     const placed = [b.goal, b.context, b.format, b.extra, b.avoid].filter(has).map(v => join(v)).join(" ").toLowerCase();
-    const lim = (t.match(/\b(?:not (?:too|very|overly) [a-z-]+|nothing (?:too )?[a-z-]+|keep it (?:short|simple|clean|kind|polite|light|friendly|under \d+ \w+)|don'?t make it [a-z-]+|no (?:jargon|swearing|gore|spoilers|emojis|hashtags|clich[eé]s|fluff|preamble)|without (?:jargon|swearing|spoilers|emojis|hashtags))\b/gi) || [])
+    const lim = (t.match(/\b(?:not (?:too|very|overly) [a-z-]+|nothing too [a-z-]+|nothing (?:that|which) [a-z][^,.;!?]{2,40}|keep it (?:short|simple|clean|kind|polite|light|friendly|under \d+ \w+)|don'?t make it [a-z-]+|no (?:jargon|swearing|gore|spoilers|emojis|hashtags|clich[eé]s|fluff|preamble)|without (?:jargon|swearing|spoilers|emojis|hashtags))\b/gi) || [])
       .filter(x => !placed.includes(x.toLowerCase()));
     if(lim.length) b.rules = lim.map(x => cap(x)).join(". ");
   }
@@ -3792,7 +3805,9 @@ function forgeFromText(text, m, level, more){
     const mine = new Set((String(res.flat).toLowerCase().match(/[a-z0-9']{4,}/g) || []).map(st)); return theirs.length && theirs.filter(w => mine.has(w)).length / theirs.length < 0.9; };
   if(own && res.score < before.total && (!READS_BACKGROUND.includes(m.cat) || lostTheirs())){
     const flags = /\s--[a-z]/i.test(own) ? "" : (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0]; // 9.11: Midjourney's --ar, --v... stay
-    res.flat = cap(own) + flags; res.blocks = [["Prompt", res.flat]]; res.keptYours = true; // 12.4: "a hyper-detailed..." started lower-case once "Need" was cut
+    // v1 step 15: the shape they asked for is in --ar now, so "wide 16:9" is not left in the words too (judge: "repeats the settings")
+    const ownWords = flags && /--ar\s/.test(flags) ? String(own).replace(/[,.]?\s*\b(?:(?:wide|vertical|horizontal|square|portrait|landscape)\s*)?\d{1,2}\s*:\s*\d{1,2}\b|[,.]?\s*\b(?:wide|vertical|square)(?= *(?:[,.]|$))/gi, "").replace(/\s+([,.])/g, "$1").replace(/[,.]\s*[,.]/g, ".").trim() : own;
+    res.flat = cap(ownWords).replace(/([.!?]\s+)([a-z])/g, (_, p, c) => p + c.toUpperCase()) + flags; res.blocks = [["Prompt", res.flat]]; res.keptYours = true; // 12.4: "a hyper-detailed..." started lower-case once "Need" was cut
     applyStyle(res, brief, m, text, true); // 12.4: the style lines were lost with Forge's rewrite (the keep-out is already in the flags)
     res.score = before.total; res.parts = before.parts;
     res.notes = ["Forge's rewrite scored lower than your prompt, so this keeps your words" + (fixed.fixes.length ? " with the spelling fixed" : "") + ". Answer the questions below to make it better.", ...(res.notes || [])];
@@ -4453,6 +4468,8 @@ const WRITE_WHY = /** @type {Record<string, string>} */ ({
 });
 /** @param {Model} m @param {string=} query @returns {string} */
 function whyFor(m, query){
+  // v1 step 15: learning something (recursion for a student) is not a code review job
+  if(m.cat === "text" && ["claude","gpt","gemini"].includes(m.id) && /\b(learn\w*|understand\w*|student|homework|teach me|explain\w* to me|beginner|first year|study\w*)\b/i.test(String(query || ""))) return "Explains step by step at your level, answers follow-up questions, and can quiz you to check you understood.";
   if(m.cat === "text" && WRITE_WHY[m.id] && !/\b(code|coding|bugs?|debug\w*|function|repo|compile|stack trace|exception|script error|program|crash\w*|keeps? failing|failing for|error|checkout|server|deploy\w*|database|queries)\b/i.test(String(query || ""))) return WRITE_WHY[m.id];
   return String(m.best || "");
 }
@@ -4475,7 +4492,7 @@ function matchReason(top, query, second){
   if(parts.length > 2){
     const st = (/** @type {string} */ x) => x.toLowerCase().replace(/(ing|ed|es|s)$/, "");
     // the kind of thing ("track", "video") is in every request of that kind, so it says nothing about this job
-    const asked = new Set((String(query || "").toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter(x => !/^(track|song|music|video|clip|image|picture|photo|voice|app|website|site|the|and|for|with|my|our)s?$/.test(x)).map(st));
+    const asked = new Set((String(query || "").toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter(x => !/^(track|song|music|video|clip|image|picture|photo|voice|app|website|site|the|and|for|with|my|our|motion|shot|sound|style|look|quality|make|want|need)s?$/.test(x)).map(st));
     const hits = parts.filter(fits).map((p0, i) => ({ p0, i, n: (p0.toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter(x => asked.has(st(x))).length }));
     const best = hits.filter(h => h.n).sort((a, b) => b.n - a.n || a.i - b.i).slice(0, 2);
     wordHit = best.length > 0;
@@ -4487,7 +4504,10 @@ function matchReason(top, query, second){
   // v1 step 14: judges marked "synced audio" for a silent GIF clip and studio terms for a podcast bed as off-topic. A fact about sound is skipped when
   // the person wants no sound, and the catch-all fact gives way to the strengths that share the person's words.
 
-  if(F0){ const hit = (F0.facts || []).find(f => fits(f.say) && f.when.test(String(query || ""))); const say = hit ? hit.say : (wordHit || !fits(F0.default || "") ? "" : F0.default); if(say) why = top.m.n + (top.m.sub ? " " + top.m.sub : "") + ": " + say.replace(/^\s*/, ""); }
+  // v1 step 15: a chat AI's catch-all fact was a prompting tip ("place long material first"), not why it fits the job
+  if(F0){ const hit = (F0.facts || []).find(f => fits(f.say) && f.when.test(String(query || ""))); const say = hit ? hit.say : (wordHit || !fits(F0.default || "") || (top.m.cat === "text" && whyFor(top.m, query) !== String(top.m.best || "")) ? "" : F0.default);
+    if(!say && !hit && top.m.cat === "text" && whyFor(top.m, query) !== String(top.m.best || "")) why = top.m.n + ": " + whyFor(top.m, query);
+    if(say) why = top.m.n + (top.m.sub ? " " + top.m.sub : "") + ": " + say.replace(/^\s*/, ""); }
   return (job ? "For \"" + job + "\": " : "") + why
     + (w.length && !AI_FACTS[top.m.id] ? " You mentioned " + w.map(x => "'" + x + "'").join(", ") + "." : "")
     // 11.1: a second choice only when it is the same kind of AI and nearly as good (judges: "an irrelevant second choice")
