@@ -42401,6 +42401,7 @@ function pickAspect(t, m2) {
   if (!opts2.length) return "";
   const said = t.match(/\b(\d{1,2}(?:\.\d+)?)\s*[:x]\s*(\d{1,2})\b/);
   let want = said && !/\bmacro\b/i.test(t.slice(Math.max(0, (said.index || 0) - 8), said.index || 0)) ? Number(said[1]) / Number(said[2]) : 0;
+  if (want && said && m2.id === "midjourney" && /^\d+$/.test(said[1]) && /^\d+$/.test(said[2])) return said[1] + ":" + said[2];
   if (!want) {
     if (/\b(vertical|upright|phone wallpaper|lock ?screen|tiktoks?|reels?|shorts|(instagram|ig|insta|facebook|fb|snapchat|snap|whatsapp) stor(y|ies))\b/i.test(t)) want = 9 / 16;
     else if (/\b(portrait (orientation|format|mode)|in portrait|a4|poster|flyer|book cover|pinterest pin)\b/i.test(t)) want = 2 / 3;
@@ -42409,7 +42410,7 @@ function pickAspect(t, m2) {
     else if (/\b(widescreen|landscape (orientation|format|mode)|youtube (video|thumbnail|banner|intro)|desktop wallpaper|thumbnail|banner|header|16 by 9)\b/i.test(t)) want = 16 / 9;
     else if (/\b(wide shot|wide-angle|wide angle|panoram\w*|landscape view|establishing shot|vista)\b/i.test(t)) want = 16 / 9;
     else if (/(?:^|[,;]\s*)(?:wide|landscape)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 16 / 9;
-    else if (/(?:^|[,;]\s*)tall(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2 / 3;
+    else if (/(?:^|[,;]\s*)(?:tall|portrait)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2 / 3;
     else if (m2.cat === "video" && /\b(social(?: media)?|instagram|insta|ig|tiktok|reels?|stories|phone)\b/i.test(t) && !/\byoutube\b(?!\s+shorts?)/i.test(t)) want = 9 / 16;
     else if (m2.cat === "video" && /\byoutube\b/i.test(t)) want = 16 / 9;
   }
@@ -42666,6 +42667,20 @@ function rebuildBriefParts(text, m2) {
       }
       if (typeof b.subject === "string" && /^[A-Za-z]+$/.test(b.subject) && !/s$/i.test(b.subject) && !/^(?:snow|rain|fog|water|fire|smoke|light|art|space)$/i.test(b.subject)) b.subject = cap(artic(b.subject.toLowerCase()) + " " + b.subject.toLowerCase());
     }
+    if ((m2.cat === "image" || m2.cat === "video") && !has(b.light)) {
+      const ml = t.match(/\b((?:early |late |soft |warm |cool |cold |harsh |dim |bright |golden )?(?:morning|evening|afternoon|night|moon|candle|window|natural|soft|warm|cool|cold|harsh|studio|dim|bright|street|fire)\s*light)\b/i);
+      if (ml) {
+        b.light = [ml[1].toLowerCase()];
+        for (const k2 of ["action", "extra", "subject", "setting"]) if (typeof b[k2] === "string") b[k2] = String(b[k2]).replace(new RegExp("\\s*,?\\s*(?:in |at |with )?" + ml[1] + "\\b", "i"), "").replace(/^[\s,]+|[\s,]+$/g, "");
+      }
+    }
+    if (m2.cat === "video" && (m2.tech || []).includes("vaudio") && !has(b.vaudio)) {
+      const sd = t.match(/\b(?:with\s+)?(?:the\s+)?(?:sound|sounds|noise|audio)\s+of\s+([^,.;]+)/i);
+      if (sd) {
+        b.vaudio = "SFX: " + sd[1].trim() + ".";
+        for (const k2 of ["action", "extra"]) if (typeof b[k2] === "string") b[k2] = String(b[k2]).replace(sd[0], "").replace(/^[\s,]+|[\s,]+$/g, "");
+      }
+    }
     if (typeof b.setting === "string" && /^(?:in\s+)?(?:super\s+)?slow[- ]?(?:motion|mo)$/i.test(b.setting.trim())) delete b.setting;
     if (m2.cat === "image" && /\b(pixar|dreamworks|3d animat\w*|animated (?:movie|film) style)\b/i.test(t) && (!has(b.medium) || suggested.includes("medium"))) {
       b.medium = "3D render";
@@ -42676,6 +42691,15 @@ function rebuildBriefParts(text, m2) {
       const C2 = "(?:(?:bright|light|dark|pale|deep|soft|warm|cool|pastel|neon|bold|muted)\\s+)?(?:red|orange|yellow|green|blue|purple|pink|brown|black|white|gold|silver|teal|navy|cream|beige|mint|turquoise|grey|gray)";
       const pc = t.match(new RegExp("(?:^|[,;.]\\s*|\\bin\\s+)(" + C2 + "(?:(?:\\s*,\\s*|\\s+(?:and|&)\\s+)" + C2 + ")*)(?=\\s*(?:[,;.]|$|\\s+(?:colou?rs?|palette|tones?|theme)\\b))", "i"));
       if (pc) b.palette = pc[1].trim();
+      else {
+        const pp = t.match(/(?:^|[,;]\s*)((?:soft |muted |bright )?pastels?(?: colou?rs?| tones?| palette)?)(?=\s*(?:[,;.]|$))/i);
+        if (pp) b.palette = pp[1].trim();
+      }
+      if (typeof b.extra === "string") {
+        const rest = String(b.extra).split(/\s*,\s*/).filter((x) => !(has(b.palette) && x.toLowerCase() === String(b.palette).toLowerCase()) && !(has(b.aspect) && /^(?:wide|tall|portrait|landscape|square|vertical|horizontal)$/i.test(x.trim())));
+        if (rest.length) b.extra = cap(rest.join(", "));
+        else delete b.extra;
+      }
     }
     {
       const av = avoidFrom(t);
@@ -42687,6 +42711,14 @@ function rebuildBriefParts(text, m2) {
     }
     const body = /\b(person|people|man|men|woman|women|kid|kids|child|children|girl|boy|baby|hands?|face|dog|cat|animal|character|dancer|player|chef|couple|family|portrait|headshot|model|athlete|runner|bird|horse|dragon|creature)\b/i.test(String(b.subject || first).replace(/\bhand[- ]?(painted|made|drawn|lettered|crafted|written)\b/gi, ""));
   } else if (m2.cat === "voice") {
+    {
+      const sv = t.match(/^(.*?\b(?:voice|narrator|man|woman|guy|girl|kid|announcer|speaker|host)\b[^:]*?)\s*,?\s*(?:saying|says|that says|reading|reads|to say|who says)\s*:?\s*["\u201c]?(.{2,}?)["\u201d]?\s*$/i);
+      if (sv && (m2.core || []).includes("script")) {
+        b.script = cap(sv[2].trim()).replace(/([^.!?])$/, "$1.");
+        const d2 = sv[1].replace(/^(?:an?|the)\s+/i, "").replace(/\s+(?:voice|narrator)$/i, "").trim();
+        if (d2 && !has(b.voiceChar)) b.voiceChar = d2;
+      }
+    }
     if (!b.script && (m2.core || []).includes("script") && !ASKS_FOR.test(t) && !DESCRIBES_READ.test(t)) b.script = t;
     const tone = found(t, opts("vTone"));
     if (tone.length) b.vTone = tone;
@@ -42773,6 +42805,17 @@ function rebuildBriefParts(text, m2) {
         }
       }
       if (!has(b.format) && /\b(?:with (?:the )?answers? (?:at the end|at the bottom|after|separately)|answer key)\b/i.test(t)) b.format = "Numbered questions, then the answers at the end";
+      if (!has(b.rules)) {
+        const tw = t.match(new RegExp("(?:^|,\\s*)(" + TONE + "|sincere|heartfelt|professional|apologetic|encouraging)(?=\\s*(?:,|\\.|$))", "i"));
+        if (tw) b.rules = "Tone: " + tw[1].toLowerCase();
+      }
+      if (!has(b.length) && /\bnot too long\b|\bshort(?:ish)?\b(?=\s*(?:,|\.|$))/i.test(t)) b.length = "Short";
+      for (const k2 of ["context", "goal"]) if (typeof b[k2] === "string") {
+        const v2 = String(b[k2]).replace(/^\s*you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, "").trim();
+        if (v2) b[k2] = v2;
+        else delete b[k2];
+      }
+      if (typeof b.context === "string" && /^(?:not too long|short|sincere|polite|friendly|warm|formal|casual)(?:\s*,\s*(?:not too long|short|sincere|polite|friendly|warm|formal|casual))*[.]?$/i.test(b.context.trim()) && (has(b.rules) || has(b.length))) delete b.context;
     }
     const shortJob = has(b.length) && /few sentences|short|brief|one (?:line|sentence)/i.test(String(b.length)) || /\b(text|message|caption|tweet|reply|dm|note|thank[- ]you)\b/i.test(t) && t.split(/\s+/).length < 40;
     sug("effort", shortJob ? "Low" : "High");
@@ -42782,7 +42825,7 @@ function rebuildBriefParts(text, m2) {
     const held = [b.goal, b.format, b.rules, b.length, b.pasted].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
     const ctx0 = has(b.context) ? String(b.context).trim().replace(/[.;,]+$/, "") : "";
     const clauses = t.split(/(?<=[.;!?])\s+|,\s+|\n+/).map((c) => c.trim().replace(/^(?:and|but|also|plus)\s+/i, "").replace(/[.;,]+$/, "")).filter((c) => c.split(/\s+/).length >= 1 && c.length > 2);
-    const heldElsewhere = (c) => /^(?:keep it|make it)\b/i.test(c) && (has(b.length) || /^Tone:/.test(String(b.rules || "")));
+    const heldElsewhere = (c) => /^(?:keep it|make it)\b/i.test(c) && (has(b.length) || /^Tone:/.test(String(b.rules || ""))) || /^you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant$|^make it (?:good|great|nice|better|amazing|awesome)$/i.test(c.trim()) || /^Tone:/.test(String(b.rules || "")) && String(b.rules).toLowerCase().includes(c.trim().toLowerCase()) && c.trim().split(/\s+/).length <= 2 || has(b.length) && /^not too long$|^short(?:ish)?$/i.test(c.trim());
     const left = clauses.filter((c) => !held.includes(c.toLowerCase()) && !saidIn(held, c) && !(ctx0 && saidIn(ctx0, c)) && !heldElsewhere(c));
     if (left.length) {
       const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some((c) => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
@@ -42922,7 +42965,7 @@ function forgeFromText(text, m2, level, more) {
   res.score = counted.score;
   res.parts = counted.parts;
   res.ask = counted.ask;
-  const asked = stripAsk(stripBanned(fixed.text).text).replace(/\s*,(?:\s*,)+/g, ",").replace(/,\s*([.!?]|$)/g, "$1").replace(/\s{2,}/g, " ");
+  const asked = stripAsk(stripBanned(fixed.text).text).replace(/^\s*you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, ".").replace(/\s*,(?:\s*,)+/g, ",").replace(/,\s*([.!?]|$)/g, "$1").replace(/\s{2,}/g, " ");
   const own2 = (["image", "video"].includes(m2.cat) ? notMine(deMeta(tidyRequest(asked))).text : ["sfx", "music"].includes(m2.cat) ? String(asked).replace(REQUEST_LEAD, "") : asked).trim();
   const before = scoreText(own2, m2);
   const lostTheirs = () => {
@@ -43193,6 +43236,7 @@ function noDoubles(b) {
       }
     }
     const left = w2.join(" ").replace(/\s+([,.;])/g, "$1").replace(/^[\s,.;]+|[\s,.;]+$/g, "").trim();
+    if (left === o[k2].trim().replace(/^[\s,.;]+|[\s,.;]+$/g, "")) continue;
     if (left.split(/\s+/).filter(Boolean).length >= 2) o[k2] = left;
     else delete o[k2];
   }
@@ -43723,7 +43767,7 @@ function addExtra(res, m2, extra, keepAny) {
   if (/^\s*\{[\s\S]*\}\s*$/.test(f2)) {
     try {
       const o = JSON.parse(f2);
-      o.notes = line;
+      o.notes = [o.notes, line].filter(Boolean).join(" ");
       res.flat = JSON.stringify(o, null, 2);
       res.blocks.push(["Anything else", line]);
       return;

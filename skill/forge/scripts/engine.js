@@ -3364,6 +3364,8 @@ function pickAspect(t, m){
   if(!opts.length) return "";
   const said = t.match(/\b(\d{1,2}(?:\.\d+)?)\s*[:x]\s*(\d{1,2})\b/);
   let want = said && !/\bmacro\b/i.test(t.slice(Math.max(0, (said.index||0) - 8), (said.index||0))) ? Number(said[1]) / Number(said[2]) : 0;
+  // Oct 2026 fake test: "--ar 3:4" became "--ar 4:5". Midjourney takes any whole-number ratio, so the one they typed is kept exactly.
+  if(want && said && m.id === "midjourney" && /^\d+$/.test(said[1]) && /^\d+$/.test(said[2])) return said[1] + ":" + said[2];
   if(!want){
     if(/\b(vertical|upright|phone wallpaper|lock ?screen|tiktoks?|reels?|shorts|(instagram|ig|insta|facebook|fb|snapchat|snap|whatsapp) stor(y|ies))\b/i.test(t)) want = 9/16;
     else if(/\b(portrait (orientation|format|mode)|in portrait|a4|poster|flyer|book cover|pinterest pin)\b/i.test(t)) want = 2/3;
@@ -3372,7 +3374,7 @@ function pickAspect(t, m){
     else if(/\b(widescreen|landscape (orientation|format|mode)|youtube (video|thumbnail|banner|intro)|desktop wallpaper|thumbnail|banner|header|16 by 9)\b/i.test(t)) want = 16/9;
     else if(/\b(wide shot|wide-angle|wide angle|panoram\w*|landscape view|establishing shot|vista)\b/i.test(t)) want = 16/9; // v1 bug hunt: a "wide shot" came out square
     else if(/(?:^|[,;]\s*)(?:wide|landscape)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 16/9; // Oct 2026 fake test: "..., pixar style, wide" came out square; a lone "landscape" too
-    else if(/(?:^|[,;]\s*)tall(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2/3;
+    else if(/(?:^|[,;]\s*)(?:tall|portrait)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2/3; // a lone "portrait" is the shape, not a portrait of someone
     // v2.6: a clip for social media is vertical unless it is for YouTube (judges: "16:9 for a social clip")
     else if(m.cat === "video" && /\b(social(?: media)?|instagram|insta|ig|tiktok|reels?|stories|phone)\b/i.test(t) && !/\byoutube\b(?!\s+shorts?)/i.test(t)) want = 9/16;
     else if(m.cat === "video" && /\byoutube\b/i.test(t)) want = 16/9;
@@ -3629,6 +3631,16 @@ function rebuildBriefParts(text, m){
       }
       if(typeof b.subject === "string" && /^[A-Za-z]+$/.test(b.subject) && !/s$/i.test(b.subject) && !/^(?:snow|rain|fog|water|fire|smoke|light|art|space)$/i.test(b.subject)) b.subject = cap(artic(b.subject.toLowerCase()) + " " + b.subject.toLowerCase());
     }
+    // Oct 2026 fake test 3: "morning light" and "with sound of sizzling" were lost on Veo. A "<kind> light" is the light;
+    // "sound of X" is the video's audio (on AIs that make sound).
+    if((m.cat === "image" || m.cat === "video") && !has(b.light)){
+      const ml = t.match(/\b((?:early |late |soft |warm |cool |cold |harsh |dim |bright |golden )?(?:morning|evening|afternoon|night|moon|candle|window|natural|soft|warm|cool|cold|harsh|studio|dim|bright|street|fire)\s*light)\b/i);
+      if(ml){ b.light = [ml[1].toLowerCase()]; for(const k of ["action", "extra", "subject", "setting"]) if(typeof b[k] === "string") b[k] = String(b[k]).replace(new RegExp("\\s*,?\\s*(?:in |at |with )?" + ml[1] + "\\b", "i"), "").replace(/^[\s,]+|[\s,]+$/g, ""); }
+    }
+    if(m.cat === "video" && (m.tech || []).includes("vaudio") && !has(b.vaudio)){
+      const sd = t.match(/\b(?:with\s+)?(?:the\s+)?(?:sound|sounds|noise|audio)\s+of\s+([^,.;]+)/i);
+      if(sd){ b.vaudio = "SFX: " + sd[1].trim() + "."; for(const k of ["action", "extra"]) if(typeof b[k] === "string") b[k] = String(b[k]).replace(sd[0], "").replace(/^[\s,]+|[\s,]+$/g, ""); }
+    }
     // Oct 2026 fake test: "in slow motion" is how it moves, not where it is
     if(typeof b.setting === "string" && /^(?:in\s+)?(?:super\s+)?slow[- ]?(?:motion|mo)$/i.test(b.setting.trim())) delete b.setting;
     // Oct 2026: "pixar style" already answers "Photo, painting, 3D...?", so Forge does not ask it again
@@ -3640,6 +3652,9 @@ function rebuildBriefParts(text, m){
       const C = "(?:(?:bright|light|dark|pale|deep|soft|warm|cool|pastel|neon|bold|muted)\\s+)?(?:red|orange|yellow|green|blue|purple|pink|brown|black|white|gold|silver|teal|navy|cream|beige|mint|turquoise|grey|gray)";
       const pc = t.match(new RegExp("(?:^|[,;.]\\s*|\\bin\\s+)(" + C + "(?:(?:\\s*,\\s*|\\s+(?:and|&)\\s+)" + C + ")*)(?=\\s*(?:[,;.]|$|\\s+(?:colou?rs?|palette|tones?|theme)\\b))", "i"));
       if(pc) b.palette = pc[1].trim();
+      else { const pp = t.match(/(?:^|[,;]\s*)((?:soft |muted |bright )?pastels?(?: colou?rs?| tones?| palette)?)(?=\s*(?:[,;.]|$))/i); if(pp) b.palette = pp[1].trim(); } // "..., pastel, ..."
+      // the words now held by the palette or the shape leave "Anything else" (they were said twice)
+      if(typeof b.extra === "string"){ const rest = String(b.extra).split(/\s*,\s*/).filter(x => !(has(b.palette) && x.toLowerCase() === String(b.palette).toLowerCase()) && !(has(b.aspect) && /^(?:wide|tall|portrait|landscape|square|vertical|horizontal)$/i.test(x.trim()))); if(rest.length) b.extra = cap(rest.join(", ")); else delete b.extra; }
     }
     { const av = avoidFrom(t); if(av) b.avoid = av; } // 8.7.16
     // v1 bug hunt: the keep-out stays only in the keep-outs ("no text i'll add it after" was also left in Anything else? and came back as a second --no)
@@ -3651,6 +3666,9 @@ function rebuildBriefParts(text, m){
     const body = /\b(person|people|man|men|woman|women|kid|kids|child|children|girl|boy|baby|hands?|face|dog|cat|animal|character|dancer|player|chef|couple|family|portrait|headshot|model|athlete|runner|bird|horse|dragon|creature)\b/i.test(String(b.subject || first).replace(/\bhand[- ]?(painted|made|drawn|lettered|crafted|written)\b/gi, "")); // 8.5.15: the subject, not "for my kids' party"
     // 13.23: no guessed keep-outs from the Doctor either (judges: "filler negatives"); forge() adds the few that fit
   } else if(m.cat==="voice"){
+    // Oct 2026 fake test 3: "a deep calm male voice saying: welcome to forge" - the voice is described first, the words come after "saying"
+    { const sv = t.match(/^(.*?\b(?:voice|narrator|man|woman|guy|girl|kid|announcer|speaker|host)\b[^:]*?)\s*,?\s*(?:saying|says|that says|reading|reads|to say|who says)\s*:?\s*["\u201c]?(.{2,}?)["\u201d]?\s*$/i);
+      if(sv && (m.core||[]).includes("script")){ b.script = cap(sv[2].trim()).replace(/([^.!?])$/, "$1."); const d = sv[1].replace(/^(?:an?|the)\s+/i, "").replace(/\s+(?:voice|narrator)$/i, "").trim(); if(d && !has(b.voiceChar)) b.voiceChar = d; } }
     if(!b.script && (m.core||[]).includes("script") && !ASKS_FOR.test(t) && !DESCRIBES_READ.test(t)) b.script = t; // 8.5.2: never a request as the script
     const tone = found(t, opts("vTone")); if(tone.length) b.vTone = tone;
     if(b.voiceChar && tone.length) b.voiceChar = b.voiceChar.split(", ").filter(/** @param {string} w */ w=>!tone.includes(w)).join(", ") || b.voiceChar;
@@ -3722,6 +3740,15 @@ function rebuildBriefParts(text, m){
         if(has(b.context)){ const c = String(b.context).replace(new RegExp("\\s*,?\\s*(?:and\\s+)?" + ki[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[.!]?", "i"), "").trim(); if(c.split(/\s+/).length >= 3) b.context = c; else delete b.context; }
       }
       if(!has(b.format) && /\b(?:with (?:the )?answers? (?:at the end|at the bottom|after|separately)|answer key)\b/i.test(t)) b.format = "Numbered questions, then the answers at the end";
+      // Oct 2026 fake test 3: a tone word said on its own ("..., sincere, not too long") is the tone rule; "not too long" is Length
+      if(!has(b.rules)){ const tw = t.match(new RegExp("(?:^|,\\s*)(" + TONE + "|sincere|heartfelt|professional|apologetic|encouraging)(?=\\s*(?:,|\\.|$))", "i")); if(tw) b.rules = "Tone: " + tw[1].toLowerCase(); }
+      if(!has(b.length) && /\bnot too long\b|\bshort(?:ish)?\b(?=\s*(?:,|\.|$))/i.test(t)) b.length = "Short";
+      // "You are a helpful assistant" tells the AI nothing; "make it good" is filler
+      for(const k of ["context", "goal"]) if(typeof b[k] === "string"){
+        const v = String(b[k]).replace(/^\s*you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, "").trim();
+        if(v) b[k] = v; else delete b[k];
+      }
+      if(typeof b.context === "string" && /^(?:not too long|short|sincere|polite|friendly|warm|formal|casual)(?:\s*,\s*(?:not too long|short|sincere|polite|friendly|warm|formal|casual))*[.]?$/i.test(b.context.trim()) && (has(b.rules) || has(b.length))) delete b.context;
     }
     // Oct 2026 real run: a two-sentence text got "reasoning effort: high" (Claude lowered it itself). Short messages need little thinking.
     const shortJob = (has(b.length) && /few sentences|short|brief|one (?:line|sentence)/i.test(String(b.length))) || (/\b(text|message|caption|tweet|reply|dm|note|thank[- ]you)\b/i.test(t) && t.split(/\s+/).length < 40);
@@ -3735,7 +3762,10 @@ function rebuildBriefParts(text, m){
     const ctx0 = has(b.context) ? String(b.context).trim().replace(/[.;,]+$/, "") : "";
     const clauses = t.split(/(?<=[.;!?])\s+|,\s+|\n+/).map(c => c.trim().replace(/^(?:and|but|also|plus)\s+/i, "").replace(/[.;,]+$/, "")).filter(c => c.split(/\s+/).length >= 1 && c.length > 2);
     // Oct 2026: "keep it short and polite" is held by Length and the tone rule, in other words
-    const heldElsewhere = (/** @type {string} */ c) => /^(?:keep it|make it)\b/i.test(c) && (has(b.length) || /^Tone:/.test(String(b.rules || "")));
+    const heldElsewhere = (/** @type {string} */ c) => (/^(?:keep it|make it)\b/i.test(c) && (has(b.length) || /^Tone:/.test(String(b.rules || ""))))
+      || /^you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant$|^make it (?:good|great|nice|better|amazing|awesome)$/i.test(c.trim()) // filler that tells the AI nothing
+      || (/^Tone:/.test(String(b.rules || "")) && String(b.rules).toLowerCase().includes(c.trim().toLowerCase()) && c.trim().split(/\s+/).length <= 2)
+      || (has(b.length) && /^not too long$|^short(?:ish)?$/i.test(c.trim()));
     const left = clauses.filter(c => !held.includes(c.toLowerCase()) && !saidIn(held, c) && !(ctx0 && saidIn(ctx0, c)) && !heldElsewhere(c));
     if(left.length){ const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some(c => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
       // one copy of each clause, whatever its capitals ("No big science words, no big science words")
@@ -3908,7 +3938,8 @@ function forgeFromText(text, m, level, more){
   // 12.4: sound and music AIs hear every word too, so "Need a phone ringtone loop" loses "Need" there as well
   // v1 bug hunt: "write a prompt for midjourney ... skip the questions" is the instruction, not the person's words to keep
   // v1 step 16: removing "8k, masterpiece" left ", ," in their words
-  const asked = stripAsk(stripBanned(fixed.text).text).replace(/\s*,(?:\s*,)+/g, ",").replace(/,\s*([.!?]|$)/g, "$1").replace(/\s{2,}/g, " ");
+  // Oct 2026: "You are a helpful assistant" and "make it good" are filler, not words of theirs to keep
+  const asked = stripAsk(stripBanned(fixed.text).text).replace(/^\s*you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, ".").replace(/\s*,(?:\s*,)+/g, ",").replace(/,\s*([.!?]|$)/g, "$1").replace(/\s{2,}/g, " ");
   const own = (["image","video"].includes(m.cat) ? notMine(deMeta(tidyRequest(asked))).text
     : ["sfx","music"].includes(m.cat) ? String(asked).replace(REQUEST_LEAD, "") : asked).trim(); // 12.2: no "my dog"
   const before = scoreText(own, m);
@@ -4237,6 +4268,8 @@ function noDoubles(b){
       if(run.split(" ").length >= 4 && (" " + sub + " ").includes(" " + run + " ")){ w.splice(i, n); n = Math.min(n, w.length + 1); i = -1; }
     }
     const left = w.join(" ").replace(/\s+([,.;])/g, "$1").replace(/^[\s,.;]+|[\s,.;]+$/g, "").trim();
+    // Oct 2026 fake test 3: a one-word note they typed ("Flowers") was deleted even when nothing was cut from it
+    if(left === o[k].trim().replace(/^[\s,.;]+|[\s,.;]+$/g, "")) continue;
     if(left.split(/\s+/).filter(Boolean).length >= 2) o[k] = left; else delete o[k];
   }
   return o;
@@ -4729,7 +4762,8 @@ function addExtra(res, m, extra, keepAny){
   const f = res.flat, line = keep.map(c => cap(stripDot(c)) + ".").join(" ");
   // 8.5.12: a JSON prompt gets the note as a field inside the object; a tag prompt as more tags
   if(/^\s*\{[\s\S]*\}\s*$/.test(f)){
-    try { const o = JSON.parse(f); o.notes = line; res.flat = JSON.stringify(o, null, 2); res.blocks.push(["Anything else", line]); return; } catch(e){ /* not JSON after all */ }
+    // Oct 2026: notes are added to, never overwritten (a recipe's note erased "Flowers")
+    try { const o = JSON.parse(f); o.notes = [o.notes, line].filter(Boolean).join(" "); res.flat = JSON.stringify(o, null, 2); res.blocks.push(["Anything else", line]); return; } catch(e){ /* not JSON after all */ }
   }
   if(m.grammar === "tags"){ const at = f.search(/\s--[a-z]/), tags = keep.map(c => lc(stripDot(c))).join(", "); res.flat = (at > 0 ? f.slice(0, at) : f).replace(/[\s,]*$/, "") + ", " + tags + (at > 0 ? f.slice(at) : ""); res.blocks.push(["Anything else", line]); return; }
   if(READS_BACKGROUND.includes(m.cat)){
