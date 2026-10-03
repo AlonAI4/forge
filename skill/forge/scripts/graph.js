@@ -67,6 +67,23 @@ function glParseChat(text){
   const t = String(text || "");
   // 9.7: an export file (Claude: sender + text, ChatGPT: author.role + content.parts, or role + content)
   const fromJson = glFromJson(t); if(fromJson) return fromJson;
+  // v1 bug hunt: a WhatsApp chat ("[10/02/26, 18:01] Dana: ..." or "10/02/26, 18:01 - Dana: ...") was one long turn with the
+  // timestamps in the goal. Each line is a message, and every message is a person's (no AI in it)
+  const WA = /^\s*\[?\d{1,4}[\/.-]\d{1,2}[\/.-]\d{1,4},?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\.?)?\]?\s*(?:-\s*)?([^:\n]{1,40}):\s*(.*)$/i;
+  const waLines = t.split("\n").filter(l => l.trim());
+  if(waLines.length >= 2 && waLines.filter(l => WA.test(l)).length >= Math.max(2, waLines.length * 0.6)){
+    /** @type {Turn[]} */
+    const out = [];
+    for(const l of waLines){
+      const w = l.match(WA);
+      if(!w){ if(out.length) out[out.length - 1].text += "\n" + l.trim(); continue; }
+      const body = w[2].trim();
+      if(!body || /^<media omitted>$|^\u200e?(image|video|audio|sticker) omitted$/i.test(body)) continue;
+      // everyone in a WhatsApp chat is a person, and the ask often comes from the other side ("can u make the invite")
+      out.push({role: "user", text: body});
+    }
+    if(out.length) return out;
+  }
   // 9.7: "## User" / "### Assistant" headings with no colon (Markdown exports)
   const heads = [...t.matchAll(/^[ \t]*#{1,4}[ \t]*(you|user|human|me|assistant|claude|chatgpt|gpt|gemini|ai)[ \t]*$/gim)];
   let marks = heads.length >= 2 ? heads : [...t.matchAll(GL_WHO)];

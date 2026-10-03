@@ -38097,6 +38097,22 @@ function glParseChat(text) {
   const t = String(text || "");
   const fromJson = glFromJson(t);
   if (fromJson) return fromJson;
+  const WA = /^\s*\[?\d{1,4}[\/.-]\d{1,2}[\/.-]\d{1,4},?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\.?)?\]?\s*(?:-\s*)?([^:\n]{1,40}):\s*(.*)$/i;
+  const waLines = t.split("\n").filter((l) => l.trim());
+  if (waLines.length >= 2 && waLines.filter((l) => WA.test(l)).length >= Math.max(2, waLines.length * 0.6)) {
+    const out = [];
+    for (const l of waLines) {
+      const w2 = l.match(WA);
+      if (!w2) {
+        if (out.length) out[out.length - 1].text += "\n" + l.trim();
+        continue;
+      }
+      const body = w2[2].trim();
+      if (!body || /^<media omitted>$|^\u200e?(image|video|audio|sticker) omitted$/i.test(body)) continue;
+      out.push({ role: "user", text: body });
+    }
+    if (out.length) return out;
+  }
   const heads = [...t.matchAll(/^[ \t]*#{1,4}[ \t]*(you|user|human|me|assistant|claude|chatgpt|gpt|gemini|ai)[ \t]*$/gim)];
   let marks = heads.length >= 2 ? heads : [...t.matchAll(GL_WHO)];
   if (marks.length < 2) {
@@ -41893,7 +41909,9 @@ var TIP_CLASHES = (
     [/\b(risograph|screen print|vintage poster|1960s)\b/i, /\b(gouache|watercolou?r|big-headed)\b/i],
     [/\b(handwritten|chalk|brush lettering|script lettering)\b/i, /\b(clean sans[- ]serif|strict grid)\b/i],
     [/\b(dark|goth\w*|moody|horror)\b/i, /\b(flat vector, two or three colou?rs|plain white background)\b/i],
-    [/\b(edit|restore|keep (?:the )?(?:same|original)|match(?:ing)? (?:the )?existing)\b/i, /\bseamless clean backdrop\b/i]
+    [/\b(edit|restore|keep (?:the )?(?:same|original)|match(?:ing)? (?:the )?existing)\b/i, /\bseamless clean backdrop\b/i],
+    // v1 bug hunt: "a bottle on wet rocks by a river" got a studio backdrop line (judge: "contradicts the river")
+    [/\b(?:on|by|in|at|near|beside|under|over|against)\s+(?:a\s+|the\s+|some\s+|wet\s+|old\s+|wooden\s+)?(?:\w+\s+)?(?:rocks?|river|beach|sand|forest|woods|grass|field|street|road|table|desk|counter|kitchen|garden|mountain|lake|sea|ocean|snow|moss|log|bench|shelf|window|marble|wall|city)\b|\boutdoors?\b|\bin nature\b/i, /\bseamless clean backdrop\b/i]
   ]
 );
 function tipClashes(tip, text) {
@@ -42218,7 +42236,7 @@ function snap16(v2) {
 var NOT_KEEPOUT = /^(idea|clue|fancy|rush|problem|pressure|one|matter|need|more|longer|less|way|thanks|sure|worries|big deal|preference|budget|experience|time|limit|rules?|hurry|reason|change|camera move|music|sound|audio|dialogue|voice)\b/i;
 function avoidFrom(t) {
   const out = [];
-  const re = /\b(?:no|without|avoid|avoiding|never|don'?t (?:want|include|show|add|put)|do not (?:want|include|show|add|put))\s+(?:any\s+|a\s+|an\s+|the\s+)?([a-z][a-z' -]*?)(?=\s*(?:[,.;!?)]|\band\b|\bor\b|\bbut\b|\bplease\b|$))/gi;
+  const re = /\b(?:no|without|avoid|avoiding|never|don'?t (?:want|include|show|add|put)|do not (?:want|include|show|add|put))\s+(?:any\s+|a\s+|an\s+|the\s+)?([a-z][a-z' -]*?)(?=\s*(?:[,.;!?)]|\band\b|\bor\b|\bbut\b|\bplease\b|\b(?:i'?ll|i will|i'?m|we'?ll|we will|since|because|cause|cuz|as i|so i|so we|for now|yet)\b|$))/gi;
   let x;
   while (x = re.exec(t)) {
     const p2 = x[1].trim();
@@ -42247,6 +42265,7 @@ function pickAspect(t, m2) {
     else if (/\b(square|profile pic(ture)?|avatar|pfp|album cover|instagram post|ig post)\b/i.test(t)) want = 1;
     else if (/\b(ultra-?wide|cinemascope|anamorphic|2\.39|letterbox\w*)\b/i.test(t)) want = 21 / 9;
     else if (/\b(widescreen|landscape (orientation|format|mode)|youtube (video|thumbnail|banner|intro)|desktop wallpaper|thumbnail|banner|header|16 by 9)\b/i.test(t)) want = 16 / 9;
+    else if (/\b(wide shot|wide-angle|wide angle|panoram\w*|landscape view|establishing shot|vista)\b/i.test(t)) want = 16 / 9;
     else if (m2.cat === "video" && /\b(social(?: media)?|instagram|insta|ig|tiktok|reels?|stories|phone)\b/i.test(t) && !/\byoutube\b(?!\s+shorts?)/i.test(t)) want = 9 / 16;
     else if (m2.cat === "video" && /\byoutube\b/i.test(t)) want = 16 / 9;
   }
@@ -42376,7 +42395,7 @@ function rebuildBriefParts(text, m2) {
     const photoish = !graphic && !editing && /\b(photo\w*|realistic|real|camera|portrait|headshot|product shot|dslr|film|cinematic|shot on|lens|stock)\b/i.test(t);
     if (graphic) {
       if (!b.medium && /\b(logo|icon|emblem|badge|vector|sticker|chart|diagram|infographic|map|label|graphics?|geometric|abstract|flat)\b/i.test(t)) sug("medium", "flat vector");
-    } else if (m2.cat === "image") sug("medium", "photograph");
+    } else if (m2.cat === "image") sug("medium", defaultMedium({ ...b, extra: t }));
     if (LEX.camera.test(t)) {
       const sh = (t.match(/close-?up|wide shot|medium shot|establishing/i) || [null])[0];
       if (sh) b.shot = [sh];
@@ -42449,6 +42468,10 @@ function rebuildBriefParts(text, m2) {
       const av = avoidFrom(t);
       if (av) b.avoid = av;
     }
+    if (has(b.avoid) && typeof b.extra === "string") {
+      for (const a of String(b.avoid).split(/,\s*/)) b.extra = String(b.extra).replace(new RegExp("(?:^|,\\s*)(?:no|without|avoid)\\s+(?:any\\s+)?" + a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b[^,.]*", "i"), "").trim();
+      if (!b.extra) delete b.extra;
+    }
     const body = /\b(person|people|man|men|woman|women|kid|kids|child|children|girl|boy|baby|hands?|face|dog|cat|animal|character|dancer|player|chef|couple|family|portrait|headshot|model|athlete|runner|bird|horse|dragon|creature)\b/i.test(String(b.subject || first).replace(/\bhand[- ]?(painted|made|drawn|lettered|crafted|written)\b/gi, ""));
   } else if (m2.cat === "voice") {
     if (!b.script && (m2.core || []).includes("script") && !ASKS_FOR.test(t) && !DESCRIBES_READ.test(t)) b.script = t;
@@ -42510,6 +42533,11 @@ function rebuildBriefParts(text, m2) {
     if (lf && !(V.llmFormat || []).includes(String(b.format || ""))) b.format = lf;
     sug("effort", "High");
     if (/\b(below|attached|pasted|these notes|my notes|the (document|article|transcript|report|data|email|notes))\b/i.test(t)) sug("rules", "Do not invent facts. If the answer is not in the material, say so");
+  }
+  if (["text", "code", "research", "app"].includes(m2.cat) && !has(b.rules) && (m2.craft || []).includes("rules")) {
+    const placed = [b.goal, b.context, b.format, b.extra, b.avoid].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
+    const lim = (t.match(/\b(?:not (?:too|very|overly) [a-z-]+|nothing (?:too )?[a-z-]+|keep it (?:short|simple|clean|kind|polite|light|friendly|under \d+ \w+)|don'?t make it [a-z-]+|no (?:jargon|swearing|gore|spoilers|emojis|hashtags|clich[eé]s|fluff|preamble)|without (?:jargon|swearing|spoilers|emojis|hashtags))\b/gi) || []).filter((x) => !placed.includes(x.toLowerCase()));
+    if (lim.length) b.rules = lim.map((x) => cap(x)).join(". ");
   }
   return { brief: b, suggested };
 }
@@ -42624,7 +42652,8 @@ function forgeFromText(text, m2, level, more) {
   res.score = counted.score;
   res.parts = counted.parts;
   res.ask = counted.ask;
-  const own2 = (["image", "video"].includes(m2.cat) ? notMine(deMeta(tidyRequest(stripBanned(fixed.text).text))).text : ["sfx", "music"].includes(m2.cat) ? String(stripBanned(fixed.text).text).replace(REQUEST_LEAD, "") : stripBanned(fixed.text).text).trim();
+  const asked = stripAsk(stripBanned(fixed.text).text);
+  const own2 = (["image", "video"].includes(m2.cat) ? notMine(deMeta(tidyRequest(asked))).text : ["sfx", "music"].includes(m2.cat) ? String(asked).replace(REQUEST_LEAD, "") : asked).trim();
   const before = scoreText(own2, m2);
   if (own2 && res.score < before.total) {
     const flags = /\s--[a-z]/i.test(own2) ? "" : (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];

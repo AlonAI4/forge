@@ -2907,6 +2907,8 @@ const TIP_CLASHES = /** @type {[RegExp, RegExp][]} */ ([
   [/\b(handwritten|chalk|brush lettering|script lettering)\b/i, /\b(clean sans[- ]serif|strict grid)\b/i],
   [/\b(dark|goth\w*|moody|horror)\b/i, /\b(flat vector, two or three colou?rs|plain white background)\b/i],
   [/\b(edit|restore|keep (?:the )?(?:same|original)|match(?:ing)? (?:the )?existing)\b/i, /\bseamless clean backdrop\b/i],
+  // v1 bug hunt: "a bottle on wet rocks by a river" got a studio backdrop line (judge: "contradicts the river")
+  [/\b(?:on|by|in|at|near|beside|under|over|against)\s+(?:a\s+|the\s+|some\s+|wet\s+|old\s+|wooden\s+)?(?:\w+\s+)?(?:rocks?|river|beach|sand|forest|woods|grass|field|street|road|table|desk|counter|kitchen|garden|mountain|lake|sea|ocean|snow|moss|log|bench|shelf|window|marble|wall|city)\b|\boutdoors?\b|\bin nature\b/i, /\bseamless clean backdrop\b/i],
 ]);
 /** does this tip fight anything already said? @param {string} tip @param {string} text */
 function tipClashes(tip, text){
@@ -3253,7 +3255,7 @@ const NOT_KEEPOUT = /^(idea|clue|fancy|rush|problem|pressure|one|matter|need|mor
 function avoidFrom(t){
   /** @type {string[]} */
   const out = [];
-  const re = /\b(?:no|without|avoid|avoiding|never|don'?t (?:want|include|show|add|put)|do not (?:want|include|show|add|put))\s+(?:any\s+|a\s+|an\s+|the\s+)?([a-z][a-z' -]*?)(?=\s*(?:[,.;!?)]|\band\b|\bor\b|\bbut\b|\bplease\b|$))/gi;
+  const re = /\b(?:no|without|avoid|avoiding|never|don'?t (?:want|include|show|add|put)|do not (?:want|include|show|add|put))\s+(?:any\s+|a\s+|an\s+|the\s+)?([a-z][a-z' -]*?)(?=\s*(?:[,.;!?)]|\band\b|\bor\b|\bbut\b|\bplease\b|\b(?:i'?ll|i will|i'?m|we'?ll|we will|since|because|cause|cuz|as i|so i|so we|for now|yet)\b|$))/gi; // v1 bug hunt: "no text i'll add it after" kept the chatter
   let x;
   while((x = re.exec(t))){
     const p = x[1].trim();
@@ -3277,6 +3279,7 @@ function pickAspect(t, m){
     else if(/\b(square|profile pic(ture)?|avatar|pfp|album cover|instagram post|ig post)\b/i.test(t)) want = 1;
     else if(/\b(ultra-?wide|cinemascope|anamorphic|2\.39|letterbox\w*)\b/i.test(t)) want = 21/9;
     else if(/\b(widescreen|landscape (orientation|format|mode)|youtube (video|thumbnail|banner|intro)|desktop wallpaper|thumbnail|banner|header|16 by 9)\b/i.test(t)) want = 16/9;
+    else if(/\b(wide shot|wide-angle|wide angle|panoram\w*|landscape view|establishing shot|vista)\b/i.test(t)) want = 16/9; // v1 bug hunt: a "wide shot" came out square
     // v2.6: a clip for social media is vertical unless it is for YouTube (judges: "16:9 for a social clip")
     else if(m.cat === "video" && /\b(social(?: media)?|instagram|insta|ig|tiktok|reels?|stories|phone)\b/i.test(t) && !/\byoutube\b(?!\s+shorts?)/i.test(t)) want = 9/16;
     else if(m.cat === "video" && /\byoutube\b/i.test(t)) want = 16/9;
@@ -3423,7 +3426,7 @@ function rebuildBriefParts(text, m){
     const editing = /\b(my|our|his|her|their|this) (?:[a-z'-]+ ){0,3}(photo|picture|pic|image|selfie|headshot)s?\b/i.test(t) && /\b(edit|change|replace|remove|swap|restyle|retouch|fix|add|put|make)\w*\b/i.test(t); // 8.5.16: no lens guesses for an edit // 8.5.15: no studio light outdoors
     const photoish = !graphic && !editing && /\b(photo\w*|realistic|real|camera|portrait|headshot|product shot|dslr|film|cinematic|shot on|lens|stock)\b/i.test(t);
     if(graphic){ if(!b.medium && /\b(logo|icon|emblem|badge|vector|sticker|chart|diagram|infographic|map|label|graphics?|geometric|abstract|flat)\b/i.test(t)) sug("medium", "flat vector"); } // 10.9: "flat graphic" fell back to "Photograph of"
-    else if(m.cat === "image") sug("medium", "photograph"); // 8.9.6: a video got "Medium: photograph"
+    else if(m.cat === "image") sug("medium", defaultMedium({ ...b, extra: t })); // 8.9.6: a video got "Medium: photograph"; v1 bug hunt: a dragon on gold coins got "Photograph of"
     // what the text says about the camera is always read; the guesses only for a photo (8.5.12)
     // 13.15: only what the draft says about the camera and light. The guesses (50mm, f/2.8, a softbox, a
     // warm/cool grade, rule of thirds) were judged "invented studio lighting that contradicts the wish" in round 5
@@ -3487,6 +3490,11 @@ function rebuildBriefParts(text, m){
     }
     if((m.tech || []).includes("aspect")){ const a = pickAspect(t, m); if(a) b.aspect = a; } // 8.7.17
     { const av = avoidFrom(t); if(av) b.avoid = av; } // 8.7.16
+    // v1 bug hunt: the keep-out stays only in the keep-outs ("no text i'll add it after" was also left in Anything else? and came back as a second --no)
+    if(has(b.avoid) && typeof b.extra === "string"){
+      for(const a of String(b.avoid).split(/,\s*/)) b.extra = String(b.extra).replace(new RegExp("(?:^|,\\s*)(?:no|without|avoid)\\s+(?:any\\s+)?" + a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b[^,.]*", "i"), "").trim();
+      if(!b.extra) delete b.extra;
+    }
     // 8.17, 8.5.12: "extra limbs" only when there is a body in the picture (a water bottle got it)
     const body = /\b(person|people|man|men|woman|women|kid|kids|child|children|girl|boy|baby|hands?|face|dog|cat|animal|character|dancer|player|chef|couple|family|portrait|headshot|model|athlete|runner|bird|horse|dragon|creature)\b/i.test(String(b.subject || first).replace(/\bhand[- ]?(painted|made|drawn|lettered|crafted|written)\b/gi, "")); // 8.5.15: the subject, not "for my kids' party"
     // 13.23: no guessed keep-outs from the Doctor either (judges: "filler negatives"); forge() adds the few that fit
@@ -3541,6 +3549,14 @@ function rebuildBriefParts(text, m){
     const lf = askedFormat(t, "llm"); if(lf && !(V.llmFormat || []).includes(String(b.format || ""))) b.format = lf;
     sug("effort", "High");
     if(/\b(below|attached|pasted|these notes|my notes|the (document|article|transcript|report|data|email|notes))\b/i.test(t)) sug("rules", "Do not invent facts. If the answer is not in the material, say so"); // 8.5.2: only when there is material
+  }
+  // v1 bug hunt: "not too gory" vanished from a campfire story for Claude (judge: "drops the not too gory constraint").
+  // A limit the person set is a rule, whatever box the rest went to
+  if(["text","code","research","app"].includes(m.cat) && !has(b.rules) && (m.craft || []).includes("rules")){
+    const placed = [b.goal, b.context, b.format, b.extra, b.avoid].filter(has).map(v => join(v)).join(" ").toLowerCase();
+    const lim = (t.match(/\b(?:not (?:too|very|overly) [a-z-]+|nothing (?:too )?[a-z-]+|keep it (?:short|simple|clean|kind|polite|light|friendly|under \d+ \w+)|don'?t make it [a-z-]+|no (?:jargon|swearing|gore|spoilers|emojis|hashtags|clich[eé]s|fluff|preamble)|without (?:jargon|swearing|spoilers|emojis|hashtags))\b/gi) || [])
+      .filter(x => !placed.includes(x.toLowerCase()));
+    if(lim.length) b.rules = lim.map(x => cap(x)).join(". ");
   }
   return {brief:b, suggested};
 }
@@ -3684,8 +3700,10 @@ function forgeFromText(text, m, level, more){
   // and 53 -> 45). Keep their words, spelling fixed and filler cut, and say why; the questions say what to add.
   // the person's words without the talk to the AI ("make me a picture of") or filler
   // 12.4: sound and music AIs hear every word too, so "Need a phone ringtone loop" loses "Need" there as well
-  const own = (["image","video"].includes(m.cat) ? notMine(deMeta(tidyRequest(stripBanned(fixed.text).text))).text
-    : ["sfx","music"].includes(m.cat) ? String(stripBanned(fixed.text).text).replace(REQUEST_LEAD, "") : stripBanned(fixed.text).text).trim(); // 12.2: no "my dog"
+  // v1 bug hunt: "write a prompt for midjourney ... skip the questions" is the instruction, not the person's words to keep
+  const asked = stripAsk(stripBanned(fixed.text).text);
+  const own = (["image","video"].includes(m.cat) ? notMine(deMeta(tidyRequest(asked))).text
+    : ["sfx","music"].includes(m.cat) ? String(asked).replace(REQUEST_LEAD, "") : asked).trim(); // 12.2: no "my dog"
   const before = scoreText(own, m);
   if(own && res.score < before.total){
     const flags = /\s--[a-z]/i.test(own) ? "" : (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0]; // 9.11: Midjourney's --ar, --v... stay
