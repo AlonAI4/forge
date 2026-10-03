@@ -4,7 +4,7 @@
 
 **Use it now, free: https://alonai4.github.io/forge/**
 
-Also at: https://forge-prompt-smithy.netlify.app (a copy on Netlify; it can be a few days behind when the free plan runs out of credits for the month).
+Also at: https://forge-prompt-smith.pages.dev (the same site on Cloudflare; both update together).
 
 **New here?** The website's Manual tab explains every part and how to add Forge to Claude or ChatGPT, step by step: https://alonai4.github.io/forge/#get-forge
 
