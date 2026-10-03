@@ -42721,7 +42721,8 @@ function rebuildBriefParts(text, m2) {
       }
       if (!has(b.format) && /\b(?:with (?:the )?answers? (?:at the end|at the bottom|after|separately)|answer key)\b/i.test(t)) b.format = "Numbered questions, then the answers at the end";
     }
-    sug("effort", "High");
+    const shortJob = has(b.length) && /few sentences|short|brief|one (?:line|sentence)/i.test(String(b.length)) || /\b(text|message|caption|tweet|reply|dm|note|thank[- ]you)\b/i.test(t) && t.split(/\s+/).length < 40;
+    sug("effort", shortJob ? "Low" : "High");
     if (/\b(below|attached|pasted|these notes|my notes|the (document|article|transcript|report|data|email|notes))\b/i.test(t)) sug("rules", "Do not invent facts. If the answer is not in the material, say so");
   }
   if (["text"].includes(m2.cat) && has(b.goal)) {
@@ -45044,13 +45045,22 @@ function map2(a) {
     }
     main2 = main2.concat(Object.values(seen).sort((x, y) => y.n - x.n || x.at - y.at).slice(0, 7 - main2.length).map((x) => ({ label: x.w })));
   }
-  return { available: true, result: { summary: cc ? cc.summary : null, turns: cc ? cc.turns.length : 0, main: main2, topics: r2.topics, missing: (r2.slots || []).filter(
-    /** @param {any} x */
-    (x) => !x.filled
-  ).map(
-    /** @param {any} x */
-    (x) => x.n
-  ), questions: r2.questions, context: cc && cc.context ? cc.context : r2.context } };
+  return { available: true, result: {
+    summary: cc ? cc.summary : null,
+    turns: cc ? cc.turns.length : 0,
+    main: main2,
+    topics: r2.topics,
+    // Oct 2026 real run: the picture-style gaps (Details, Settings, Check) leaked into a party map; with a chat summary they are left out
+    missing: cc ? [] : (r2.slots || []).filter(
+      /** @param {any} x */
+      (x) => !x.filled
+    ).map(
+      /** @param {any} x */
+      (x) => x.n
+    ),
+    questions: cc ? [] : r2.questions,
+    context: cc && cc.context ? cc.context : r2.context
+  } };
 }
 
 // src/format.js

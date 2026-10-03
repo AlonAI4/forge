@@ -4503,7 +4503,9 @@ function rebuildBriefParts(text, m){
       }
       if(!has(b.format) && /\b(?:with (?:the )?answers? (?:at the end|at the bottom|after|separately)|answer key)\b/i.test(t)) b.format = "Numbered questions, then the answers at the end";
     }
-    sug("effort", "High");
+    // Oct 2026 real run: a two-sentence text got "reasoning effort: high" (Claude lowered it itself). Short messages need little thinking.
+    const shortJob = (has(b.length) && /few sentences|short|brief|one (?:line|sentence)/i.test(String(b.length))) || (/\b(text|message|caption|tweet|reply|dm|note|thank[- ]you)\b/i.test(t) && t.split(/\s+/).length < 40);
+    sug("effort", shortJob ? "Low" : "High");
     if(/\b(below|attached|pasted|these notes|my notes|the (document|article|transcript|report|data|email|notes))\b/i.test(t)) sug("rules", "Do not invent facts. If the answer is not in the material, say so"); // 8.5.2: only when there is material
   }
   // v1 step 15: the chat reader kept only the first clause as the task and dropped the rest ("45 minutes, a hands-on
