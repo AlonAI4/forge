@@ -13,7 +13,7 @@
 
 /** @typedef {{id: string, label: string, kind: string, count: number, turns: number[], user: number, source_file?: string}} GNode */
 /** @typedef {{nodes: Map<string, GNode>, adj: Map<string, Map<string, number>>}} Graph */
-/** @typedef {{role?: string, text: string, guessed?: boolean}} Turn */
+/** @typedef {{role?: string, text: string, guessed?: boolean, who?: string}} Turn */
 
 // graphify's skip lists (analyze.py): labels that are never a "main topic"
 const GL_NOISE = new Set(["Any","AsyncMock","Callable","ClassVar","Counter","Dict","Enum","False","Final","List","Literal","MagicMock","Mock","NonCallableMagicMock","NonCallableMock","Optional","OrderedDict","Path","PropertyMock","Protocol","Set","True","Tuple","Type","Union","abc","bool","bytearray","bytes","complex","datetime","defaultdict","float","int","io","json","object","os","patch","re","sentinel","str","sys","typing"]);
@@ -80,7 +80,7 @@ function glParseChat(text){
       const body = w[2].trim();
       if(!body || /^<media omitted>$|^\u200e?(image|video|audio|sticker) omitted$/i.test(body)) continue;
       // everyone in a WhatsApp chat is a person, and the ask often comes from the other side ("can u make the invite")
-      out.push({role: "user", text: body});
+      out.push({role: "user", text: body, who: w[1].trim()}); // the name is shown in "Who said what"
     }
     if(out.length) return out;
   }
@@ -223,7 +223,7 @@ function chatContext(input){
   if(lastAi) sum.open.push(...sents(lastAi.text).filter(x => /\?$/.test(x)));
   if(lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter(x => /\?$/.test(x))); // answered when the AI spoke after it
   const out = tidy(sum);
-  return {shape, turns: turns.map(t => ({role: t.role || "user", text: t.text})), summary: out, context: ctx(out)};
+  return {shape, turns: turns.map(t => ({role: t.role || "user", text: t.text, ...(t.who ? {who: t.who} : {})})), summary: out, context: ctx(out)};
 }
 
 /** Split a chat into turns. Accepts pasted text, or a list of {role, text}. @param {string | Turn[]} input @returns {Turn[]} */

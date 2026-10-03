@@ -38039,7 +38039,7 @@ var AI_FACTS = {
   "wan": { default: "Wan 2.6 has open weights for local use, while 2.7's Thinking Mode plans the composition before generating.", facts: [{ when: /\b(local|offline|open[- ]source|self-host|my (own )?(gpu|computer|pc))/i, say: "Wan 2.6 has open weights, so it runs on your own machine; 2.7 is API-only." }, { when: /\b(meaning|symbolic|metaphor|intent|story)/i, say: "2.7's Thinking Mode builds a compositional blueprint first, so stating what the scene means steers it." }, { when: /\b(styli[sz]ed|experimental|abstract|surreal|weird|artsy)/i, say: "Stylised and experimental output is a listed strength, suited to abstract or surreal clips." }, { when: /\b(languages?|multilingual|chinese|spanish|audio|voice)/i, say: "Multilingual audio is a listed strength, with speech across twelve languages." }] },
   "mjvideo": { default: "It animates a Midjourney still and keeps the Midjourney look in every frame.", facts: [{ when: /\b(loop|looping|seamless|gif|repeat|motion graphic)/i, say: "Looping motion graphics are a listed strength, so a short repeating animation keeps Midjourney's styling." }, { when: /\b(nothing moves|more motion|dynamic|energetic|action)/i, say: "Set --motion high; the default --motion low gives near-still results." }, { when: /\b(follow (my|the) prompt|exactly|literal|less styli[sz]ed|raw)/i, say: "--raw turns off the house styling, so the video follows your prompt rather than Midjourney's taste." }, { when: /\b(longer|21 seconds|twenty-one|extend)/i, say: "Extend four times at about four seconds each to reach twenty-one seconds." }, { when: /\b(animate|bring .{0,20}to life|my midjourney|from (my|this) image)/i, say: "Describe only the motion in five to twenty-five words, and let the still carry the look." }] },
   "generic-video": { default: "Describe motion over time rather than a still image; that is the top failure mode on every video model.", facts: [{ when: /\b(camera|dolly|orbit|pan|tilt|crane|drone)/i, say: "Use one camera move per shot; stacking dolly, orbit and tilt produces mush on every model." }, { when: /\b(cinematic|film look|movie look)/i, say: "'Cinematic' alone does nothing in 2026; name the shot, lens and light instead." }, { when: /\b(animate|from (my|this|an?) (photo|image|picture|still)|image[- ]to[- ]video)/i, say: "For image-to-video, delete everything that re-describes the still and keep only what changes." }, { when: /\b(sound|audio|dialogue|talk|speak|sfx)/i, say: "Write dialogue in quotes, then SFX, then ambience, and delete that block if your model makes no audio." }, { when: /\b(without|avoid|exclude|keep out|leave out|don'?t want)/i, say: "Keep exclusions in a separate negative block, and delete it if your model has no negative field." }] },
-  "el-tts": { default: "Its v3 model reads inline audio tags like [whispers] and [sighs], so delivery is directed inside the script itself.", facts: [{ when: /\b(audiobook|narrat|chapter|long[- ]form|podcast)/i, say: "Long-form narration is a listed strength; give it full paragraphs, since inputs under 250 characters come out inconsistent." }, { when: /\b(dialogue|conversation|two (people|voices|speakers)|multi-?speaker|interview)/i, say: "It renders multi-speaker dialogue in a single pass, so a two-person scene needs no stitching." }, { when: /\b(whisper|sigh|laugh|sarcas|emotion|angry|excited|character|acting)/i, say: "v3 reads inline tags like [whispers], [sighs] and [sarcastic], so the acting is written into the line." }, { when: /\b(languages?|spanish|french|german|hindi|arabic|multilingual|translat)/i, say: "It speaks seventy-plus languages, so one script can be voiced for several audiences." }, { when: /\b(pronounc|brand name|ipa)/i, say: "On v3, inline IPA between forward slashes fixes how a brand name or unusual word is pronounced." }, { when: /\b(pauses?|emphasis|stress|slow down|hesitat)/i, say: "Ellipses add hesitation, dashes add short pauses and CAPITALS add stress, giving direct control over pacing." }] },
+  "el-tts": { default: "Its v3 model reads inline audio tags like [whispers] and [sighs], so delivery is directed inside the script itself.", facts: [{ when: /\b(clon\w*|in (?:his|her|my|their|our|\w+'?s) (?:own )?voice|voicemails?|recordings? of (?:him|her|me|them)|copy of (?:my|his|her) (?:own )?voice)/i, say: "Instant Voice Cloning builds a voice from a minute or two of clean recordings (Professional Voice Cloning wants 30 minutes or more). Only clone a voice with that person's permission." }, { when: /\b(audiobook|narrat|chapter|long[- ]form|podcast)/i, say: "Long-form narration is a listed strength; give it full paragraphs, since inputs under 250 characters come out inconsistent." }, { when: /\b(dialogue|conversation|two (people|voices|speakers)|multi-?speaker|interview)/i, say: "It renders multi-speaker dialogue in a single pass, so a two-person scene needs no stitching." }, { when: /\b(whisper|sigh|laugh|sarcas|emotion|angry|excited|character|acting)/i, say: "v3 reads inline tags like [whispers], [sighs] and [sarcastic], so the acting is written into the line." }, { when: /\b(languages?|spanish|french|german|hindi|arabic|multilingual|translat)/i, say: "It speaks seventy-plus languages, so one script can be voiced for several audiences." }, { when: /\b(pronounc|brand name|ipa)/i, say: "On v3, inline IPA between forward slashes fixes how a brand name or unusual word is pronounced." }, { when: /\b(pauses?|emphasis|stress|slow down|hesitat)/i, say: "Ellipses add hesitation, dashes add short pauses and CAPITALS add stress, giving direct control over pacing." }] },
   "el-voicedesign": { default: "It invents an original voice from a written description, so the narrator does not sound like a stock voice.", facts: [{ when: /\b(reverb|echo|room|hall|cave|phone effect|radio effect)/i, say: "It models the voice, not the room, so add reverb or phone effects in the mix afterwards." }, { when: /\b(brand voice|mascot|signature voice|unique voice|original voice|our voice)/i, say: "It designs a brand voice from a description, so it does not sound like a stock voice anyone can pick." }, { when: /\b(character|villain|hero|wizard|robot|creature|game|npc)/i, say: "Original characters are a listed strength; give a persona in two to five words plus two or three emotion adjectives." }, { when: /\b(accent|dialect|british|american|australian|irish|scottish|southern|locale)/i, say: "Naming the native language and exact dialect first, not just 'accent', is the documented first step." }, { when: /\b(broadcast|studio|professional|high quality)/i, say: "Naming a rung of its quality ladder, like Studio or Broadcast, genuinely changes the output." }] },
   "el-dubbing": { default: "It dubs finished video into ninety-plus languages while keeping the original voices and the background sound.", facts: [{ when: /\b((several|multiple|many|two|three) (people|speakers|voices)|interview|panel|podcast|overlap)/i, say: "It handles up to 32 speakers and overlapping speech, so interviews and panels dub correctly." }, { when: /\b(background|music bed|ambien|keep the music|sound effects)/i, say: "It keeps the background bed, so music and effects stay intact without remixing the video." }, { when: /\b(performance|emotion|tone|acting|same voice|sound like)/i, say: "Raise speaker similarity (0 to 10, default 7) when the original performance is the point." }, { when: /\b(translat|dub|another language|spanish|french|german|portuguese|japanese|hindi|locali[sz])/i, say: "It dubs into ninety-plus languages and keeps the original voices, so speakers still sound like themselves." }, { when: /\b(feature|film|movie|hours?|course|long video)/i, say: "The API takes files up to 3GB, and the app handles up to 180 minutes." }] },
   "cartesia": { default: "It starts speaking in under 90ms, built for realtime voice agents that must answer without a pause.", facts: [{ when: /\b(order numbers?|phone numbers?|numbers|codes?|alphanumeric|serial|tracking|digits)/i, say: "Alphanumerics like order and phone numbers are a listed strength, so they are read out correctly." }, { when: /\b(brand names?|pronounc|ipa)/i, say: "Custom pronunciation dictionaries with IPA overrides reliably fix how brand names are said." }, { when: /\b(clone|my (own )?voice|copy (a|my) voice)/i, say: "It clones a voice from about 10 seconds of audio." }, { when: /\b(bilingual|switch(ing)? languages|code[- ]?switch|spanglish|mixed languages?)/i, say: "It handles code-switching, so sentences that mix two languages are read without breaking voice." }, { when: /\b(agent|assistant|bot|realtime|real[- ]time|live|calls?|phone|telephon|ivr|customer service)/i, say: "First audio arrives in under 90ms, so a phone or voice agent answers without an awkward gap." }, { when: /\b(consistent|same every time|predictable|speed|volume)/i, say: "Emotion, speed and volume are API parameters rather than prompt text, so delivery is repeatable." }] },
@@ -38109,7 +38109,7 @@ function glParseChat(text) {
       }
       const body = w2[2].trim();
       if (!body || /^<media omitted>$|^\u200e?(image|video|audio|sticker) omitted$/i.test(body)) continue;
-      out.push({ role: "user", text: body });
+      out.push({ role: "user", text: body, who: w2[1].trim() });
     }
     if (out.length) return out;
   }
@@ -38272,7 +38272,7 @@ function chatContext(input2) {
   if (lastAi) sum.open.push(...sents(lastAi.text).filter((x) => /\?$/.test(x)));
   if (lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter((x) => /\?$/.test(x)));
   const out = tidy(sum);
-  return { shape, turns: turns.map((t) => ({ role: t.role || "user", text: t.text })), summary: out, context: ctx(out) };
+  return { shape, turns: turns.map((t) => ({ role: t.role || "user", text: t.text, ...t.who ? { who: t.who } : {} })), summary: out, context: ctx(out) };
 }
 function glTurns(input2) {
   if (Array.isArray(input2)) return input2.filter((t) => t && typeof t.text === "string");
@@ -41554,6 +41554,7 @@ var COMPOSE = {
       if (i === 0 && finishClause(b)) parts.push(finishClause(b));
       if (i === 0 && has(b.mood)) parts.push(join(b.mood) + " mood");
       if (i === 0 && has(b.pacing)) parts.push(b.pacing + " pace");
+      if (i === 0 && has(b.motion)) parts.push(join(b.motion));
       if (n > 1 || has(b.duration)) parts.push(per + " seconds");
       S.push([n === 1 ? "Shot" : "Shot " + (i + 1), parts.map((x) => cap(String(x))).join(". ") + "."]);
     }
@@ -41816,7 +41817,9 @@ function videoSections(b, m2) {
     (v2) => lc(stripDot(v2)).toLowerCase().replace(/^(a|an|the)\s+/, "")
   );
   S.push(["Subject", cap(withSetting(stripDot(b.subject) || "the subject", b.setting)) + "."]);
-  const act = [has(b.action) ? cap(stripDot(b.action)) + "." : "", has(b.motion) ? cap(join(b.motion)) + " throughout." : ""].filter(has).join(" ");
+  const said2 = [b.subject, b.action].filter(has).map((v2) => join(v2)).join(" ").toLowerCase().replace(/[- ]/g, "");
+  const mot = arr(b.motion).filter((x) => !said2.includes(String(x).toLowerCase().replace(/[- ]/g, "").replace(/120fps$/, "")));
+  const act = [has(b.action) ? cap(stripDot(b.action)) + "." : "", mot.length ? cap(join(mot)) + " throughout." : ""].filter(has).join(" ");
   if (act) S.push(["Action", act]);
   const liLook = lookOf(LIGHT_LOOK, b.light), moodLook = lookOf(MOOD_LOOK, b.mood);
   const amb = [lightClause(b) + (lightClause(b) && liLook ? ": " + liLook : ""), finishClause(b), has(b.mood) ? join(b.mood) + " mood" + (moodLook ? ", " + moodLook : "") : "", has(b.pacing) ? b.pacing + " pace" : ""].filter(has);
@@ -42539,6 +42542,12 @@ function rebuildBriefParts(text, m2) {
     const lim = (t.match(/\b(?:not (?:too|very|overly) [a-z-]+|nothing (?:too )?[a-z-]+|keep it (?:short|simple|clean|kind|polite|light|friendly|under \d+ \w+)|don'?t make it [a-z-]+|no (?:jargon|swearing|gore|spoilers|emojis|hashtags|clich[eé]s|fluff|preamble)|without (?:jargon|swearing|spoilers|emojis|hashtags))\b/gi) || []).filter((x) => !placed.includes(x.toLowerCase()));
     if (lim.length) b.rules = lim.map((x) => cap(x)).join(". ");
   }
+  if (typeof b.extra === "string" && (has(b.lens) || has(b.light))) {
+    const done = [b.lens, ...arr(b.light)].filter(has).map((v2) => String(v2).toLowerCase());
+    const kept = String(b.extra).split(/,\s*/).filter((c) => !done.some((d2) => c.trim().toLowerCase().replace(/^(?:shot on|on|with|using)\s+(?:a\s+)?/, "").replace(/\s+(?:lens|film|camera)$/, "") === d2));
+    if (kept.length) b.extra = kept.join(", ");
+    else delete b.extra;
+  }
   return { brief: b, suggested };
 }
 function dropChat(t) {
@@ -43053,6 +43062,8 @@ var MSIGNALS = (
     [/\b(my|our|this|a) (own )?(\w+ )?(drawing|painting|sketch|illustration|artwork|photo|picture)\b.*\b(loop\w*|lock ?screen|wallpaper)\b/, { mjvideo: 12 }],
     [/\b(our|my|existing|real|rough|raw|phone) (\w+ )?(footage|clips|recordings?|videos)\b|\bfrom (?:our|my) (?:\w+ ){0,2}footage\b|\b(edit|polish|clean up|cut down|trim) (?:our|my|the) (?:\w+ )?(footage|video|clips)\b/, { runway: 14 }],
     [/\b(hebrew|arabic|persian|farsi|urdu|yiddish|right-to-left|rtl)\b/, { seedream: 20 }],
+    // v1 bug hunt: "old voicemails ... bedtime stories in his voice" went to Hume; copying a real voice from recordings is cloning
+    [/\bclon\w*\b[^.]{0,30}\bvoice|\bvoice\b[^.]{0,20}\bclon\w*|\bin (?:his|her|my|their|our|grandpa'?s|grandma'?s|mom'?s|dad'?s) (?:own )?voice\b|\b(?:voicemails?|recordings?|voice notes?) of (?:him|her|me|them)\b|\b(?:copy|copies|sound(?:s)? like) (?:of )?(?:my|his|her) (?:own )?voice\b/, { "el-tts": 16, cartesia: 4, hume: -8, "el-voicedesign": -10 }],
     // v1 step 14: learning to code wants a patient explainer, not the cheapest coder
     [/\b(learn\w*|understand\w*|student|homework|tutor|teach me|beginner|first year)\b/, { claude: 8, gpt: 6, deepseek: -6 }],
     // v1 step 14: "I only have blurry phone pics" of the product: an editor that remakes their own photo, not a text-to-image start
@@ -43165,6 +43176,10 @@ function matchModels(query, priorities, kind) {
   if (/\b(learn\w*|understand\w*|student|homework|tutor|teach me|explain\w*|beginner|first year)\b/.test(q) && /\b(code|coding|program\w*|recursion|function|java|python|javascript|algorithm)\b/.test(q) && !/\b(my|our|the) (repo|codebase|project)\b/.test(q)) catScore.text = (catScore.text || 0) + 4;
   if (/\b(landing page|website|web ?site|site)\b/.test(q) && /\b(online|live|launch|publish|sign-?ups?|signup|email list)\b/.test(q)) catScore.app = (catScore.app || 0) + 2;
   if (/\b(with|cite|cited|real|reliable) sources\b|\bhow big (?:is )?the market\b|\bmarket size\b|\bmain players\b|\bcompetitors\b/.test(q)) catScore.research = (catScore.research || 0) + 3;
+  if (/\bclon\w*\b[^.]{0,30}\bvoice|\bvoice\b[^.]{0,20}\bclon\w*|\b(?:talks?|speaks?|reads?|says?|sings?) (?:\w+ ){0,3}in (?:his|her|my|their|our|\w+'?s) (?:own )?voice\b|\b(?:voicemails?|voice notes?|recordings?) of (?:him|her|me|them)\b/.test(q)) {
+    catScore.voice = (catScore.voice || 0) + 4;
+    catScore.app = Math.max(0, (catScore.app || 0) - 2);
+  }
   if (/\b(tiktoks?|reels?|youtube shorts|shorts|vertical (?:video|clip)s?)\b/.test(q) && !/\b(caption|script|bio|hashtags?|post text|description|hook lines?|title)s?\b/.test(q)) catScore.video = (catScore.video || 0) + 3;
   if (/\b(voice-?overs?|narrat(?:or|ors|ion|e|ed|es|ing)|read (?:it |this |them )?(?:out )?(?:loud|aloud)|text to speech|tts|spoken|speaks? back|talk(?:s|ing)? back|out loud)\b/.test(q) && !/\b(song|music|singing|lyrics|jingle)\b/.test(q)) {
     catScore.voice = (catScore.voice || 0) + 3;

@@ -3227,6 +3227,7 @@ shotlist(b, m){
     if(i===0 && finishClause(b)) parts.push(finishClause(b));
     if(i===0 && has(b.mood)) parts.push(join(b.mood) + " mood");
     if(i===0 && has(b.pacing)) parts.push(b.pacing + " pace");
+    if(i===0 && has(b.motion)) parts.push(join(b.motion)); // v1 bug hunt: "slow motion" was dropped by every shot-list AI (Kling, Seedance...)
     if(n > 1 || has(b.duration)) parts.push(per + " seconds"); // v2.6: a single shot's length is in the settings; no invented "10 seconds" in the prompt
     S.push([n === 1 ? "Shot" : "Shot " + (i+1), parts.map(x => cap(String(x))).join(". ") + "."]);
   }
@@ -3521,7 +3522,10 @@ function videoSections(b, m){
   const bare = /** @param {Value} v */ v => lc(stripDot(v)).toLowerCase().replace(/^(a|an|the)\s+/, "");
   S.push(["Subject", cap(withSetting(stripDot(b.subject) || "the subject", b.setting)) + "."]); // 8.5.16: "A tent camp, a tent camp at dusk"
   // 8.14: no filler action ("the subject moves through the frame") when the person gave none
-  const act = [has(b.action) ? cap(stripDot(b.action)) + "." : "", has(b.motion) ? cap(join(b.motion)) + " throughout." : ""].filter(has).join(" ");
+  // v1 bug hunt: "Timelapse of a flower ... Time-lapse throughout" said it twice
+  const said2 = [b.subject, b.action].filter(has).map(v => join(v)).join(" ").toLowerCase().replace(/[- ]/g, "");
+  const mot = arr(b.motion).filter(x => !said2.includes(String(x).toLowerCase().replace(/[- ]/g, "").replace(/120fps$/, "")));
+  const act = [has(b.action) ? cap(stripDot(b.action)) + "." : "", mot.length ? cap(join(mot)) + " throughout." : ""].filter(has).join(" ");
   if(act) S.push(["Action", act]);
   const liLook = lookOf(LIGHT_LOOK, b.light), moodLook = lookOf(MOOD_LOOK, b.mood); // 13.14: what they look like
   const amb=[lightClause(b) + (lightClause(b) && liLook ? ": " + liLook : ""), finishClause(b), has(b.mood)? join(b.mood)+" mood" + (moodLook ? ", " + moodLook : ""):"", has(b.pacing)? b.pacing + " pace" : ""].filter(has);
@@ -4274,6 +4278,12 @@ function rebuildBriefParts(text, m){
       .filter(x => !placed.includes(x.toLowerCase()));
     if(lim.length) b.rules = lim.map(x => cap(x)).join(". ");
   }
+  // v1 bug hunt: "35mm. ... Shot on 35mm." A clause of Anything else? that only repeats the lens or a light already set goes
+  if(typeof b.extra === "string" && (has(b.lens) || has(b.light))){
+    const done = [b.lens, ...arr(b.light)].filter(has).map(v => String(v).toLowerCase());
+    const kept = String(b.extra).split(/,\s*/).filter(c => !done.some(d => c.trim().toLowerCase().replace(/^(?:shot on|on|with|using)\s+(?:a\s+)?/, "").replace(/\s+(?:lens|film|camera)$/, "") === d));
+    if(kept.length) b.extra = kept.join(", "); else delete b.extra;
+  }
   return {brief:b, suggested};
 }
 
@@ -4867,6 +4877,8 @@ const MSIGNALS = /** @type {[RegExp, Record<string, number>][]} */ ([
   [/\b(my|our|this|a) (own )?(\w+ )?(drawing|painting|sketch|illustration|artwork|photo|picture)\b.*\b(loop\w*|lock ?screen|wallpaper)\b/, {mjvideo:12}],
   [/\b(our|my|existing|real|rough|raw|phone) (\w+ )?(footage|clips|recordings?|videos)\b|\bfrom (?:our|my) (?:\w+ ){0,2}footage\b|\b(edit|polish|clean up|cut down|trim) (?:our|my|the) (?:\w+ )?(footage|video|clips)\b/, {runway:14}],
   [/\b(hebrew|arabic|persian|farsi|urdu|yiddish|right-to-left|rtl)\b/, {seedream:20}],
+  // v1 bug hunt: "old voicemails ... bedtime stories in his voice" went to Hume; copying a real voice from recordings is cloning
+  [/\bclon\w*\b[^.]{0,30}\bvoice|\bvoice\b[^.]{0,20}\bclon\w*|\bin (?:his|her|my|their|our|grandpa'?s|grandma'?s|mom'?s|dad'?s) (?:own )?voice\b|\b(?:voicemails?|recordings?|voice notes?) of (?:him|her|me|them)\b|\b(?:copy|copies|sound(?:s)? like) (?:of )?(?:my|his|her) (?:own )?voice\b/, {"el-tts":16, cartesia:4, hume:-8, "el-voicedesign":-10}],
   // v1 step 14: learning to code wants a patient explainer, not the cheapest coder
   [/\b(learn\w*|understand\w*|student|homework|tutor|teach me|beginner|first year)\b/, {claude:8, gpt:6, deepseek:-6}],
   // v1 step 14: "I only have blurry phone pics" of the product: an editor that remakes their own photo, not a text-to-image start
@@ -4966,6 +4978,8 @@ function matchModels(query, priorities, kind){
   if(/\b(learn\w*|understand\w*|student|homework|tutor|teach me|explain\w*|beginner|first year)\b/.test(q) && /\b(code|coding|program\w*|recursion|function|java|python|javascript|algorithm)\b/.test(q) && !/\b(my|our|the) (repo|codebase|project)\b/.test(q)) catScore.text = (catScore.text || 0) + 4;
   if(/\b(landing page|website|web ?site|site)\b/.test(q) && /\b(online|live|launch|publish|sign-?ups?|signup|email list)\b/.test(q)) catScore.app = (catScore.app || 0) + 2;
   if(/\b(with|cite|cited|real|reliable) sources\b|\bhow big (?:is )?the market\b|\bmarket size\b|\bmain players\b|\bcompetitors\b/.test(q)) catScore.research = (catScore.research || 0) + 3;
+  // v1 bug hunt: speaking in someone's own voice, from their recordings, is a voice job ("can we make something that talks in his voice" went to v0)
+  if(/\bclon\w*\b[^.]{0,30}\bvoice|\bvoice\b[^.]{0,20}\bclon\w*|\b(?:talks?|speaks?|reads?|says?|sings?) (?:\w+ ){0,3}in (?:his|her|my|their|our|\w+'?s) (?:own )?voice\b|\b(?:voicemails?|voice notes?|recordings?) of (?:him|her|me|them)\b/.test(q)){ catScore.voice = (catScore.voice || 0) + 4; catScore.app = Math.max(0, (catScore.app || 0) - 2); }
   // v1 step 14: "a vertical tiktok of my dog surfing" went to a chat AI; a TikTok, Reel or Short is a video unless it is the words
   if(/\b(tiktoks?|reels?|youtube shorts|shorts|vertical (?:video|clip)s?)\b/.test(q) && !/\b(caption|script|bio|hashtags?|post text|description|hook lines?|title)s?\b/.test(q)) catScore.video = (catScore.video || 0) + 3;
   // 11.1: round 4's Matchmaker misses (found on rounds 1-5's match rows, measured on round 4's final)
@@ -6622,7 +6636,7 @@ const AI_FACTS = {
   "wan": {default: "Wan 2.6 has open weights for local use, while 2.7's Thinking Mode plans the composition before generating.", facts: [{when: /\b(local|offline|open[- ]source|self-host|my (own )?(gpu|computer|pc))/i, say: "Wan 2.6 has open weights, so it runs on your own machine; 2.7 is API-only."}, {when: /\b(meaning|symbolic|metaphor|intent|story)/i, say: "2.7's Thinking Mode builds a compositional blueprint first, so stating what the scene means steers it."}, {when: /\b(styli[sz]ed|experimental|abstract|surreal|weird|artsy)/i, say: "Stylised and experimental output is a listed strength, suited to abstract or surreal clips."}, {when: /\b(languages?|multilingual|chinese|spanish|audio|voice)/i, say: "Multilingual audio is a listed strength, with speech across twelve languages."}]},
   "mjvideo": {default: "It animates a Midjourney still and keeps the Midjourney look in every frame.", facts: [{when: /\b(loop|looping|seamless|gif|repeat|motion graphic)/i, say: "Looping motion graphics are a listed strength, so a short repeating animation keeps Midjourney's styling."}, {when: /\b(nothing moves|more motion|dynamic|energetic|action)/i, say: "Set --motion high; the default --motion low gives near-still results."}, {when: /\b(follow (my|the) prompt|exactly|literal|less styli[sz]ed|raw)/i, say: "--raw turns off the house styling, so the video follows your prompt rather than Midjourney's taste."}, {when: /\b(longer|21 seconds|twenty-one|extend)/i, say: "Extend four times at about four seconds each to reach twenty-one seconds."}, {when: /\b(animate|bring .{0,20}to life|my midjourney|from (my|this) image)/i, say: "Describe only the motion in five to twenty-five words, and let the still carry the look."}]},
   "generic-video": {default: "Describe motion over time rather than a still image; that is the top failure mode on every video model.", facts: [{when: /\b(camera|dolly|orbit|pan|tilt|crane|drone)/i, say: "Use one camera move per shot; stacking dolly, orbit and tilt produces mush on every model."}, {when: /\b(cinematic|film look|movie look)/i, say: "'Cinematic' alone does nothing in 2026; name the shot, lens and light instead."}, {when: /\b(animate|from (my|this|an?) (photo|image|picture|still)|image[- ]to[- ]video)/i, say: "For image-to-video, delete everything that re-describes the still and keep only what changes."}, {when: /\b(sound|audio|dialogue|talk|speak|sfx)/i, say: "Write dialogue in quotes, then SFX, then ambience, and delete that block if your model makes no audio."}, {when: /\b(without|avoid|exclude|keep out|leave out|don'?t want)/i, say: "Keep exclusions in a separate negative block, and delete it if your model has no negative field."}]},
-  "el-tts": {default: "Its v3 model reads inline audio tags like [whispers] and [sighs], so delivery is directed inside the script itself.", facts: [{when: /\b(audiobook|narrat|chapter|long[- ]form|podcast)/i, say: "Long-form narration is a listed strength; give it full paragraphs, since inputs under 250 characters come out inconsistent."}, {when: /\b(dialogue|conversation|two (people|voices|speakers)|multi-?speaker|interview)/i, say: "It renders multi-speaker dialogue in a single pass, so a two-person scene needs no stitching."}, {when: /\b(whisper|sigh|laugh|sarcas|emotion|angry|excited|character|acting)/i, say: "v3 reads inline tags like [whispers], [sighs] and [sarcastic], so the acting is written into the line."}, {when: /\b(languages?|spanish|french|german|hindi|arabic|multilingual|translat)/i, say: "It speaks seventy-plus languages, so one script can be voiced for several audiences."}, {when: /\b(pronounc|brand name|ipa)/i, say: "On v3, inline IPA between forward slashes fixes how a brand name or unusual word is pronounced."}, {when: /\b(pauses?|emphasis|stress|slow down|hesitat)/i, say: "Ellipses add hesitation, dashes add short pauses and CAPITALS add stress, giving direct control over pacing."}]},
+  "el-tts": {default: "Its v3 model reads inline audio tags like [whispers] and [sighs], so delivery is directed inside the script itself.", facts: [{when: /\b(clon\w*|in (?:his|her|my|their|our|\w+'?s) (?:own )?voice|voicemails?|recordings? of (?:him|her|me|them)|copy of (?:my|his|her) (?:own )?voice)/i, say: "Instant Voice Cloning builds a voice from a minute or two of clean recordings (Professional Voice Cloning wants 30 minutes or more). Only clone a voice with that person's permission."}, {when: /\b(audiobook|narrat|chapter|long[- ]form|podcast)/i, say: "Long-form narration is a listed strength; give it full paragraphs, since inputs under 250 characters come out inconsistent."}, {when: /\b(dialogue|conversation|two (people|voices|speakers)|multi-?speaker|interview)/i, say: "It renders multi-speaker dialogue in a single pass, so a two-person scene needs no stitching."}, {when: /\b(whisper|sigh|laugh|sarcas|emotion|angry|excited|character|acting)/i, say: "v3 reads inline tags like [whispers], [sighs] and [sarcastic], so the acting is written into the line."}, {when: /\b(languages?|spanish|french|german|hindi|arabic|multilingual|translat)/i, say: "It speaks seventy-plus languages, so one script can be voiced for several audiences."}, {when: /\b(pronounc|brand name|ipa)/i, say: "On v3, inline IPA between forward slashes fixes how a brand name or unusual word is pronounced."}, {when: /\b(pauses?|emphasis|stress|slow down|hesitat)/i, say: "Ellipses add hesitation, dashes add short pauses and CAPITALS add stress, giving direct control over pacing."}]},
   "el-voicedesign": {default: "It invents an original voice from a written description, so the narrator does not sound like a stock voice.", facts: [{when: /\b(reverb|echo|room|hall|cave|phone effect|radio effect)/i, say: "It models the voice, not the room, so add reverb or phone effects in the mix afterwards."}, {when: /\b(brand voice|mascot|signature voice|unique voice|original voice|our voice)/i, say: "It designs a brand voice from a description, so it does not sound like a stock voice anyone can pick."}, {when: /\b(character|villain|hero|wizard|robot|creature|game|npc)/i, say: "Original characters are a listed strength; give a persona in two to five words plus two or three emotion adjectives."}, {when: /\b(accent|dialect|british|american|australian|irish|scottish|southern|locale)/i, say: "Naming the native language and exact dialect first, not just 'accent', is the documented first step."}, {when: /\b(broadcast|studio|professional|high quality)/i, say: "Naming a rung of its quality ladder, like Studio or Broadcast, genuinely changes the output."}]},
   "el-dubbing": {default: "It dubs finished video into ninety-plus languages while keeping the original voices and the background sound.", facts: [{when: /\b((several|multiple|many|two|three) (people|speakers|voices)|interview|panel|podcast|overlap)/i, say: "It handles up to 32 speakers and overlapping speech, so interviews and panels dub correctly."}, {when: /\b(background|music bed|ambien|keep the music|sound effects)/i, say: "It keeps the background bed, so music and effects stay intact without remixing the video."}, {when: /\b(performance|emotion|tone|acting|same voice|sound like)/i, say: "Raise speaker similarity (0 to 10, default 7) when the original performance is the point."}, {when: /\b(translat|dub|another language|spanish|french|german|portuguese|japanese|hindi|locali[sz])/i, say: "It dubs into ninety-plus languages and keeps the original voices, so speakers still sound like themselves."}, {when: /\b(feature|film|movie|hours?|course|long video)/i, say: "The API takes files up to 3GB, and the app handles up to 180 minutes."}]},
   "cartesia": {default: "It starts speaking in under 90ms, built for realtime voice agents that must answer without a pause.", facts: [{when: /\b(order numbers?|phone numbers?|numbers|codes?|alphanumeric|serial|tracking|digits)/i, say: "Alphanumerics like order and phone numbers are a listed strength, so they are read out correctly."}, {when: /\b(brand names?|pronounc|ipa)/i, say: "Custom pronunciation dictionaries with IPA overrides reliably fix how brand names are said."}, {when: /\b(clone|my (own )?voice|copy (a|my) voice)/i, say: "It clones a voice from about 10 seconds of audio."}, {when: /\b(bilingual|switch(ing)? languages|code[- ]?switch|spanglish|mixed languages?)/i, say: "It handles code-switching, so sentences that mix two languages are read without breaking voice."}, {when: /\b(agent|assistant|bot|realtime|real[- ]time|live|calls?|phone|telephon|ivr|customer service)/i, say: "First audio arrives in under 90ms, so a phone or voice agent answers without an awkward gap."}, {when: /\b(consistent|same every time|predictable|speed|volume)/i, say: "Emotion, speed and volume are API parameters rather than prompt text, so delivery is repeatable."}]},
@@ -6673,7 +6687,7 @@ const AI_FACTS = {
 
 /** @typedef {{id: string, label: string, kind: string, count: number, turns: number[], user: number, source_file?: string}} GNode */
 /** @typedef {{nodes: Map<string, GNode>, adj: Map<string, Map<string, number>>}} Graph */
-/** @typedef {{role?: string, text: string, guessed?: boolean}} Turn */
+/** @typedef {{role?: string, text: string, guessed?: boolean, who?: string}} Turn */
 
 // graphify's skip lists (analyze.py): labels that are never a "main topic"
 const GL_NOISE = new Set(["Any","AsyncMock","Callable","ClassVar","Counter","Dict","Enum","False","Final","List","Literal","MagicMock","Mock","NonCallableMagicMock","NonCallableMock","Optional","OrderedDict","Path","PropertyMock","Protocol","Set","True","Tuple","Type","Union","abc","bool","bytearray","bytes","complex","datetime","defaultdict","float","int","io","json","object","os","patch","re","sentinel","str","sys","typing"]);
@@ -6740,7 +6754,7 @@ function glParseChat(text){
       const body = w[2].trim();
       if(!body || /^<media omitted>$|^\u200e?(image|video|audio|sticker) omitted$/i.test(body)) continue;
       // everyone in a WhatsApp chat is a person, and the ask often comes from the other side ("can u make the invite")
-      out.push({role: "user", text: body});
+      out.push({role: "user", text: body, who: w[1].trim()}); // the name is shown in "Who said what"
     }
     if(out.length) return out;
   }
@@ -6883,7 +6897,7 @@ function chatContext(input){
   if(lastAi) sum.open.push(...sents(lastAi.text).filter(x => /\?$/.test(x)));
   if(lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter(x => /\?$/.test(x))); // answered when the AI spoke after it
   const out = tidy(sum);
-  return {shape, turns: turns.map(t => ({role: t.role || "user", text: t.text})), summary: out, context: ctx(out)};
+  return {shape, turns: turns.map(t => ({role: t.role || "user", text: t.text, ...(t.who ? {who: t.who} : {})})), summary: out, context: ctx(out)};
 }
 
 /** Split a chat into turns. Accepts pasted text, or a list of {role, text}. @param {string | Turn[]} input @returns {Turn[]} */
@@ -8178,12 +8192,16 @@ $("#docBtn").addEventListener("click", ()=>{
   const res = forgeFromText(text, m); // 3.6: suggestions shown, not counted
   burst(44,56); glow = 1;
 
+  // v1 bug hunt: when Forge kept your words, its tidy copy (without "make me") could score a point under "Before" (54 -> 53).
+  // Nothing got worse, so it shows the same number and says why
+  const same = res.keptYours && res.score <= d.score;
+  if(same) res.score = d.score;
   const h = heatName(d.score), h2 = heatName(res.score);
   let html = '<div class="heat"><div tabindex="0" data-tip="How your pasted prompt scores, out of 100."><div class="heat-n">' + d.score + '</div><div class="heat-t">Before</div></div>'
     + '<div style="flex:1"><div style="font-family:var(--f-display);font-size:1.25rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;line-height:1">' + esc(h[1]) + ' &nbsp;→&nbsp; <span style="color:var(--ember)">' + esc(h2[1]) + '</span></div>'
     + '<div style="font-size:0.8125rem;color:var(--ink-dim);margin:3px 0 7px">' + d.words + ' words in, ' + String(res.flat).trim().split(/\s+/).length + ' words out</div>'
     + '<div class="heat-bar"><div class="heat-fill" style="width:' + res.score + '%"></div></div></div>'
-    + '<div style="text-align:right" tabindex="0" data-tip="How Forge\'s rewrite scores. Things Forge added on its own are not counted."><div class="heat-n" style="color:var(--ember)">' + res.score + '</div><div class="heat-t">After</div></div></div>';
+    + '<div style="text-align:right" tabindex="0" data-tip="How Forge\'s rewrite scores. Things Forge added on its own are not counted."><div class="heat-n" style="color:var(--ember)">' + res.score + '</div><div class="heat-t">' + (same ? 'Kept yours' : 'After') + '</div></div></div>';
 
   // 9.2: the new prompt comes straight after the score (it was at the bottom, under five panels, and looked missing)
   let after = billet("Diagnosis", partsHTML(d.parts));
@@ -8215,12 +8233,12 @@ $("#ctxBtn").addEventListener("click", ()=>{
   const lastUser = [...turns].reverse().find(t=>t.role!=="assistant");
   let html = '';
   html += billet("What this chat is about",
-    '<p style="margin:0 0 10px;font-size:0.8125rem;color:var(--ink-dim)">' + turns.length + ' messages, ' + you + ' from you'
+    '<p style="margin:0 0 10px;font-size:0.8125rem;color:var(--ink-dim)">' + turns.length + ' messages' + (turns.some(t=>t.who) ? ' from ' + [...new Set(turns.map(t=>t.who).filter(Boolean))].length + ' people' : ', ' + you + ' from you')
       + '. Read as: ' + ({labels:"a chat with labels", export:"an export file", guessed:"a chat with no labels (Forge guessed who said what: check below)", summary:"a summary your AI wrote"})[cc.shape] + '.</p>'
     + '<div class="chips" style="margin-bottom:10px">' + r.main.map((x,i)=>'<span class="chip' + (i<2?" hot":"") + '">' + esc(x.label) + '</span>').join("") + '</div>'
     + (r.topics.length ? '<ul class="notes">' + r.topics.map(t=>'<li><span><b>' + esc(t.name) + '</b>: ' + esc(t.members.slice(1).join(", ")) + '</span></li>').join("") + '</ul>' : ''));
   if(turns.length) html += billet("Who said what",
-    '<ul class="notes">' + turns.slice(-12).map(t=>'<li><span><b style="color:' + (t.role==="assistant" ? 'var(--ink-dim)' : 'var(--ember-text)') + '">' + (t.role==="assistant" ? "AI" : "You") + ':</b> ' + esc(t.text.replace(/\s+/g," ").slice(0,140)) + (t.text.length>140 ? "…" : "") + '</span></li>').join("") + '</ul>'
+    '<ul class="notes">' + turns.slice(-12).map(t=>'<li><span><b style="color:' + (t.role==="assistant" ? 'var(--ink-dim)' : 'var(--ember-text)') + '">' + (t.who ? esc(t.who) : t.role==="assistant" ? "AI" : "You") + ':</b> ' + esc(t.text.replace(/\s+/g," ").slice(0,140)) + (t.text.length>140 ? "…" : "") + '</span></li>').join("") + '</ul>'
     + (turns.length > 12 ? '<p class="fhint" style="margin:6px 0 0">Showing the last 12 of ' + turns.length + '.</p>' : ''));
   const S = cc.summary, part = (id, label, v, rows) => '<div class="fset"><label class="flabel" for="' + id + '">' + label + '</label><textarea class="inp" id="' + id + '" rows="' + rows + '">' + esc(v) + '</textarea></div>';
   html += billet("The summary (edit anything before using it)",

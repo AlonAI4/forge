@@ -2511,6 +2511,7 @@ shotlist(b, m){
     if(i===0 && finishClause(b)) parts.push(finishClause(b));
     if(i===0 && has(b.mood)) parts.push(join(b.mood) + " mood");
     if(i===0 && has(b.pacing)) parts.push(b.pacing + " pace");
+    if(i===0 && has(b.motion)) parts.push(join(b.motion)); // v1 bug hunt: "slow motion" was dropped by every shot-list AI (Kling, Seedance...)
     if(n > 1 || has(b.duration)) parts.push(per + " seconds"); // v2.6: a single shot's length is in the settings; no invented "10 seconds" in the prompt
     S.push([n === 1 ? "Shot" : "Shot " + (i+1), parts.map(x => cap(String(x))).join(". ") + "."]);
   }
@@ -2805,7 +2806,10 @@ function videoSections(b, m){
   const bare = /** @param {Value} v */ v => lc(stripDot(v)).toLowerCase().replace(/^(a|an|the)\s+/, "");
   S.push(["Subject", cap(withSetting(stripDot(b.subject) || "the subject", b.setting)) + "."]); // 8.5.16: "A tent camp, a tent camp at dusk"
   // 8.14: no filler action ("the subject moves through the frame") when the person gave none
-  const act = [has(b.action) ? cap(stripDot(b.action)) + "." : "", has(b.motion) ? cap(join(b.motion)) + " throughout." : ""].filter(has).join(" ");
+  // v1 bug hunt: "Timelapse of a flower ... Time-lapse throughout" said it twice
+  const said2 = [b.subject, b.action].filter(has).map(v => join(v)).join(" ").toLowerCase().replace(/[- ]/g, "");
+  const mot = arr(b.motion).filter(x => !said2.includes(String(x).toLowerCase().replace(/[- ]/g, "").replace(/120fps$/, "")));
+  const act = [has(b.action) ? cap(stripDot(b.action)) + "." : "", mot.length ? cap(join(mot)) + " throughout." : ""].filter(has).join(" ");
   if(act) S.push(["Action", act]);
   const liLook = lookOf(LIGHT_LOOK, b.light), moodLook = lookOf(MOOD_LOOK, b.mood); // 13.14: what they look like
   const amb=[lightClause(b) + (lightClause(b) && liLook ? ": " + liLook : ""), finishClause(b), has(b.mood)? join(b.mood)+" mood" + (moodLook ? ", " + moodLook : ""):"", has(b.pacing)? b.pacing + " pace" : ""].filter(has);
@@ -3558,6 +3562,12 @@ function rebuildBriefParts(text, m){
       .filter(x => !placed.includes(x.toLowerCase()));
     if(lim.length) b.rules = lim.map(x => cap(x)).join(". ");
   }
+  // v1 bug hunt: "35mm. ... Shot on 35mm." A clause of Anything else? that only repeats the lens or a light already set goes
+  if(typeof b.extra === "string" && (has(b.lens) || has(b.light))){
+    const done = [b.lens, ...arr(b.light)].filter(has).map(v => String(v).toLowerCase());
+    const kept = String(b.extra).split(/,\s*/).filter(c => !done.some(d => c.trim().toLowerCase().replace(/^(?:shot on|on|with|using)\s+(?:a\s+)?/, "").replace(/\s+(?:lens|film|camera)$/, "") === d));
+    if(kept.length) b.extra = kept.join(", "); else delete b.extra;
+  }
   return {brief:b, suggested};
 }
 
@@ -4151,6 +4161,8 @@ const MSIGNALS = /** @type {[RegExp, Record<string, number>][]} */ ([
   [/\b(my|our|this|a) (own )?(\w+ )?(drawing|painting|sketch|illustration|artwork|photo|picture)\b.*\b(loop\w*|lock ?screen|wallpaper)\b/, {mjvideo:12}],
   [/\b(our|my|existing|real|rough|raw|phone) (\w+ )?(footage|clips|recordings?|videos)\b|\bfrom (?:our|my) (?:\w+ ){0,2}footage\b|\b(edit|polish|clean up|cut down|trim) (?:our|my|the) (?:\w+ )?(footage|video|clips)\b/, {runway:14}],
   [/\b(hebrew|arabic|persian|farsi|urdu|yiddish|right-to-left|rtl)\b/, {seedream:20}],
+  // v1 bug hunt: "old voicemails ... bedtime stories in his voice" went to Hume; copying a real voice from recordings is cloning
+  [/\bclon\w*\b[^.]{0,30}\bvoice|\bvoice\b[^.]{0,20}\bclon\w*|\bin (?:his|her|my|their|our|grandpa'?s|grandma'?s|mom'?s|dad'?s) (?:own )?voice\b|\b(?:voicemails?|recordings?|voice notes?) of (?:him|her|me|them)\b|\b(?:copy|copies|sound(?:s)? like) (?:of )?(?:my|his|her) (?:own )?voice\b/, {"el-tts":16, cartesia:4, hume:-8, "el-voicedesign":-10}],
   // v1 step 14: learning to code wants a patient explainer, not the cheapest coder
   [/\b(learn\w*|understand\w*|student|homework|tutor|teach me|beginner|first year)\b/, {claude:8, gpt:6, deepseek:-6}],
   // v1 step 14: "I only have blurry phone pics" of the product: an editor that remakes their own photo, not a text-to-image start
@@ -4250,6 +4262,8 @@ function matchModels(query, priorities, kind){
   if(/\b(learn\w*|understand\w*|student|homework|tutor|teach me|explain\w*|beginner|first year)\b/.test(q) && /\b(code|coding|program\w*|recursion|function|java|python|javascript|algorithm)\b/.test(q) && !/\b(my|our|the) (repo|codebase|project)\b/.test(q)) catScore.text = (catScore.text || 0) + 4;
   if(/\b(landing page|website|web ?site|site)\b/.test(q) && /\b(online|live|launch|publish|sign-?ups?|signup|email list)\b/.test(q)) catScore.app = (catScore.app || 0) + 2;
   if(/\b(with|cite|cited|real|reliable) sources\b|\bhow big (?:is )?the market\b|\bmarket size\b|\bmain players\b|\bcompetitors\b/.test(q)) catScore.research = (catScore.research || 0) + 3;
+  // v1 bug hunt: speaking in someone's own voice, from their recordings, is a voice job ("can we make something that talks in his voice" went to v0)
+  if(/\bclon\w*\b[^.]{0,30}\bvoice|\bvoice\b[^.]{0,20}\bclon\w*|\b(?:talks?|speaks?|reads?|says?|sings?) (?:\w+ ){0,3}in (?:his|her|my|their|our|\w+'?s) (?:own )?voice\b|\b(?:voicemails?|voice notes?|recordings?) of (?:him|her|me|them)\b/.test(q)){ catScore.voice = (catScore.voice || 0) + 4; catScore.app = Math.max(0, (catScore.app || 0) - 2); }
   // v1 step 14: "a vertical tiktok of my dog surfing" went to a chat AI; a TikTok, Reel or Short is a video unless it is the words
   if(/\b(tiktoks?|reels?|youtube shorts|shorts|vertical (?:video|clip)s?)\b/.test(q) && !/\b(caption|script|bio|hashtags?|post text|description|hook lines?|title)s?\b/.test(q)) catScore.video = (catScore.video || 0) + 3;
   // 11.1: round 4's Matchmaker misses (found on rounds 1-5's match rows, measured on round 4's final)
