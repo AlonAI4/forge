@@ -41453,6 +41453,62 @@ function imageSections(b, m2) {
   if (has(b.purpose)) S.push(["Intended use", useLine(b.purpose, b)]);
   return S;
 }
+function chatNeeds(all, b) {
+  const t = String(all || "").replace(/(?:^|\n)\s*(?:AI|Assistant|ChatGPT|Claude|Gemini)\s*:[^\n]*(?=\n|$)/gi, "\n").replace(/\b(?:You|User|Me|Human)\s*:\s*/g, "").replace(/\s+/g, " ").trim(), lo = t.toLowerCase();
+  const out = [];
+  if (!t) return out;
+  const age = lo.match(/\b(?:like (?:i'?m|im|i am) |for (?:my |a |an |our )?(?:\w+ )?|to (?:my |a |an )?(?:\w+ )?)(\d{1,2})[- ]?(?:year[- ]?olds?|yr olds?|yo)\b|\b(\d{1,2})[- ]year[- ]old\b|\blike (?:i'?m|im|i am|you'?re talking to a) (\d{1,2})\b/);
+  const grade = lo.match(/\b(\d{1,2})(?:st|nd|rd|th) grad(?:e|ers?)\b|\bgrade (\d{1,2})\b|\byear (\d{1,2}) (?:students|pupils|class)\b/);
+  const n = age ? Number(age[1] || age[2] || age[3]) : grade ? Number(grade[1] || grade[2] || grade[3]) + 5 : 0;
+  const teach = /\b(explain|teach|what is|what are|how (?:does|do|to)|help me understand|lesson|quiz|study)\b/.test(lo);
+  if (n && n < 18) out.push("Write for a " + n + "-year-old: " + (n <= 8 ? "very short sentences and everyday words" : n <= 13 ? "short sentences and everyday words" : "plain words, with any jargon defined once") + (teach ? n <= 13 ? "; explain any new word the first time and use one concrete example from their life." : "; use one concrete example." : "."));
+  else if (/\b(complete beginner|total beginner|beginner|never (?:coded|done|used|played|cooked)|no experience with|new to|someone who has never|for dummies|non-?technical|layman)\b/.test(lo) && !/\bno (?:job|work) experience\b/.test(lo)) out.push("Assume no background: no jargon, or explain each term in one line, and build from what they already know.");
+  const need = [];
+  for (const x of t.matchAll(/\b(max(?:imum)? |at most |no more than |up to |exactly |about |around |under |over |at least )?(?<!\b(?:i'?m|im|am|age|aged|like) )(\d{1,3}) (?:(?!(?:day|week|month|minute|min|hour|year|with|and|or|an?|the|of|to|for|in|on|at|from|by)s?\b)[a-z-]+ ){0,2}(captions?|ideas?|(?:quiz )?questions?|bullet points?|bullets?|tips?|examples?|versions?|scripts?|exercises?|names?|options?|titles?|hooks?|slides?|steps?|ways?|reasons?|things|points?|paragraphs?|sentences?|lines?|days?|weeks?|meals?|lunches|recipes?|activities|songs?|hashtags?(?: each)?|words?|minutes?|mins?|hours?|pages?|levels?|panels?)\b/gi)) {
+    const q = (x[1] || "").trim().toLowerCase(), num = x[2], what = x[3].toLowerCase();
+    const said = x[0].slice((x[1] || "").length).trim();
+    const next = t.slice((x.index || 0) + x[0].length).match(/^\s+([a-z-]+)/i);
+    if (next && /^(thesis|draft|document|doc|essay|report|book|paper|pdf|manuscript|transcript|article|file|contract|chapter|script|lecture|video|podcast|recording)$/i.test(next[1])) continue;
+    const limit = next && /^(limit|max|maximum|cap)$/i.test(next[1]);
+    if (/^(words?|pages?|minutes?|mins?|sentences?|lines?|paragraphs?|slides?)$/.test(what) && (limit || !/s$/.test(what))) {
+      need.push((limit ? "at most " : "about ") + num + " " + what.replace(/s?$/, Number(num) === 1 ? "" : "s"));
+      continue;
+    }
+    if (/^(days?|weeks?|minutes?|mins?|hours?)$/.test(what) && !q) continue;
+    need.push((q === "max" || q === "maximum" || q === "at most" || q === "no more than" || q === "up to" ? "at most " : q === "under" ? "under " : q === "about" || q === "around" ? "about " : q === "at least" || q === "over" ? "at least " : "exactly ") + said);
+  }
+  for (const x of t.matchAll(/(?:under|below|less than|max(?:imum)?|within|no more than|budget(?: of)?) (?:[$€£]\d[\d,]*(?:\.\d+)?|\d[\d,]*(?:\.\d+)? ?(?:dollars|euros?|pounds|usd|eur|gbp|bucks))(?: ?(?:total|a month|per month|a week|per week|each|per person))?/gi)) need.push(x[0].trim());
+  if (/\bone page\b/i.test(t)) need.push("fits on one page");
+  const spoken = lo.match(/\b(\d{1,2})[- ]?(?:minute|min)s? (?:speech|toast|talk|presentation|pitch|read)\b|\b(?:speech|toast|talk|pitch)[^.]{0,30}\b(\d{1,3}) ?(seconds|secs|minutes|mins)\b/);
+  if (spoken) {
+    const secs2 = spoken[1] ? Number(spoken[1]) * 60 : /sec/.test(spoken[3] || "") ? Number(spoken[2]) : Number(spoken[2]) * 60;
+    need.push("about " + Math.round(secs2 * 2.3 / 10) * 10 + " words, which is " + (secs2 >= 60 ? Math.round(secs2 / 60) + " minute" + (secs2 >= 120 ? "s" : "") : secs2 + " seconds") + " read aloud");
+  }
+  if (/\b(as|in) a table\b|\btable format\b/.test(lo) && !/table/i.test(String(b.format || ""))) need.push("laid out as a table");
+  const span = lo.match(/\b(\d{1,2})[- ](day|week|month)s?\b[^.]{0,30}\b(plan|schedule|routine|itinerary|program|programme|challenge)\b|\b(plan|schedule|routine|itinerary|program|programme)\b[^.]{0,30}\b(\d{1,2})[- ](day|week|month)s?\b/);
+  if (span) {
+    const unit = span[2] || span[6];
+    const per = lo.match(/\b(\d{1,3}) ?(?:min|mins|minutes|hours?|hrs?)\b(?: (?:a|per|each) (?:day|session|night)| each| a day)?|\$\d[\d,]*/);
+    need.push("laid out " + unit + " by " + unit + (per ? ", each day's part fitting in " + per[0].trim().replace(/ (?:a|per|each) day$/, "") + (/\$/.test(per[0]) ? "" : " a day") : ""));
+  }
+  const uniq = [...new Set(need)];
+  if (uniq.length) out.push("Stick to these exactly: " + uniq.join("; ") + ".");
+  const lim = [];
+  for (const x of t.matchAll(/\b(?:no(?= [a-z])|not too|nothing (?:that|too)|don'?t (?:use|mention|include|rewrite|add|make it)|do not (?:use|mention|include|rewrite|add)|avoid)\b[^,.;!?]{2,40}/gi)) {
+    if (/^no\b/i.test(x[0]) && x[0].split(/\s+/).length > 5) continue;
+    const before = t.slice(Math.max(0, (x.index || 0) - 14), x.index).toLowerCase();
+    if (/\b(i have|i've got|we have|there'?s|there is|with|had|has|i got)\s*$/.test(before) || /^no (?:experience|idea|clue|time|money|budget for ads?)\b/i.test(x[0]) && /\bi\b/.test(before)) continue;
+    if (/^no (?:prior|job|work) experience/i.test(x[0])) continue;
+    lim.push(x[0].trim().replace(/\s+(?:and|but|so)$/i, ""));
+  }
+  const rules = String(b.rules || "").toLowerCase();
+  const newLim = [...new Set(lim)].filter((l) => !rules.includes(l.toLowerCase()));
+  if (newLim.length) out.push("Respect what I ruled out: " + newLim.join("; ") + ".");
+  if (/\b(email|e-mail|letter|cover letter|speech|toast|message|bio|invite|invitation|announcement|caption|(?:product |listing |job )?description|(?:birthday|greeting|thank[- ]you|wedding|sympathy) card|thank[- ]you|apology|cv|resume|résumé)\b/.test(lo) && /\b(write|draft|make|give me|help me (?:write|draft|word)|need|want)\b/.test(lo))
+    out.push("Where you need a detail I did not give (a name, a date, a number), leave a [bracketed blank] instead of inventing it.");
+  if (/\b(review|check|feedback on|what'?s weak|whats weak|critique|improve|proofread)\b/.test(lo) && /\b(my|this|our)\b/.test(lo) && /\b(don'?t|do not|without) (?:rewrite|rewriting|re-?write)/.test(lo)) out.push("Point to the exact sentences and say how to fix each; do not rewrite the whole thing.");
+  return out;
+}
 var COMPOSE = {
   prose(b, m2) {
     const S = m2.cat === "video" ? videoSections(b, m2) : imageSections(b, m2);
@@ -41709,6 +41765,8 @@ var COMPOSE = {
     const mat = present || /\b(chapter|textbook|book|unit|lesson)\b/i.test(String(mat0 || "")) ? "" : mat0;
     if (has(b.pasted)) S.push([xml ? "<material>" : "## Material", String(b.pasted)]);
     else if (mat && !(has(b.context) && String(b.context).length > 280)) S.push([xml ? "<material>" : "## Material", "[Paste " + mat + " here]"]);
+    const needs = chatNeeds([b.goal, b.context, b.extra, b.length].filter(has).map((v2) => join(v2)).join(". "), b);
+    if (needs.length) S.push([xml ? "<requirements>" : "## Requirements", needs.map((x) => "- " + x).join("\n")]);
     const out = [];
     if (has(b.format)) out.push("Format: " + b.format + ".");
     if (has(b.length)) out.push("Length: " + stripDot(b.length) + ".");
@@ -41722,6 +41780,7 @@ var COMPOSE = {
         has(b.examples) ? "<example>\n" + stripDot(b.examples) + "\n</example>" : "",
         has(b.pasted) ? "<material>\n" + String(b.pasted) + "\n</material>" : mat && !(has(b.context) && String(b.context).length > 280) ? "<material>\n[Paste " + mat + " here]\n</material>" : "",
         "<instructions>\n" + (cap(stripDot(b.goal)) || "State the task here.") + "\n</instructions>",
+        needs.length ? "<requirements>\n" + needs.map((x) => "- " + x).join("\n") + "\n</requirements>" : "",
         "<output_format>\n" + out.join(" ") + "\n</output_format>"
       ].filter(has).join("\n\n");
     } else {
@@ -42664,7 +42723,13 @@ function forgeFromText(text, m2, level, more) {
   const asked = stripAsk(stripBanned(fixed.text).text);
   const own2 = (["image", "video"].includes(m2.cat) ? notMine(deMeta(tidyRequest(asked))).text : ["sfx", "music"].includes(m2.cat) ? String(asked).replace(REQUEST_LEAD, "") : asked).trim();
   const before = scoreText(own2, m2);
-  if (own2 && res.score < before.total) {
+  const lostTheirs = () => {
+    const st = (w2) => w2.replace(/(ing|ed|es|s|ly)$/, "");
+    const theirs = (own2.toLowerCase().match(/[a-z0-9']{4,}/g) || []).filter((w2) => !STOP_WORDS.has(w2)).map(st);
+    const mine2 = new Set((String(res.flat).toLowerCase().match(/[a-z0-9']{4,}/g) || []).map(st));
+    return theirs.length && theirs.filter((w2) => mine2.has(w2)).length / theirs.length < 0.9;
+  };
+  if (own2 && res.score < before.total && (!READS_BACKGROUND.includes(m2.cat) || lostTheirs())) {
     const flags = /\s--[a-z]/i.test(own2) ? "" : (String(res.flat).match(/(\s+--[a-z][\s\S]*)$/i) || [""])[0];
     res.flat = cap(own2) + flags;
     res.blocks = [["Prompt", res.flat]];
