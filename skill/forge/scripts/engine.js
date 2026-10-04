@@ -2759,6 +2759,8 @@ llm(b, m){
   // has the notes after the colon; no "[Paste the notes here]"
   const inline = /\b(?:notes?|text|these|this|list|points|facts|info(?:rmation)?|headings|below)\b[^:]{0,40}:\s*\S+(?:\s+\S+){5,}/i.test(all);
   const mat = present || inline || /\b(chapter|textbook|book|unit|lesson)\b/i.test(String(mat0 || "")) ? "" : mat0;
+  // r25: "Summarize this article. [article]" said the placeholder twice (in the task and as the paste section)
+  if(!has(b.pasted) && mat && has(b.goal)) b = {...b, goal: String(b.goal).replace(/\s*\[(?:the |your |my )?(?:article|text|notes?|essay|email|document|doc|transcript|report|data|paste[^\]]*)\]\s*/gi, " ").trim()};
   if(has(b.pasted)) S.push([xml ? "<material>" : "## Material", String(b.pasted)]); // 13.2: what they already pasted
   else if(mat && !(has(b.context) && String(b.context).length > 280)) S.push([xml ? "<material>" : "## Material", "[Paste " + mat + " here]"]);
   // v1 step 15: what their own words ask for, as plain requirements (see chatNeeds)
@@ -2980,6 +2982,7 @@ const NOT_A_CAMERA = ["flat vector","ink line art","isometric diagram","risograp
  *  judges' reasons in the Best tests ("swelling attack" next to "hard attack", stereo next to mono, a close-up on a wide
  *  header with room for text, a grid layout on a ramen photo). Rules only catch what is listed here. */
 const TIP_CLASHES = /** @type {[RegExp, RegExp][]} */ ([
+  [/\b(plain|neutral|solid|white|coloured|colored) background\b/i, /\btransparent background\b|\bno background\b/i], // r25: a sticker said 'transparent' and the recipe said 'plain neutral background'
   [/\b(hard|sharp|instant|punchy) attack\b/i, /\b(swell\w*|soft|slow|gradual) attack\b|\bfades? in\b/i],
   [/\bstereo\b|\bleft[- ]to[- ]right\b|\bpann(?:ing|ed)\b/i, /\bmono\b/i],
   [/\b(dry|no reverb|bone-dry|close-mic)/i, /\b(reverb\w*|echo\w*|large (?:space|room|hall)|cathedral|long tail|rumbling tail|tail over)\b/i],
@@ -3374,7 +3377,9 @@ function pickAspect(t, m){
     else if(/\b(widescreen|landscape (orientation|format|mode)|youtube (video|thumbnail|banner|intro)|desktop wallpaper|thumbnail|banner|header|16 by 9)\b/i.test(t)) want = 16/9;
     else if(/\b(wide shot|wide-angle|wide angle|panoram\w*|landscape view|establishing shot|vista)\b/i.test(t)) want = 16/9; // v1 bug hunt: a "wide shot" came out square
     else if(/(?:^|[,;]\s*)(?:wide|landscape)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 16/9; // Oct 2026 fake test: "..., pixar style, wide" came out square; a lone "landscape" too
-    else if(/(?:^|[,;]\s*)(?:tall|portrait)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2/3; // a lone "portrait" is the shape, not a portrait of someone
+    else if(/(?:^|[,;]\s*)(?:tall|portrait)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2/3;
+    // r25 (judges): "portrait of a woman" got a wide frame; a portrait or headshot of someone is tall
+    else if(/^\s*(?:an?\s+)?(?:close-?up\s+)?(?:(?:studio|realistic|cinematic|painted|oil)\s+)?(?:portrait|headshot)\s+of\b/i.test(t)) want = 2/3; // a lone "portrait" is the shape, not a portrait of someone
     // v2.6: a clip for social media is vertical unless it is for YouTube (judges: "16:9 for a social clip")
     else if(m.cat === "video" && /\b(social(?: media)?|instagram|insta|ig|tiktok|reels?|stories|phone)\b/i.test(t) && !/\byoutube\b(?!\s+shorts?)/i.test(t)) want = 9/16;
     else if(m.cat === "video" && /\byoutube\b/i.test(t)) want = 16/9;
@@ -3611,6 +3616,17 @@ function rebuildBriefParts(text, m){
       }
     }
     if((m.tech || []).includes("aspect")){ const a = pickAspect(t, m); if(a) b.aspect = a; } // 8.7.17
+    // Sunday r25 (judges): text-on-image fixes. The words to print are not the place or the mood ("KEEP CALM AND CODE ON with
+    // a little robot" gave setting "ON with a little robot" and mood "calm"); the text stops before "with <lowercase>"
+    // ("Science Fair 2026 with planets and rockets"); a menu prints its items and prices, not only its name.
+    if(m.cat === "image" && has(b.imgtext)){
+      let it = String(b.imgtext); const cut = it.match(/^(.*?[A-Z0-9].*?)\s+with\s+(?=[a-z])(.+)$/);
+      if(cut){ it = cut[1].trim(); b.extra = [b.extra, "with " + cut[2].trim()].filter(has).join(", "); }
+      b.imgtext = it;
+      const words = new Set(it.toLowerCase().match(/[a-z]+/g) || []);
+      if(typeof b.setting === "string"){ const sw = String(b.setting).split(/\s+/); if(sw.length && words.has(sw[0].toLowerCase()) && /^[A-Z]+$/.test(sw[0])){ const rest = sw.slice(1).join(" ").trim(); delete b.setting; if(rest) b.extra = [rest, b.extra].filter(has).join(", "); } }
+      if(Array.isArray(b.mood)){ b.mood = b.mood.filter(x => !words.has(String(x).toLowerCase())); if(!b.mood.length) delete b.mood; }
+    }
     // Oct 2026 fake test: "logo for a lemonade stand called Joya Lemonade ... the words must be spelled right" printed no words.
     // A logo, sign, label or poster "called/named" a Capitalised Name prints that name.
     if(!has(b.imgtext) && m.cat === "image" && !/\bno (?:text|words|lettering)\b|\bwithout (?:text|words)\b/i.test(t)){
@@ -3657,6 +3673,17 @@ function rebuildBriefParts(text, m){
       if(typeof b.extra === "string"){ const rest = String(b.extra).split(/\s*,\s*/).filter(x => !(has(b.palette) && x.toLowerCase() === String(b.palette).toLowerCase()) && !(has(b.aspect) && /^(?:wide|tall|portrait|landscape|square|vertical|horizontal)$/i.test(x.trim()))); if(rest.length) b.extra = cap(rest.join(", ")); else delete b.extra; }
     }
     { const av = avoidFrom(t); if(av) b.avoid = av; } // 8.7.16
+    if(m.cat === "image" && /\b(?:menu|price list|price board|specials board)\b/i.test(t)){
+      const items = [...t.replace(new RegExp(DECIMAL, "g"), ".").matchAll(/(?:^|[:,;]\s*)([a-z][a-z' -]{2,30}?)\s+(\$\s?\d+(?:\.\d{2})?|\d+(?:\.\d{2})?\s?(?:€|£|euros?|pounds?|dollars?))/gi)].map(x => x[1].trim() + " " + x[2].trim());
+      if(items.length >= 2){ b.imgtext = [has(b.imgtext) ? String(b.imgtext) : "", ...items].filter(Boolean).join(" · ");
+        for(const k of ["purpose", "extra"]) if(typeof b[k] === "string"){ let v = String(b[k]); for(const x of items) v = v.replace(new RegExp(x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\./g, "[.\\s\\S]?"), "i"), "").replace(new RegExp(x.split(" $")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*\\$\\s*\\S*", "i"), ""); v = v.replace(/:\s*$/, "").replace(/^[\s,.;:]+|[\s,.;:]+$/g, "").replace(/\s*,(\s*,)+/g, ","); if(v && /[a-z]{3}/i.test(v)) b[k] = cap(v); else delete b[k]; } }
+    }
+    // a sticker or icon with "no background" wants a see-through background, not "keep the background out"
+    if(m.cat === "image" && /\bno background\b|\btransparent\b/i.test(t) && /\b(?:sticker|icon|logo|emoji|clip ?art|cut ?out|png)\b/i.test(t)){
+      if(typeof b.avoid === "string" && /^background$/i.test(b.avoid.trim())) delete b.avoid;
+      if(typeof b.extra === "string") b.extra = String(b.extra).replace(/[,.]?\s*no background\b/i, "").replace(/^[\s,.]+/, "");
+      b.extra = [b.extra, "Transparent background"].filter(x => has(x) && !/transparent background/i.test(String(b.extra || "")) || x === "Transparent background").filter(has).join(". ");
+    }
     // v1 bug hunt: the keep-out stays only in the keep-outs ("no text i'll add it after" was also left in Anything else? and came back as a second --no)
     if(has(b.avoid) && typeof b.extra === "string"){
       for(const a of String(b.avoid).split(/,\s*/)) b.extra = String(b.extra).replace(new RegExp("(?:^|,\\s*)(?:no|without|avoid)\\s+(?:any\\s+)?" + a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b[^,.]*", "i"), "").trim();
@@ -3731,10 +3758,10 @@ function rebuildBriefParts(text, m){
     // Oct 2026 (score fell when repeats stopped counting): the boxes the score counts, filled from THEIR words.
     // "keep it short and polite" -> Length and the tone rule; "with answers at the end" -> the output format.
     { const TONE = "polite|friendly|formal|casual|professional|kind|funny|warm|firm|respectful|clear|simple|honest|upbeat|calm";
-      const ki = t.match(new RegExp("\\b(?:keep it|make it)\\s+(short(?: and sweet)?|brief|quick)?(?:\\s*(?:and|,)\\s*)?((?:" + TONE + ")(?:\\s*(?:,|and|but)\\s+(?:not\\s+)?(?:" + TONE + "|rude|cheesy|boring|formal|long))*)?", "i"));
+      const ki = t.match(new RegExp("\\b(?:keep it|make it)\\s+(short(?: and sweet)?|brief|quick)?(?:\\s*(?:and|,)\\s*)?((?:" + TONE + ")(?:\\s*(?:,|and|but)\\s+(?:not\\s+)?(?:" + TONE + "|rude|cheesy|boring|formal|long|good|great|nice|better|amazing|awesome))*)?", "i"));
       if(ki && (ki[1] || ki[2])){
         if(ki[1] && !has(b.length)) b.length = "A few sentences";
-        if(ki[2] && !has(b.rules)) b.rules = "Tone: " + ki[2].trim();
+        if(ki[2] && !has(b.rules)){ const tone = ki[2].trim().replace(/\s*(?:,|\band\b)\s*(?:good|great|nice|better|amazing|awesome)\b/gi, "").trim(); if(tone && !/^(?:good|great|nice|better|amazing|awesome)$/i.test(tone)) b.rules = "Tone: " + tone; } // r25: "professional and good" -> professional
         if(has(b.goal)) b.goal = String(b.goal).replace(new RegExp("\\s*,?\\s*(?:and\\s+)?" + ki[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), "").trim();
         // ... and they leave Context too, once they have their own boxes
         if(has(b.context)){ const c = String(b.context).replace(new RegExp("\\s*,?\\s*(?:and\\s+)?" + ki[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[.!]?", "i"), "").trim(); if(c.split(/\s+/).length >= 3) b.context = c; else delete b.context; }
@@ -3745,7 +3772,7 @@ function rebuildBriefParts(text, m){
       if(!has(b.length) && /\bnot too long\b|\bshort(?:ish)?\b(?=\s*(?:,|\.|$))/i.test(t)) b.length = "Short";
       // "You are a helpful assistant" tells the AI nothing; "make it good" is filler
       for(const k of ["context", "goal"]) if(typeof b[k] === "string"){
-        const v = String(b[k]).replace(/^\s*you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, "").trim();
+        const v = String(b[k]).replace(/^\s*(?:you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant|act as an? (?:expert|professional|pro))[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, "").trim();
         if(v) b[k] = v; else delete b[k];
       }
       if(typeof b.context === "string" && /^(?:not too long|short|sincere|polite|friendly|warm|formal|casual)(?:\s*,\s*(?:not too long|short|sincere|polite|friendly|warm|formal|casual))*[.]?$/i.test(b.context.trim()) && (has(b.rules) || has(b.length))) delete b.context;
@@ -3763,9 +3790,10 @@ function rebuildBriefParts(text, m){
     const clauses = t.split(/(?<=[.;!?])\s+|,\s+|\n+/).map(c => c.trim().replace(/^(?:and|but|also|plus)\s+/i, "").replace(/[.;,]+$/, "")).filter(c => c.split(/\s+/).length >= 1 && c.length > 2);
     // Oct 2026: "keep it short and polite" is held by Length and the tone rule, in other words
     const heldElsewhere = (/** @type {string} */ c) => (/^(?:keep it|make it)\b/i.test(c) && (has(b.length) || /^Tone:/.test(String(b.rules || ""))))
-      || /^you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant$|^make it (?:good|great|nice|better|amazing|awesome)$/i.test(c.trim()) // filler that tells the AI nothing
+      || /^you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant$|^act as an? (?:expert|professional|pro)$|^make it (?:good|great|nice|better|amazing|awesome)$/i.test(c.trim()) // filler that tells the AI nothing
       || (/^Tone:/.test(String(b.rules || "")) && String(b.rules).toLowerCase().includes(c.trim().toLowerCase()) && c.trim().split(/\s+/).length <= 2)
-      || (has(b.length) && /^not too long$|^short(?:ish)?$/i.test(c.trim()));
+      || (has(b.length) && /^not too long$|^short(?:ish)?$/i.test(c.trim()))
+      || (has(b.format) && /^(?:as|in|into) (?:a |an )?(?:check ?list|table|list|bullet(?:ed)? list|bullets|numbered list|steps)$/i.test(c.trim())); // r25: "as a checklist" is held by Format
     const left = clauses.filter(c => !held.includes(c.toLowerCase()) && !saidIn(held, c) && !(ctx0 && saidIn(ctx0, c)) && !heldElsewhere(c));
     if(left.length){ const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some(c => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
       // one copy of each clause, whatever its capitals ("No big science words, no big science words")
@@ -3908,6 +3936,7 @@ function askedFormat(t, kind){
   if(/\bcsv\b/.test(x)) return "CSV";
   if(/\btable\b/.test(x)) return "Markdown table";
   if(/step[- ]by[- ]step|\bsteps\b|numbered/.test(x)) return "Numbered steps";
+  if(/\bcheck ?list\b/.test(x)) return "Checklist with tick boxes, grouped under headings"; // r25: "as a checklist" became a bulleted list
   if(/\bbullet|\blist\b/.test(x)) return "Bulleted list";
   if(/\bcode only|just the code|only the code/.test(x)) return "Code only, no commentary";
   return "";
@@ -3939,7 +3968,7 @@ function forgeFromText(text, m, level, more){
   // v1 bug hunt: "write a prompt for midjourney ... skip the questions" is the instruction, not the person's words to keep
   // v1 step 16: removing "8k, masterpiece" left ", ," in their words
   // Oct 2026: "You are a helpful assistant" and "make it good" are filler, not words of theirs to keep
-  const asked = stripAsk(stripBanned(fixed.text).text).replace(/^\s*you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, ".").replace(/\s*,(?:\s*,)+/g, ",").replace(/,\s*([.!?]|$)/g, "$1").replace(/\s{2,}/g, " ");
+  const asked = stripAsk(stripBanned(fixed.text).text).replace(/^\s*(?:you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant|act as an? (?:expert|professional|pro))[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, ".").replace(/\s*,(?:\s*,)+/g, ",").replace(/,\s*([.!?]|$)/g, "$1").replace(/\s{2,}/g, " ");
   const own = (["image","video"].includes(m.cat) ? notMine(deMeta(tidyRequest(asked))).text
     : ["sfx","music"].includes(m.cat) ? String(asked).replace(REQUEST_LEAD, "") : asked).trim(); // 12.2: no "my dog"
   const before = scoreText(own, m);
@@ -4219,7 +4248,7 @@ const APOSTROPHE = Object.fromEntries(("dont:don't doesnt:doesn't didnt:didn't c
 /** @param {string} text @returns {{text: string, fixes: {from: string, to: string}[]}} */
 /** Oct 2026 fake test: "london to paris in december" became "pairs in deceiver". Months, days, places and languages typed in
  *  lowercase are not typos. Only autocorrect reads this list: they are still names for the invented-name check. */
-const NOT_TYPOS = new Set("london to paris in december pairs in deceiver january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday london paris rome madrid barcelona lisbon berlin munich amsterdam brussels vienna prague budapest warsaw athens istanbul dublin edinburgh glasgow manchester liverpool birmingham bristol oxford cambridge milan venice florence naples nice lyon marseille zurich geneva copenhagen stockholm oslo helsinki reykjavik moscow kyiv cairo dubai doha riyadh jerusalem tel aviv tokyo kyoto osaka seoul beijing shanghai hong kong singapore bangkok bali delhi mumbai sydney melbourne auckland toronto vancouver montreal chicago boston seattle miami denver austin dallas houston vegas orlando hawaii brooklyn manhattan england scotland wales ireland britain france spain portugal italy germany austria switzerland netherlands belgium greece turkey poland sweden norway denmark finland iceland russia ukraine egypt israel morocco nigeria kenya japan china korea india thailand vietnam indonesia australia zealand canada mexico brazil argentina chile peru colombia usa america europe asia africa english french spanish italian german portuguese dutch greek turkish polish swedish russian arabic hebrew japanese chinese mandarin korean hindi".split(" "));
+const NOT_TYPOS = new Set("frisbee frisbees selfie selfies emoji emojis january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday london paris rome madrid barcelona lisbon berlin munich amsterdam brussels vienna prague budapest warsaw athens istanbul dublin edinburgh glasgow manchester liverpool birmingham bristol oxford cambridge milan venice florence naples nice lyon marseille zurich geneva copenhagen stockholm oslo helsinki reykjavik moscow kyiv cairo dubai doha riyadh jerusalem tel aviv tokyo kyoto osaka seoul beijing shanghai hong kong singapore bangkok bali delhi mumbai sydney melbourne auckland toronto vancouver montreal chicago boston seattle miami denver austin dallas houston vegas orlando hawaii brooklyn manhattan england scotland wales ireland britain france spain portugal italy germany austria switzerland netherlands belgium greece turkey poland sweden norway denmark finland iceland russia ukraine egypt israel morocco nigeria kenya japan china korea india thailand vietnam indonesia australia zealand canada mexico brazil argentina chile peru colombia usa america europe asia africa english french spanish italian german portuguese dutch greek turkish polish swedish russian arabic hebrew japanese chinese mandarin korean hindi".split(" "));
 /** 9.4: Forge's own words, trusted by spelling and used as fixes */
 const FORGE_WORDS = ["prompt", "prompts", "setting", "settings", "medieval", "plugin", "plugins", "graphify", "toggleable", "matchmaker", "extension", "context", "reverse", "doctor", "summary", "summarised", "conversation"];
 /** 12.2: an animal in the request gives whisker typos their meaning */
@@ -4530,6 +4559,9 @@ function matchModels(query, priorities, kind){
     if((catScore.app || 0) > 0 || (catScore.code || 0) > 0){ catScore.app = (catScore.app || 0) + 2; catScore.code = Math.max(0, (catScore.code || 0) - 1.5); }
   }
   if(kind && JOB_KINDS.includes(kind)) catScore[kind] = (catScore[kind] || 0) + 8; // 11.2: the small AI's reading outweighs the word rules
+  // r25 (judges): "build a website for my car washing business with a booking form" went to a coding agent; a site for their
+  // own business, with forms or bookings, is an app builder's job (it builds and hosts it, no coding)
+  if(/\b(?:website|web ?site|site|web app|app)\b/.test(q) && /\bfor (?:my|our) (?:\w+ ){0,3}(?:business|shop|store|cafe|salon|club|company|bakery|restaurant|studio|team|class|charity|service)\b|\b(?:booking|sign-?up|order|contact|appointment) (?:form|page|system)\b/.test(q) && !/\b(?:my (?:code|repo|codebase)|bug|refactor|typescript|react|next\.?js)\b/.test(q)) catScore.app = (catScore.app || 0) + 3;
   // Oct 2026 real run: "a fox in the snow" (no AI, no kind named) went to Claude. Unsure is still writing (8.5.4), but a bare
   // scene - "a/the/my <thing> in/on/over/flying/playing ..." with no question, no writing verb and no "for my ..." purpose - is a picture.
   if(!Object.values(catScore).some(v => v > 0) && q.split(/\s+/).length <= 30
@@ -4574,6 +4606,10 @@ function matchModels(query, priorities, kind){
     // v1 step 14: and not when the person said they don't want it ("I don't want it to sound robotic" picked the robot-voice designer)
     { const F1 = AI_FACTS[m.id]; if(F1){ const got = F1.facts.map(f => sig(f.when)).filter(Boolean); if(got.length){ s += Math.min(2, got.length) * 4; why.push(got[0]); } } }
     if(m.id === "recraft" && /\b(photo\w*|realistic|photoreal\w*)\b/.test(q)) s -= 26; // 8.7.27: Recraft is vectors; a photoreal picture for a logo is not
+    // r25 (judges): editing the person's OWN photo ("turn a photo of my cat into a cartoon sticker") needs an AI that edits a
+    // given picture well, not one picked for photorealism; long narration (bedtime stories, audiobooks) is ElevenLabs Speech
+    if(m.cat === "image" && /\b(?:a |my |this |the )?(?:photo|picture|pic|selfie|image)s?\s+of\s+(?:my|our)\b|\bmy (?:own )?(?:photo|selfie|picture|pic)s?\b/.test(q) && /\b(?:turn|make|change|edit|into|convert|restyle|cartoon\w*|as an?)\b/.test(q)){ if(["gptimage", "nanobanana"].includes(m.id)) s += 10; }
+    if(m.id === "el-tts" && /\b(?:bedtime stor\w*|stor(?:y|ies) (?:aloud|out loud)|reads? (?:my |the |a )?(?:stor\w*|book\w*)|audiobook\w*|narrat\w*)\b/.test(q)) s += 6;
     if(m.cat === "image" && /\b(video|clip|animat\w*|moving)\b/.test(q) && !/\bnot (a |the )?(video|clip)\b/.test(q)) s -= 15; // 8.5.12: "my photo into a video" is a video job
     if(/vertical|9:16|tiktok|\breels?\b|\bshorts\b/.test(q) && ["kling","seedance","veo","higgsfield"].includes(m.id)) s += 8;
     // 11.4: a clip longer than this AI can make in one go ("10 second video" went to Veo, which stops at 8)
@@ -5185,8 +5221,10 @@ function forgeFromChat(read, answers, ask, m){
   if(m.cat === "code"){ if(v("check")) b.cCheck = v("check"); if(v("avoid")) b.cScope = v("avoid"); }
   else if(m.cat === "app"){ if(v("avoid")) b.cScope = v("avoid"); if(v("check")) b.extra = "Done when " + stripDot(v("check")); }
   else if(v("avoid")) b.rules = "Do not " + stripDot(v("avoid")).replace(/^(do not|don'?t|no|avoid)\s+/i, "");
-  if(m.cat === "text"){ const f = askedFormat(want, "llm"); if(f) b.format = f; }
-  if(m.cat === "research"){ const f = askedFormat(want, "research"); if(f) b.rFormat = f; }
+  // r25: the format comes from their own words, not from the AI's question they said yes to ("...from the list inside the loop?")
+  const ownWant = /^Yes\b/.test(latest) && !ask && !v("ask") ? want.replace(/^.*?\b(?:am|is|are|for|to)\b[^,]*,\s*/i, "").replace(/^[^,]*\?\s*"?,?\s*/, "") : want;
+  if(m.cat === "text"){ const f = askedFormat(ownWant, "llm"); if(f) b.format = f; }
+  if(m.cat === "research"){ const f = askedFormat(ownWant, "research"); if(f) b.rFormat = f; }
   const more = [["purpose","For"],["details",""],["setting","Setting"],["medium","Medium"],["settings","Settings"]].map(([k, l]) => v(k) ? (l ? l + ": " : "") + stripDot(v(k)) : "").filter(has);
   if(more.length) b.extra = [b.extra, ...more].filter(has).join(". ");
   // 10.5: a chat AI already has the whole conversation, so the next message is just the next message: the ask,
@@ -5211,8 +5249,12 @@ function forgeFromChat(read, answers, ask, m){
     const goalLine = (read.context.match(/^Goal: (.*)$/m) || [])[1] || "";
     const keep = [...section("Decisions").filter(d => d && d !== goalLine), ...section("Rules and limits")]
       .filter((d, i, all) => all.findIndex(x => x.toLowerCase() === d.toLowerCase() || x.toLowerCase().includes(d.toLowerCase())) === i).slice(0, 8);
-    const ask0 = String(b[main]).replace(/^(?:To|Yes to) "[^"]+\?",?\s*(?:and\s+)?/i, "").split(/(?<=[.!?])\s+/).filter(x => !keep.some(k => saidIn(k, x.replace(/[.!?]+$/, "")))).join(" ").replace(/(^|[.!?]\s+)([a-z])/g, (_, p, c) => p + c.toUpperCase());
-    const body = [lead + endMark(cap(stripDot(ask0 || String(b[main])))), facts, rule, tips.length ? "Please also " + tips.join(", and ") + "." : "", has(b.format) ? "Format: " + lc(stripDot(String(b.format))) + "." : ""].filter(has).join(" ").replace(/\s+/g, " ").trim();
+    let ask0 = String(b[main]).replace(/^(?:To|Yes to) "[^"]+\?",?\s*(?:and\s+)?/i, "").split(/(?<=[.!?])\s+/).map(x => x.split(/,\s+(?:and\s+)?/).filter(c => !keep.some(k => saidIn(k, c.replace(/[.!?]+$/, "")))).join(", ").replace(/([^.!?])$/, "$1.")).filter(x => x.length > 1).map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(" ").replace(/(^|[.!?]\s+)([a-z])/g, (_, p, c) => p + c.toUpperCase());
+    // r25 (judges): "Write it now." never said what "it" was; a vague ask names the chat's goal
+    ask0 = String(ask0 || "").replace(/^(?:now|ok(?:ay)?|so)[,\s]+(?=\S)/i, ""); // "Now: Now give me..." said now twice
+    const vague = !lead && goalLine && /\b(?:it|this|that|them|one)\b/i.test(String(ask0 || b[main])) && String(ask0 || b[main]).split(/\s+/).length <= 8;
+    const lead2 = vague ? "(Earlier: " + goalLine.charAt(0).toLowerCase() + goalLine.slice(1).replace(/[.!?]+$/, "") + ".) Now: " : lead;
+    const body = [lead2 + endMark(cap(stripDot(ask0 || String(b[main])))), facts, rule, tips.length ? "Please also " + tips.join(", and ") + "." : "", has(b.format) ? "Format: " + lc(stripDot(String(b.format))) + "." : ""].filter(has).join(" ").replace(/\s+/g, " ").trim();
     res.flat = body + (keep.length ? "\n\nKeep to what we agreed:\n" + keep.map(k => "- " + cap(k)).join("\n") : "");
     res.blocks = [["Next message", res.flat]];
     return res;

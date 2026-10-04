@@ -38188,8 +38188,14 @@ function glLatestAsk(turns) {
   const q = prev ? (String(prev.text).match(/[^.!?\n]*\?/g) || []).map((x) => x.trim()).filter((x) => x.split(/\s+/).length >= 2).pop() : "";
   if (m2 && q) {
     const rest = m2[1] ? glTidyAsk(m2[1]) : "";
-    return 'Yes to "' + q + '"' + (rest ? ", and " + rest.charAt(0).toLowerCase() + rest.slice(1) : ".");
+    const act = q.match(/^(?:do you want(?: me)? to|want me to|should i|shall i|would you like(?: me)? to|can you|could you)\s+(.+?)\?$/i);
+    const am = q.match(/^are you\s+(.+?)\?$/i), is = q.match(/^is (it|that|this)\s+(.+?)\?$/i);
+    const yes2 = act ? "Yes, " + act[1] : am ? "Yes, I am " + am[1] : is ? "Yes, " + is[1] + " is " + is[2] : 'Yes to "' + q + '"';
+    return yes2 + (rest ? (act || am || is ? ", " : ", and ") + rest.charAt(0).toLowerCase() + rest.slice(1) : ".");
   }
+  const noAct = q && said.match(/^(?:no|nope|nah)\b[,!. ]*(.*)$/is);
+  const qAct = q ? q.match(/^(?:do you want(?: me)? to|want me to|should i|shall i|would you like(?: me)? to)\s+(.+?)\?$/i) : null;
+  if (noAct && qAct) return "Don't " + qAct[1] + (noAct[1].trim() ? ": " + glTidyAsk(noAct[1]) : ".");
   const no = said.match(/^(?:no|nope|nah)\b[^.!?\n]*[.!?\n]+\s*(\S.*)$/is);
   if (no && q) return glTidyAsk(no[1]);
   if (q) {
@@ -38313,6 +38319,13 @@ function chatContext(input2) {
         if (c.split(/\s+/).length < 2 || ruleSet.has(c.toLowerCase()) || sum.rules.some((r2) => String(r2).toLowerCase() === c.toLowerCase())) continue;
         sum.decisions.push(up1(c));
       }
+    }
+  }
+  if (new Set(turns.map((t) => t.who).filter(Boolean)).size >= 2) {
+    for (const t of turns.slice(1, -1)) for (const x of String(t.text).split(/(?<=[.!?])\s+|,\s*(?:and\s+)?/)) {
+      const c = x.replace(/^\s*(?:ok(?:ay)?|sure|yes|yeah|yep|cool)\b[,!. ]*/i, "").replace(/[.!]+$/, "").trim();
+      if (c.split(/\s+/).length < 2 || /\?$/.test(c) || /^(?:what|which|how|when|where|who)\b/i.test(c) || sum.rules.some((r2) => String(r2).toLowerCase().includes(c.toLowerCase()) || c.toLowerCase().includes(String(r2).toLowerCase()))) continue;
+      sum.decisions.push(c);
     }
   }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
@@ -38671,7 +38684,7 @@ function glSlots(turns) {
   return GL_SLOTS.map((s) => ({ k: s.k, n: s.n, q: s.q, filled: s.k === "subject" ? words2 >= 3 : !!(s.re && s.re.test(user)) }));
 }
 function glTidyAsk(text) {
-  return text.replace(/@"([^"]+)"|@(\S+)/g, (_2, a, b) => "[" + String(a || b).split("/").pop() + "]").replace(/\s+/g, " ").trim();
+  return text.replace(/^\s*\[\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]m)?\]\s*/i, "").replace(/@"([^"]+)"|@(\S+)/g, (_2, a, b) => "[" + String(a || b).split("/").pop() + "]").replace(/\s+/g, " ").trim();
 }
 function readChat(input2, opts2) {
   const budget = opts2 && opts2.budget || 120;
@@ -41843,6 +41856,7 @@ var COMPOSE = {
     const mat0 = materialNamed([b.goal, b.context].filter(has).join(" "));
     const inline = /\b(?:notes?|text|these|this|list|points|facts|info(?:rmation)?|headings|below)\b[^:]{0,40}:\s*\S+(?:\s+\S+){5,}/i.test(all);
     const mat = present || inline || /\b(chapter|textbook|book|unit|lesson)\b/i.test(String(mat0 || "")) ? "" : mat0;
+    if (!has(b.pasted) && mat && has(b.goal)) b = { ...b, goal: String(b.goal).replace(/\s*\[(?:the |your |my )?(?:article|text|notes?|essay|email|document|doc|transcript|report|data|paste[^\]]*)\]\s*/gi, " ").trim() };
     if (has(b.pasted)) S.push([xml ? "<material>" : "## Material", String(b.pasted)]);
     else if (mat && !(has(b.context) && String(b.context).length > 280)) S.push([xml ? "<material>" : "## Material", "[Paste " + mat + " here]"]);
     const needs = chatNeeds([b.goal, b.context, b.extra, b.length].filter(has).map((v2) => join(v2)).join(". "), b);
@@ -42034,6 +42048,8 @@ var NOT_A_CAMERA = ["flat vector", "ink line art", "isometric diagram", "risogra
 var TIP_CLASHES = (
   /** @type {[RegExp, RegExp][]} */
   [
+    [/\b(plain|neutral|solid|white|coloured|colored) background\b/i, /\btransparent background\b|\bno background\b/i],
+    // r25: a sticker said 'transparent' and the recipe said 'plain neutral background'
     [/\b(hard|sharp|instant|punchy) attack\b/i, /\b(swell\w*|soft|slow|gradual) attack\b|\bfades? in\b/i],
     [/\bstereo\b|\bleft[- ]to[- ]right\b|\bpann(?:ing|ed)\b/i, /\bmono\b/i],
     [/\b(dry|no reverb|bone-dry|close-mic)/i, /\b(reverb\w*|echo\w*|large (?:space|room|hall)|cathedral|long tail|rumbling tail|tail over)\b/i],
@@ -42411,6 +42427,7 @@ function pickAspect(t, m2) {
     else if (/\b(wide shot|wide-angle|wide angle|panoram\w*|landscape view|establishing shot|vista)\b/i.test(t)) want = 16 / 9;
     else if (/(?:^|[,;]\s*)(?:wide|landscape)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 16 / 9;
     else if (/(?:^|[,;]\s*)(?:tall|portrait)(?:\s+(?:format|image|picture|frame|one))?\s*(?:[,;.]|$)/i.test(t)) want = 2 / 3;
+    else if (/^\s*(?:an?\s+)?(?:close-?up\s+)?(?:(?:studio|realistic|cinematic|painted|oil)\s+)?(?:portrait|headshot)\s+of\b/i.test(t)) want = 2 / 3;
     else if (m2.cat === "video" && /\b(social(?: media)?|instagram|insta|ig|tiktok|reels?|stories|phone)\b/i.test(t) && !/\byoutube\b(?!\s+shorts?)/i.test(t)) want = 9 / 16;
     else if (m2.cat === "video" && /\byoutube\b/i.test(t)) want = 16 / 9;
   }
@@ -42647,6 +42664,28 @@ function rebuildBriefParts(text, m2) {
       const a = pickAspect(t, m2);
       if (a) b.aspect = a;
     }
+    if (m2.cat === "image" && has(b.imgtext)) {
+      let it = String(b.imgtext);
+      const cut = it.match(/^(.*?[A-Z0-9].*?)\s+with\s+(?=[a-z])(.+)$/);
+      if (cut) {
+        it = cut[1].trim();
+        b.extra = [b.extra, "with " + cut[2].trim()].filter(has).join(", ");
+      }
+      b.imgtext = it;
+      const words2 = new Set(it.toLowerCase().match(/[a-z]+/g) || []);
+      if (typeof b.setting === "string") {
+        const sw = String(b.setting).split(/\s+/);
+        if (sw.length && words2.has(sw[0].toLowerCase()) && /^[A-Z]+$/.test(sw[0])) {
+          const rest = sw.slice(1).join(" ").trim();
+          delete b.setting;
+          if (rest) b.extra = [rest, b.extra].filter(has).join(", ");
+        }
+      }
+      if (Array.isArray(b.mood)) {
+        b.mood = b.mood.filter((x) => !words2.has(String(x).toLowerCase()));
+        if (!b.mood.length) delete b.mood;
+      }
+    }
     if (!has(b.imgtext) && m2.cat === "image" && !/\bno (?:text|words|lettering)\b|\bwithout (?:text|words)\b/i.test(t)) {
       const kw = /\b(?:logo|sign|signage|label|banner|poster|badge|sticker|t-?shirt|mug|menu|storefront|shop ?front)\b/i.exec(t);
       const cm = kw ? t.slice(kw.index).match(/^[^.]{0,80}?\b(?:called|named)\s+((?:[A-Z0-9][\w'&-]*)(?:\s+(?:&\s+)?[A-Z0-9][\w'&-]*){0,4})/) : null;
@@ -42704,6 +42743,24 @@ function rebuildBriefParts(text, m2) {
     {
       const av = avoidFrom(t);
       if (av) b.avoid = av;
+    }
+    if (m2.cat === "image" && /\b(?:menu|price list|price board|specials board)\b/i.test(t)) {
+      const items = [...t.replace(new RegExp(DECIMAL, "g"), ".").matchAll(/(?:^|[:,;]\s*)([a-z][a-z' -]{2,30}?)\s+(\$\s?\d+(?:\.\d{2})?|\d+(?:\.\d{2})?\s?(?:€|£|euros?|pounds?|dollars?))/gi)].map((x) => x[1].trim() + " " + x[2].trim());
+      if (items.length >= 2) {
+        b.imgtext = [has(b.imgtext) ? String(b.imgtext) : "", ...items].filter(Boolean).join(" \xB7 ");
+        for (const k2 of ["purpose", "extra"]) if (typeof b[k2] === "string") {
+          let v2 = String(b[k2]);
+          for (const x of items) v2 = v2.replace(new RegExp(x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\./g, "[.\\s\\S]?"), "i"), "").replace(new RegExp(x.split(" $")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*\\$\\s*\\S*", "i"), "");
+          v2 = v2.replace(/:\s*$/, "").replace(/^[\s,.;:]+|[\s,.;:]+$/g, "").replace(/\s*,(\s*,)+/g, ",");
+          if (v2 && /[a-z]{3}/i.test(v2)) b[k2] = cap(v2);
+          else delete b[k2];
+        }
+      }
+    }
+    if (m2.cat === "image" && /\bno background\b|\btransparent\b/i.test(t) && /\b(?:sticker|icon|logo|emoji|clip ?art|cut ?out|png)\b/i.test(t)) {
+      if (typeof b.avoid === "string" && /^background$/i.test(b.avoid.trim())) delete b.avoid;
+      if (typeof b.extra === "string") b.extra = String(b.extra).replace(/[,.]?\s*no background\b/i, "").replace(/^[\s,.]+/, "");
+      b.extra = [b.extra, "Transparent background"].filter((x) => has(x) && !/transparent background/i.test(String(b.extra || "")) || x === "Transparent background").filter(has).join(". ");
     }
     if (has(b.avoid) && typeof b.extra === "string") {
       for (const a of String(b.avoid).split(/,\s*/)) b.extra = String(b.extra).replace(new RegExp("(?:^|,\\s*)(?:no|without|avoid)\\s+(?:any\\s+)?" + a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b[^,.]*", "i"), "").trim();
@@ -42793,10 +42850,13 @@ function rebuildBriefParts(text, m2) {
     if (lf && !(V.llmFormat || []).includes(String(b.format || ""))) b.format = lf;
     {
       const TONE = "polite|friendly|formal|casual|professional|kind|funny|warm|firm|respectful|clear|simple|honest|upbeat|calm";
-      const ki = t.match(new RegExp("\\b(?:keep it|make it)\\s+(short(?: and sweet)?|brief|quick)?(?:\\s*(?:and|,)\\s*)?((?:" + TONE + ")(?:\\s*(?:,|and|but)\\s+(?:not\\s+)?(?:" + TONE + "|rude|cheesy|boring|formal|long))*)?", "i"));
+      const ki = t.match(new RegExp("\\b(?:keep it|make it)\\s+(short(?: and sweet)?|brief|quick)?(?:\\s*(?:and|,)\\s*)?((?:" + TONE + ")(?:\\s*(?:,|and|but)\\s+(?:not\\s+)?(?:" + TONE + "|rude|cheesy|boring|formal|long|good|great|nice|better|amazing|awesome))*)?", "i"));
       if (ki && (ki[1] || ki[2])) {
         if (ki[1] && !has(b.length)) b.length = "A few sentences";
-        if (ki[2] && !has(b.rules)) b.rules = "Tone: " + ki[2].trim();
+        if (ki[2] && !has(b.rules)) {
+          const tone = ki[2].trim().replace(/\s*(?:,|\band\b)\s*(?:good|great|nice|better|amazing|awesome)\b/gi, "").trim();
+          if (tone && !/^(?:good|great|nice|better|amazing|awesome)$/i.test(tone)) b.rules = "Tone: " + tone;
+        }
         if (has(b.goal)) b.goal = String(b.goal).replace(new RegExp("\\s*,?\\s*(?:and\\s+)?" + ki[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), "").trim();
         if (has(b.context)) {
           const c = String(b.context).replace(new RegExp("\\s*,?\\s*(?:and\\s+)?" + ki[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[.!]?", "i"), "").trim();
@@ -42811,7 +42871,7 @@ function rebuildBriefParts(text, m2) {
       }
       if (!has(b.length) && /\bnot too long\b|\bshort(?:ish)?\b(?=\s*(?:,|\.|$))/i.test(t)) b.length = "Short";
       for (const k2 of ["context", "goal"]) if (typeof b[k2] === "string") {
-        const v2 = String(b[k2]).replace(/^\s*you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, "").trim();
+        const v2 = String(b[k2]).replace(/^\s*(?:you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant|act as an? (?:expert|professional|pro))[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, "").trim();
         if (v2) b[k2] = v2;
         else delete b[k2];
       }
@@ -42825,7 +42885,7 @@ function rebuildBriefParts(text, m2) {
     const held = [b.goal, b.format, b.rules, b.length, b.pasted].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
     const ctx0 = has(b.context) ? String(b.context).trim().replace(/[.;,]+$/, "") : "";
     const clauses = t.split(/(?<=[.;!?])\s+|,\s+|\n+/).map((c) => c.trim().replace(/^(?:and|but|also|plus)\s+/i, "").replace(/[.;,]+$/, "")).filter((c) => c.split(/\s+/).length >= 1 && c.length > 2);
-    const heldElsewhere = (c) => /^(?:keep it|make it)\b/i.test(c) && (has(b.length) || /^Tone:/.test(String(b.rules || ""))) || /^you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant$|^make it (?:good|great|nice|better|amazing|awesome)$/i.test(c.trim()) || /^Tone:/.test(String(b.rules || "")) && String(b.rules).toLowerCase().includes(c.trim().toLowerCase()) && c.trim().split(/\s+/).length <= 2 || has(b.length) && /^not too long$|^short(?:ish)?$/i.test(c.trim());
+    const heldElsewhere = (c) => /^(?:keep it|make it)\b/i.test(c) && (has(b.length) || /^Tone:/.test(String(b.rules || ""))) || /^you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant$|^act as an? (?:expert|professional|pro)$|^make it (?:good|great|nice|better|amazing|awesome)$/i.test(c.trim()) || /^Tone:/.test(String(b.rules || "")) && String(b.rules).toLowerCase().includes(c.trim().toLowerCase()) && c.trim().split(/\s+/).length <= 2 || has(b.length) && /^not too long$|^short(?:ish)?$/i.test(c.trim()) || has(b.format) && /^(?:as|in|into) (?:a |an )?(?:check ?list|table|list|bullet(?:ed)? list|bullets|numbered list|steps)$/i.test(c.trim());
     const left = clauses.filter((c) => !held.includes(c.toLowerCase()) && !saidIn(held, c) && !(ctx0 && saidIn(ctx0, c)) && !heldElsewhere(c));
     if (left.length) {
       const keep = ctx0 && !String(b.goal).toLowerCase().includes(ctx0.toLowerCase()) && !left.some((c) => c.toLowerCase().includes(ctx0.toLowerCase())) ? [ctx0] : [];
@@ -42940,6 +43000,7 @@ function askedFormat(t, kind) {
   if (/\bcsv\b/.test(x)) return "CSV";
   if (/\btable\b/.test(x)) return "Markdown table";
   if (/step[- ]by[- ]step|\bsteps\b|numbered/.test(x)) return "Numbered steps";
+  if (/\bcheck ?list\b/.test(x)) return "Checklist with tick boxes, grouped under headings";
   if (/\bbullet|\blist\b/.test(x)) return "Bulleted list";
   if (/\bcode only|just the code|only the code/.test(x)) return "Code only, no commentary";
   return "";
@@ -42965,7 +43026,7 @@ function forgeFromText(text, m2, level, more) {
   res.score = counted.score;
   res.parts = counted.parts;
   res.ask = counted.ask;
-  const asked = stripAsk(stripBanned(fixed.text).text).replace(/^\s*you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, ".").replace(/\s*,(?:\s*,)+/g, ",").replace(/,\s*([.!?]|$)/g, "$1").replace(/\s{2,}/g, " ");
+  const asked = stripAsk(stripBanned(fixed.text).text).replace(/^\s*(?:you are (?:a |an )?(?:helpful|friendly|smart|useful|good|nice)(?: ai)? assistant|act as an? (?:expert|professional|pro))[.!]?\s*/i, "").replace(/[.,]?\s*make it (?:good|great|nice|better|amazing|awesome)[.!]?\s*$/i, ".").replace(/\s*,(?:\s*,)+/g, ",").replace(/,\s*([.!?]|$)/g, "$1").replace(/\s{2,}/g, " ");
   const own2 = (["image", "video"].includes(m2.cat) ? notMine(deMeta(tidyRequest(asked))).text : ["sfx", "music"].includes(m2.cat) ? String(asked).replace(REQUEST_LEAD, "") : asked).trim();
   const before = scoreText(own2, m2);
   const lostTheirs = () => {
@@ -43180,7 +43241,7 @@ function bestFix(w2) {
   return pick2([...two].filter((x) => x[0] === w2[0])) || "";
 }
 var APOSTROPHE = Object.fromEntries("dont:don't doesnt:doesn't didnt:didn't cant:can't couldnt:couldn't shouldnt:shouldn't wouldnt:wouldn't isnt:isn't arent:aren't wasnt:wasn't werent:weren't hasnt:hasn't havent:haven't hadnt:hadn't theyre:they're youre:you're thats:that's whats:what's theres:there's heres:here's im:I'm ive:I've youve:you've weve:we've theyve:they've youll:you'll theyll:they'll itll:it'll".split(" ").map((x) => x.split(":")));
-var NOT_TYPOS = new Set("london to paris in december pairs in deceiver january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday london paris rome madrid barcelona lisbon berlin munich amsterdam brussels vienna prague budapest warsaw athens istanbul dublin edinburgh glasgow manchester liverpool birmingham bristol oxford cambridge milan venice florence naples nice lyon marseille zurich geneva copenhagen stockholm oslo helsinki reykjavik moscow kyiv cairo dubai doha riyadh jerusalem tel aviv tokyo kyoto osaka seoul beijing shanghai hong kong singapore bangkok bali delhi mumbai sydney melbourne auckland toronto vancouver montreal chicago boston seattle miami denver austin dallas houston vegas orlando hawaii brooklyn manhattan england scotland wales ireland britain france spain portugal italy germany austria switzerland netherlands belgium greece turkey poland sweden norway denmark finland iceland russia ukraine egypt israel morocco nigeria kenya japan china korea india thailand vietnam indonesia australia zealand canada mexico brazil argentina chile peru colombia usa america europe asia africa english french spanish italian german portuguese dutch greek turkish polish swedish russian arabic hebrew japanese chinese mandarin korean hindi".split(" "));
+var NOT_TYPOS = new Set("frisbee frisbees selfie selfies emoji emojis january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday london paris rome madrid barcelona lisbon berlin munich amsterdam brussels vienna prague budapest warsaw athens istanbul dublin edinburgh glasgow manchester liverpool birmingham bristol oxford cambridge milan venice florence naples nice lyon marseille zurich geneva copenhagen stockholm oslo helsinki reykjavik moscow kyiv cairo dubai doha riyadh jerusalem tel aviv tokyo kyoto osaka seoul beijing shanghai hong kong singapore bangkok bali delhi mumbai sydney melbourne auckland toronto vancouver montreal chicago boston seattle miami denver austin dallas houston vegas orlando hawaii brooklyn manhattan england scotland wales ireland britain france spain portugal italy germany austria switzerland netherlands belgium greece turkey poland sweden norway denmark finland iceland russia ukraine egypt israel morocco nigeria kenya japan china korea india thailand vietnam indonesia australia zealand canada mexico brazil argentina chile peru colombia usa america europe asia africa english french spanish italian german portuguese dutch greek turkish polish swedish russian arabic hebrew japanese chinese mandarin korean hindi".split(" "));
 var FORGE_WORDS = ["prompt", "prompts", "setting", "settings", "medieval", "plugin", "plugins", "graphify", "toggleable", "matchmaker", "extension", "context", "reverse", "doctor", "summary", "summarised", "conversation"];
 var ANIMAL_WORDS = /\b(?:cats?|kittens?|kitty|dogs?|pupp(?:y|ies)|mice|mouse|rats?|tigers?|lions?|fox(?:es)?|seals?|otters?|rabbits?|bunn(?:y|ies)|leopards?|cheetahs?|lynx|walrus(?:es)?|hamsters?|pugs?)\b/i;
 var TYPOS = { yoru: "your", yuor: "your", agin: "again", iys: "it's", becuase: "because", becasue: "because", waht: "what", wnat: "want", jsut: "just", realy: "really", doent: "doesn't", dosent: "doesn't", donrt: "don't", dnot: "don't", inst: "isn't", gues: "guess", ouyr: "your", medivl: "medieval", quity: "quality", qaulity: "quality", buidl: "build", thier: "their", wich: "which", recieve: "receive", definately: "definitely", seperate: "separate", untill: "until", alot: "a lot" };
@@ -43539,6 +43600,7 @@ function matchModels(query, priorities, kind) {
     }
   }
   if (kind && JOB_KINDS.includes(kind)) catScore[kind] = (catScore[kind] || 0) + 8;
+  if (/\b(?:website|web ?site|site|web app|app)\b/.test(q) && /\bfor (?:my|our) (?:\w+ ){0,3}(?:business|shop|store|cafe|salon|club|company|bakery|restaurant|studio|team|class|charity|service)\b|\b(?:booking|sign-?up|order|contact|appointment) (?:form|page|system)\b/.test(q) && !/\b(?:my (?:code|repo|codebase)|bug|refactor|typescript|react|next\.?js)\b/.test(q)) catScore.app = (catScore.app || 0) + 3;
   if (!Object.values(catScore).some((v2) => v2 > 0) && q.split(/\s+/).length <= 30 && /^(?:an?|the|my|our|two|three|some|old|little|cute|giant|tiny)\s+[a-z]+(?:\s+[a-z]+)?\s+(?:in|on|over|under|at|through|across|inside|beside|near|by|with|flying|playing|sitting|standing|running|sleeping|walking|jumping|swimming|riding|holding|wearing|looking)\b/.test(q) && !/\?|\b(?:how|what|why|when|who|which|explain|write|tell|help|plan|list|summari[sz]e|translate|fix|code|email|essay|story|poem|speech|letter|message|text|post|caption|quiz|lesson|recipe|schedule|budget|party|trip|meeting)\b|\bfor (?:my|our|a|an|the)\b/.test(q)) catScore.image = 2;
   const wanted = Object.entries(catScore).filter(([, v2]) => v2 > 0).sort((a, b) => b[1] - a[1]).map(([c]) => c);
   const cats = wanted.length ? wanted.slice(0, 3) : ["text", "code", "research"];
@@ -43608,6 +43670,10 @@ function matchModels(query, priorities, kind) {
       }
     }
     if (m2.id === "recraft" && /\b(photo\w*|realistic|photoreal\w*)\b/.test(q)) s -= 26;
+    if (m2.cat === "image" && /\b(?:a |my |this |the )?(?:photo|picture|pic|selfie|image)s?\s+of\s+(?:my|our)\b|\bmy (?:own )?(?:photo|selfie|picture|pic)s?\b/.test(q) && /\b(?:turn|make|change|edit|into|convert|restyle|cartoon\w*|as an?)\b/.test(q)) {
+      if (["gptimage", "nanobanana"].includes(m2.id)) s += 10;
+    }
+    if (m2.id === "el-tts" && /\b(?:bedtime stor\w*|stor(?:y|ies) (?:aloud|out loud)|reads? (?:my |the |a )?(?:stor\w*|book\w*)|audiobook\w*|narrat\w*)\b/.test(q)) s += 6;
     if (m2.cat === "image" && /\b(video|clip|animat\w*|moving)\b/.test(q) && !/\bnot (a |the )?(video|clip)\b/.test(q)) s -= 15;
     if (/vertical|9:16|tiktok|\breels?\b|\bshorts\b/.test(q) && ["kling", "seedance", "veo", "higgsfield"].includes(m2.id)) s += 8;
     {
@@ -44252,12 +44318,13 @@ function forgeFromChat(read, answers, ask, m2) {
     if (v2("avoid")) b.cScope = v2("avoid");
     if (v2("check")) b.extra = "Done when " + stripDot(v2("check"));
   } else if (v2("avoid")) b.rules = "Do not " + stripDot(v2("avoid")).replace(/^(do not|don'?t|no|avoid)\s+/i, "");
+  const ownWant = /^Yes\b/.test(latest) && !ask && !v2("ask") ? want.replace(/^.*?\b(?:am|is|are|for|to)\b[^,]*,\s*/i, "").replace(/^[^,]*\?\s*"?,?\s*/, "") : want;
   if (m2.cat === "text") {
-    const f2 = askedFormat(want, "llm");
+    const f2 = askedFormat(ownWant, "llm");
     if (f2) b.format = f2;
   }
   if (m2.cat === "research") {
-    const f2 = askedFormat(want, "research");
+    const f2 = askedFormat(ownWant, "research");
     if (f2) b.rFormat = f2;
   }
   const more = [["purpose", "For"], ["details", ""], ["setting", "Setting"], ["medium", "Medium"], ["settings", "Settings"]].map(([k2, l]) => v2(k2) ? (l ? l + ": " : "") + stripDot(v2(k2)) : "").filter(has);
@@ -44289,8 +44356,11 @@ function forgeFromChat(read, answers, ask, m2) {
     };
     const goalLine = (read.context.match(/^Goal: (.*)$/m) || [])[1] || "";
     const keep = [...section("Decisions").filter((d2) => d2 && d2 !== goalLine), ...section("Rules and limits")].filter((d2, i, all) => all.findIndex((x) => x.toLowerCase() === d2.toLowerCase() || x.toLowerCase().includes(d2.toLowerCase())) === i).slice(0, 8);
-    const ask0 = String(b[main2]).replace(/^(?:To|Yes to) "[^"]+\?",?\s*(?:and\s+)?/i, "").split(/(?<=[.!?])\s+/).filter((x) => !keep.some((k2) => saidIn(k2, x.replace(/[.!?]+$/, "")))).join(" ").replace(/(^|[.!?]\s+)([a-z])/g, (_2, p2, c) => p2 + c.toUpperCase());
-    const body = [lead + endMark(cap(stripDot(ask0 || String(b[main2])))), facts, rule, tips.length ? "Please also " + tips.join(", and ") + "." : "", has(b.format) ? "Format: " + lc(stripDot(String(b.format))) + "." : ""].filter(has).join(" ").replace(/\s+/g, " ").trim();
+    let ask0 = String(b[main2]).replace(/^(?:To|Yes to) "[^"]+\?",?\s*(?:and\s+)?/i, "").split(/(?<=[.!?])\s+/).map((x) => x.split(/,\s+(?:and\s+)?/).filter((c) => !keep.some((k2) => saidIn(k2, c.replace(/[.!?]+$/, "")))).join(", ").replace(/([^.!?])$/, "$1.")).filter((x) => x.length > 1).map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(" ").replace(/(^|[.!?]\s+)([a-z])/g, (_2, p2, c) => p2 + c.toUpperCase());
+    ask0 = String(ask0 || "").replace(/^(?:now|ok(?:ay)?|so)[,\s]+(?=\S)/i, "");
+    const vague = !lead && goalLine && /\b(?:it|this|that|them|one)\b/i.test(String(ask0 || b[main2])) && String(ask0 || b[main2]).split(/\s+/).length <= 8;
+    const lead2 = vague ? "(Earlier: " + goalLine.charAt(0).toLowerCase() + goalLine.slice(1).replace(/[.!?]+$/, "") + ".) Now: " : lead;
+    const body = [lead2 + endMark(cap(stripDot(ask0 || String(b[main2])))), facts, rule, tips.length ? "Please also " + tips.join(", and ") + "." : "", has(b.format) ? "Format: " + lc(stripDot(String(b.format))) + "." : ""].filter(has).join(" ").replace(/\s+/g, " ").trim();
     res.flat = body + (keep.length ? "\n\nKeep to what we agreed:\n" + keep.map((k2) => "- " + cap(k2)).join("\n") : "");
     res.blocks = [["Next message", res.flat]];
     return res;

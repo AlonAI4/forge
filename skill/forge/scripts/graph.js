@@ -150,9 +150,19 @@ function glLatestAsk(turns){
   const m = said.match(/^(?:yes|yeah|yep|yup|sure|ok(?:ay)?|please|do it|go ahead|sounds good)\b(?:[\s,!]*(?:please|pls|thanks|thank you)\b)?[\s,.!]*(?:(?:and|but|also)\s+)?(.*)$/is);
   const prev = turns.slice(0, i).reverse().find(t => t.role === "assistant");
   const q = prev ? (String(prev.text).match(/[^.!?\n]*\?/g) || []).map(x => x.trim()).filter(x => x.split(/\s+/).length >= 2).pop() : "";
-  if(m && q){ const rest = m[1] ? glTidyAsk(m[1]) : ""; return 'Yes to "' + q + '"' + (rest ? ", and " + rest.charAt(0).toLowerCase() + rest.slice(1) : "."); }
+  // r25 (judges): 'To "Do you want to ask for an extension?", and till wednesday' was garbled. The question becomes a plain yes:
+  // "Yes, ask for an extension" / "Yes, I am removing enemies from the list inside the loop".
+  if(m && q){ const rest = m[1] ? glTidyAsk(m[1]) : "";
+    const act = q.match(/^(?:do you want(?: me)? to|want me to|should i|shall i|would you like(?: me)? to|can you|could you)\s+(.+?)\?$/i);
+    const am = q.match(/^are you\s+(.+?)\?$/i), is = q.match(/^is (it|that|this)\s+(.+?)\?$/i);
+    const yes = act ? "Yes, " + act[1] : am ? "Yes, I am " + am[1] : is ? "Yes, " + is[1] + " is " + is[2] : 'Yes to "' + q + '"';
+    return yes + (rest ? (act || am || is ? ", " : ", and ") + rest.charAt(0).toLowerCase() + rest.slice(1) : "."); }
   // Oct 2026 context test: "no we're buying the cake. i need the clues and a shopping list" - the no answered the AI;
   // the new request is what comes after it
+  // r25: "no, one meal everyone can eat, under 40 minutes" (to "Should I make two versions?") became just "No."
+  const noAct = q && said.match(/^(?:no|nope|nah)\b[,!. ]*(.*)$/is);
+  const qAct = q ? q.match(/^(?:do you want(?: me)? to|want me to|should i|shall i|would you like(?: me)? to)\s+(.+?)\?$/i) : null;
+  if(noAct && qAct) return "Don't " + qAct[1] + (noAct[1].trim() ? ": " + glTidyAsk(noAct[1]) : ".");
   const no = said.match(/^(?:no|nope|nah)\b[^.!?\n]*[.!?\n]+\s*(\S.*)$/is);
   if(no && q) return glTidyAsk(no[1]);
   // Oct 2026 fake test: "mostly warm with one joke. can you write it now" - the first sentence answered the AI; the ask is after it
@@ -276,6 +286,15 @@ function chatContext(input){
         if(c.split(/\s+/).length < 2 || ruleSet.has(c.toLowerCase()) || sum.rules.some(r => String(r).toLowerCase() === c.toLowerCase())) continue;
         sum.decisions.push(up1(c));
       }
+    }
+  }
+  // r25 (judges): in a group chat (WhatsApp) the details come in plain messages, not as answers to an AI's question
+  // ("saturday 11am in the school hall, all money goes to the animal shelter" was lost). Every middle message counts.
+  if(new Set(turns.map(t => t.who).filter(Boolean)).size >= 2){
+    for(const t of turns.slice(1, -1)) for(const x of String(t.text).split(/(?<=[.!?])\s+|,\s*(?:and\s+)?/)){
+      const c = x.replace(/^\s*(?:ok(?:ay)?|sure|yes|yeah|yep|cool)\b[,!. ]*/i, "").replace(/[.!]+$/, "").trim();
+      if(c.split(/\s+/).length < 2 || /\?$/.test(c) || /^(?:what|which|how|when|where|who)\b/i.test(c) || sum.rules.some(r => String(r).toLowerCase().includes(c.toLowerCase()) || c.toLowerCase().includes(String(r).toLowerCase()))) continue;
+      sum.decisions.push(c);
     }
   }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
@@ -567,7 +586,8 @@ function glSlots(turns){
 /** The user's last message, tidied for a prompt: attached file paths become just the file name.
  *  @param {string} text */
 function glTidyAsk(text){
-  return text.replace(/@"([^"]+)"|@(\S+)/g, (_, a, b) => "[" + String(a || b).split("/").pop() + "]").replace(/\s+/g, " ").trim();
+  // r25: "Me: [12:01] can you help me..." kept the time in the goal
+  return text.replace(/^\s*\[\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]m)?\]\s*/i, "").replace(/@"([^"]+)"|@(\S+)/g, (_, a, b) => "[" + String(a || b).split("/").pop() + "]").replace(/\s+/g, " ").trim();
 }
 
 /** Write the next prompt from what the chat already says plus the user's answers to the questions.
