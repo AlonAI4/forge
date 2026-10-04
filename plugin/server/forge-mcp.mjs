@@ -38271,7 +38271,21 @@ function chatContext(input2) {
   const sents = (x) => String(x).replace(/```[\s\S]*?```/g, " ").split(/(?<=[.!?])\s+|\n+/).map((y) => y.replace(/^\s*(?:[-*\u2022#>]+|\d+[.)])\s*/, "").trim()).filter((y) => y.split(/\s+/).length >= 3 || /\?$/.test(y) && y.split(/\s+/).length >= 2);
   sum.goal = user.length ? glTidyAsk(user[0].text) : "";
   sum.latest = user.length > 1 ? glLatestAsk(turns) : "";
+  sum.latest = sum.latest.replace(/\s*\b(?:rules?|limits?|open(?: questions?)?|todo)\s*:[\s\S]*$/i, "").trim();
+  const LABEL = /^(rules?|limits?|open(?: questions?)?|todo|decided|decisions?)\s*:\s*(.+)$/i;
+  const labelled = (x) => {
+    const m2 = LABEL.exec(x);
+    if (!m2) return false;
+    const k2 = m2[1].toLowerCase(), v2 = m2[2].trim().replace(/[.]+$/, "");
+    if (/^(rule|limit)/.test(k2)) sum.rules.push(v2);
+    else if (/^(open|todo)/.test(k2)) sum.open.push(...v2.split(/;\s*/).filter(Boolean));
+    else sum.decisions.push(v2);
+    return true;
+  };
+  for (const t of turns) for (const x of String(t.text).split(/\n+/).map((y) => y.trim())) for (const piece of x.split(/(?<=[.!?])\s+(?=(?:rules?|limits?|open|todo|decided|decisions?)\s*:)/i)) labelled(piece.trim());
+  const isLabel = (x) => LABEL.test(x);
   for (const t of user) for (const x of sents(t.text)) {
+    if (isLabel(x)) continue;
     const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it|not too|nothing too|has to|have to|no later than|allerg\w*|hates?|can'?t stand|doesn'?t like|does not like|not a fan of)\b|\bby \d{1,2}(?::\d\d)?\s*(?:am|pm)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
     if (RULE.test(x)) {
       const cl = x.split(/,\s*|;\s*|\s+but\s+|\s+and\s+(?=(?:never|don'?t|do not|no|only|without|must|keep)\b)/i).filter((c) => RULE.test(c));
@@ -38279,6 +38293,7 @@ function chatContext(input2) {
     } else if (/\b(let'?s|we'?ll|go with|going with|decided|i chose|i choose|i picked|use the|yes,? (?:do|go)|ok,? (?:do|go)|i want)\b/i.test(x)) sum.decisions.push(x);
   }
   for (const t of ai) for (const x of sents(t.text)) {
+    if (isLabel(x)) continue;
     if (/\b(we agreed|plan is|i'?ll use|going with|decided)\b/i.test(x)) sum.decisions.push(x);
     if (/\b(done|fixed|built|added|created|finished|works now|now works|pass(?:es|ed)|committed|pushed|shipped|deployed|ready)\b|\u2705|\u2713/i.test(x) && !/\?$/.test(x)) sum.done.push(x);
   }

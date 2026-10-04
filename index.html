@@ -7375,7 +7375,18 @@ function chatContext(input){
   const sents = x => String(x).replace(/```[\s\S]*?```/g, " ").split(/(?<=[.!?])\s+|\n+/).map(y => y.replace(/^\s*(?:[-*\u2022#>]+|\d+[.)])\s*/, "").trim()).filter(y => y.split(/\s+/).length >= 3 || (/\?$/.test(y) && y.split(/\s+/).length >= 2));
   sum.goal = user.length ? glTidyAsk(user[0].text) : "";
   sum.latest = user.length > 1 ? glLatestAsk(turns) : "";
+  // Oct 2026: an "Open: ..." or "Rule: ..." line in the last message is not part of the ask (it goes to its own list below)
+  sum.latest = sum.latest.replace(/\s*\b(?:rules?|limits?|open(?: questions?)?|todo)\s*:[\s\S]*$/i, "").trim();
+  // Oct 2026 real /forge-map run: labelled lines inside a turn ("Rule: ...", "Open: ...", "Decided: ...") go straight to their list
+  const LABEL = /^(rules?|limits?|open(?: questions?)?|todo|decided|decisions?)\s*:\s*(.+)$/i;
+  /** @param {string} x @returns {boolean} */
+  const labelled = x => { const m = LABEL.exec(x); if(!m) return false; const k = m[1].toLowerCase(), v = m[2].trim().replace(/[.]+$/, "");
+    if(/^(rule|limit)/.test(k)) sum.rules.push(v); else if(/^(open|todo)/.test(k)) sum.open.push(...v.split(/;\s*/).filter(Boolean)); else sum.decisions.push(v); return true; };
+  for(const t of turns) for(const x of String(t.text).split(/\n+/).map(y => y.trim())) for(const piece of x.split(/(?<=[.!?])\s+(?=(?:rules?|limits?|open|todo|decided|decisions?)\s*:)/i)) labelled(piece.trim());
+  /** @param {string} x */
+  const isLabel = x => LABEL.test(x);
   for(const t of user) for(const x of sents(t.text)){
+    if(isLabel(x)) continue;
     // v1 step 14: "no stock photos" is a rule too (a real /forge-map run listed it as "not tagged as a rule")
     // Oct 2026: "not too scary", "nothing too heavy", "has to finish by 4pm" and allergies are rules too
     const RULE = /\b(must|don'?t|do not|never|only|without|at most|at least|no more than|under \d|max|budget|deadline|make sure|no money|free|avoid|keep it|not too|nothing too|has to|have to|no later than|allerg\w*|hates?|can'?t stand|doesn'?t like|does not like|not a fan of)\b|\bby \d{1,2}(?::\d\d)?\s*(?:am|pm)\b|\bno (?!idea\b|problem\b|worries\b|thanks\b|way\b|one\b|longer\b|clue\b)[a-z]{3,}/i;
@@ -7383,6 +7394,7 @@ function chatContext(input){
     else if(/\b(let'?s|we'?ll|go with|going with|decided|i chose|i choose|i picked|use the|yes,? (?:do|go)|ok,? (?:do|go)|i want)\b/i.test(x)) sum.decisions.push(x);
   }
   for(const t of ai) for(const x of sents(t.text)){
+    if(isLabel(x)) continue;
     if(/\b(we agreed|plan is|i'?ll use|going with|decided)\b/i.test(x)) sum.decisions.push(x);
     if(/\b(done|fixed|built|added|created|finished|works now|now works|pass(?:es|ed)|committed|pushed|shipped|deployed|ready)\b|\u2705|\u2713/i.test(x) && !/\?$/.test(x)) sum.done.push(x);
   }
