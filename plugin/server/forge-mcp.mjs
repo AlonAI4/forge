@@ -38344,11 +38344,11 @@ function chatContext(input2) {
     }
   }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
-  if (lastAi) sum.open.push(...sents(lastAi.text).filter((x) => /\?$/.test(x) && !answered.has(x.toLowerCase())));
+  if (lastAi) sum.open.push(...sents(lastAi.text).filter((x) => /\?$/.test(x) && !isLabel(x) && !answered.has(x.toLowerCase())));
   const plain = (x) => String(x).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
   const g0 = plain(sum.goal);
   sum.decisions = sum.decisions.map((d2) => up1(String(d2).replace(/^\s*(?:but|and|also)\s+/i, ""))).filter((d2) => !g0 || !(g0.includes(plain(d2)) || plain(d2).includes(g0)));
-  if (lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter((x) => /\?$/.test(x)));
+  if (lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter((x) => /\?$/.test(x) && !isLabel(x)));
   const out = tidy(sum);
   return { shape, turns: turns.map((t) => ({ role: t.role || "user", text: t.text, ...t.who ? { who: t.who } : {} })), summary: out, context: ctx(out) };
 }

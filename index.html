@@ -7457,12 +7457,12 @@ function chatContext(input){
     }
   }
   const lastAi = ai[ai.length - 1], lastUser = user[user.length - 1];
-  if(lastAi) sum.open.push(...sents(lastAi.text).filter(x => /\?$/.test(x) && !answered.has(x.toLowerCase())));
+  if(lastAi) sum.open.push(...sents(lastAi.text).filter(x => /\?$/.test(x) && !isLabel(x) && !answered.has(x.toLowerCase())));
   // Oct 2026: the goal is not also a decision, and a decision does not start with "but"
   const plain = (/** @type {string} */ x) => String(x).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
   const g0 = plain(sum.goal);
   sum.decisions = sum.decisions.map(d => up1(String(d).replace(/^\s*(?:but|and|also)\s+/i, ""))).filter(d => !g0 || !(g0.includes(plain(d)) || plain(d).includes(g0)));
-  if(lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter(x => /\?$/.test(x))); // answered when the AI spoke after it
+  if(lastUser && turns[turns.length - 1] === lastUser) sum.open.push(...sents(lastUser.text).filter(x => /\?$/.test(x) && !isLabel(x))); // answered when the AI spoke after it
   const out = tidy(sum);
   return {shape, turns: turns.map(t => ({role: t.role || "user", text: t.text, ...(t.who ? {who: t.who} : {})})), summary: out, context: ctx(out)};
 }
