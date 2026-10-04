@@ -60,6 +60,10 @@ Against Claude itself (a full AI writing the prompt), the website on its own sti
 Why the plugin wins, in the judges' words: it keeps every detail the person gave, uses each AI's current settings, and invents nothing.
 Limits: these are small tests. The other generators limit free use (GeneratePrompt.net stops after 10 prompts a day, Jotform after a few an hour), so each had only 5 to 7 requests. Forge has no limits, needs no account and keeps no data.
 
+## Terms
+
+Free to use, provided as is. Forge can be wrong and the AIs it writes for change, so check a prompt before you rely on it. What you make is yours, and so is the responsibility: follow each AI's rules, and don't use Forge to make anything illegal, hateful, or meant to hurt or deceive someone. Forge keeps no data. The code is free to use, not to copy (see [LICENSE](LICENSE)). Full terms: https://alonai4.github.io/forge/#terms
+
 ## Community
 
 Forge is free while it is being built. The full guide is on the website: https://alonai4.github.io/forge/#get-forge Found a bug, a model that is out of date, or have an idea?

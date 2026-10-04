@@ -769,7 +769,7 @@ body::before{display:none}
             <li><span><b>Lean, 15:</b> no filler words, and nothing said twice.</span></li>
           </ul>
         </div></div>
-        <div class="billet" id="privacy"><div class="billet-head"><h2>Privacy</h2></div><div class="billet-body">
+        <div class="billet" id="privacy" style="scroll-margin-top:90px"><div class="billet-head"><h2>Privacy</h2></div><div class="billet-body">
           <p><b>Forge does not collect your data.</b> There are no accounts, no ads, no tracking and no cookies. Everything runs in your browser.</p>
           <ul class="notes">
             <li><span><b>Saved on this device only:</b> what you typed in the boxes, your level, the AI you picked, your pins, and light or dark mode. It never leaves your device, and Forge cannot see it.</span></li>
@@ -782,11 +782,24 @@ body::before{display:none}
             <button class="mini" type="button" id="wipeBtn" data-tip="Delete everything Forge saved on this device. This cannot be undone.">Delete everything Forge saved</button>
           </div>
         </div></div>
+        <!-- Oct 2026: Terms, in plain words (1.1 list: "a short Terms page") -->
+        <div class="billet" id="terms" style="scroll-margin-top:90px"><div class="billet-head"><h2>Terms</h2></div><div class="billet-body">
+          <p>Short and plain. By using Forge (this website, the plugin or the skill) you agree to this.</p>
+          <ul class="notes">
+            <li><span><b>Free to use.</b> No account, no payment. Forge may change, improve or stop at any time.</span></li>
+            <li><span><b>Provided as is.</b> Forge tries hard to write good prompts, but it can be wrong, and the AIs it writes for can change. Check a prompt before you rely on it. Forge is not responsible for what another AI makes from it.</span></li>
+            <li><span><b>What you make is yours, and so is the responsibility.</b> Follow the rules of each AI you use, and don't use Forge to make anything illegal, hateful, or meant to hurt or deceive someone.</span></li>
+            <li><span><b>Your data:</b> Forge keeps none. See <a href="#privacy" data-terms-link>Privacy</a> above.</span></li>
+            <li><span><b>The code:</b> free to use, not to copy or resell. The licence is on <a href="https://github.com/AlonAI4/forge/blob/main/LICENSE" target="_blank" rel="noopener">GitHub</a>.</span></li>
+            <li><span><b>Questions or problems:</b> open an issue on <a href="https://github.com/AlonAI4/forge/issues" target="_blank" rel="noopener">GitHub</a>.</span></li>
+          </ul>
+          <p class="fhint" style="margin:10px 0 0">Last updated 4 October 2026. This is a plain summary, not legal advice.</p>
+        </div></div>
         <div class="billet"><div class="billet-head"><h2>Good to know</h2></div><div class="billet-body">
           <ul class="notes">
             <li><span>Hover over any button or score (or move to it with Tab) and Forge says what it does.</span></li>
             <li><span>The star next to an AI pins it to the top of the list.</span></li>
-            <li><span>Each AI's facts were checked against its official docs. The date and links are under its name.</span></li>
+            <li><span>Each AI's facts were checked against its official docs. The date and links are under <b>About this AI</b>.</span></li>
             <li><span>Forge is free while it is being built. Found a bug or have an idea? Open an issue on GitHub.</span></li>
           </ul>
         </div></div>
@@ -8619,7 +8632,7 @@ document.addEventListener("click", e=>{
   const c = e.target.closest("[data-copy]"); if(c) copy(c.dataset.copy, "Command");
 });
 // A link to #manual or #get-forge (from the GitHub README) opens the Manual tab at that part.
-if(/^#(manual|get-forge)$/.test(location.hash)){ const t = document.querySelector('.tab[data-pane="manual"]'); if(t){ t.click(); const g = document.getElementById(location.hash.slice(1)); if(g) setTimeout(()=>g.scrollIntoView(), 50); } }
+if(/^#(manual|get-forge|terms|privacy)$/.test(location.hash)){ const t = document.querySelector('.tab[data-pane="manual"]'); if(t){ t.click(); const g = document.getElementById(location.hash.slice(1)); if(g) setTimeout(()=>g.scrollIntoView(), 50); } }
 
 /* ==========================================================================
    12. PROMPT DOCTOR
