@@ -549,7 +549,9 @@ body::before{display:none}
 .mhead h1{font-size:2.25rem}
 .mver{font-family:var(--f-body);letter-spacing:0}
 /* the empty right side before the first Strike: lighter, so the form is what you see first */
-.empty{opacity:.7}
+.empty > :not(p){opacity:.7}
+/* the empty-state hint and links in hints stay full strength so they pass contrast (axe, 5 Oct) */
+.fhint a,[data-terms-link],[data-pane="manual"] a:not([class]){color:var(--ember-text)}
 /* model details (version, docs, feature tags) are folded away under "About this AI" */
 .aboutai{margin:8px 0 18px}
 .aboutai summary{cursor:pointer;font-size:0.8125rem;color:var(--ink-dim);min-height:24px;width:max-content}
@@ -9105,10 +9107,10 @@ $("#matchPri").addEventListener("click", e=>{
 // v1 step 14: on 30 fresh jobs Forge guessed the KIND of AI wrong a third of the time (a mascot went to a coding AI).
 // One tap from the person fixes that without any AI; "Not sure" keeps the old guessing.
 const MKINDS = [["","Not sure"],["image","Picture"],["video","Video"],["voice","Voice"],["music","Music"],["sfx","Sound effect"],["text","Writing or chat"],["code","Code"],["app","App or website"],["research","Research"]];
-$("#matchKind").innerHTML = MKINDS.map(([k, l], i)=>'<button type="button" class="opt" role="radio" data-kind="' + k + '" aria-checked="' + (i ? "false" : "true") + '" aria-pressed="' + (i ? "false" : "true") + '">' + esc(l) + '</button>').join("");
+$("#matchKind").innerHTML = MKINDS.map(([k, l], i)=>'<button type="button" class="opt" role="radio" data-kind="' + k + '" aria-checked="' + (i ? "false" : "true") + '">' + esc(l) + '</button>').join("");
 $("#matchKind").addEventListener("click", e=>{
   const b = e.target.closest("[data-kind]"); if(!b) return;
-  $("#matchKind").querySelectorAll("[data-kind]").forEach(x=>{ const on = x === b; x.setAttribute("aria-pressed", String(on)); x.setAttribute("aria-checked", String(on)); });
+  $("#matchKind").querySelectorAll("[data-kind]").forEach(x=>{ const on = x === b; x.setAttribute("aria-checked", String(on)); });
 });
 $("#matchBtn").addEventListener("click", ()=>{
   const q = $("#matchIn").value.toLowerCase();
