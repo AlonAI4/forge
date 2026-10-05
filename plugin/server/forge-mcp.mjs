@@ -42434,7 +42434,7 @@ function pickAspect(t, m2) {
   let want = said && !/\bmacro\b/i.test(t.slice(Math.max(0, (said.index || 0) - 8), said.index || 0)) ? Number(said[1]) / Number(said[2]) : 0;
   if (want && said && m2.id === "midjourney" && /^\d+$/.test(said[1]) && /^\d+$/.test(said[2])) return said[1] + ":" + said[2];
   if (!want) {
-    if (/\b(vertical|upright|phone wallpaper|lock ?screen|tiktoks?|reels?|shorts|(instagram|ig|insta|facebook|fb|snapchat|snap|whatsapp) stor(y|ies))\b/i.test(t)) want = 9 / 16;
+    if (/\b(vertical|upright|phone wallpaper|lock ?screen|tiktoks?|reels?|shorts|youtube short|(instagram|ig|insta|facebook|fb|snapchat|snap|whatsapp) stor(y|ies))\b/i.test(t)) want = 9 / 16;
     else if (/\b(portrait (orientation|format|mode)|in portrait|a4|poster|flyer|book cover|pinterest pin)\b/i.test(t)) want = 2 / 3;
     else if (/\b(square|profile pic(ture)?|avatar|pfp|album cover|instagram post|ig post)\b/i.test(t)) want = 1;
     else if (/\b(ultra-?wide|cinemascope|anamorphic|2\.39|letterbox\w*)\b/i.test(t)) want = 21 / 9;
@@ -43033,6 +43033,10 @@ function forgeFromText(text, m2, level, more) {
     brief2[k2] = F[k2].t === "chips" ? v2.split(/\s*,\s*/) : v2;
     const i = suggested.indexOf(k2);
     if (i >= 0) suggested.splice(i, 1);
+  }
+  if ((m2.tech || []).includes("aspect") && !pickAspect(text, m2)) {
+    const a = pickAspect(Object.values(more && more.answers || {}).join(". "), m2);
+    if (a) brief2.aspect = a;
   }
   if (more && more.level) level = more.level;
   const res = forge(brief2, m2, level, { said: text, ...more || {} });

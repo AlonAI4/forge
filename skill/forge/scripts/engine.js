@@ -3370,7 +3370,7 @@ function pickAspect(t, m){
   // Oct 2026 fake test: "--ar 3:4" became "--ar 4:5". Midjourney takes any whole-number ratio, so the one they typed is kept exactly.
   if(want && said && m.id === "midjourney" && /^\d+$/.test(said[1]) && /^\d+$/.test(said[2])) return said[1] + ":" + said[2];
   if(!want){
-    if(/\b(vertical|upright|phone wallpaper|lock ?screen|tiktoks?|reels?|shorts|(instagram|ig|insta|facebook|fb|snapchat|snap|whatsapp) stor(y|ies))\b/i.test(t)) want = 9/16;
+    if(/\b(vertical|upright|phone wallpaper|lock ?screen|tiktoks?|reels?|shorts|youtube short|(instagram|ig|insta|facebook|fb|snapchat|snap|whatsapp) stor(y|ies))\b/i.test(t)) want = 9/16;
     else if(/\b(portrait (orientation|format|mode)|in portrait|a4|poster|flyer|book cover|pinterest pin)\b/i.test(t)) want = 2/3;
     else if(/\b(square|profile pic(ture)?|avatar|pfp|album cover|instagram post|ig post)\b/i.test(t)) want = 1;
     else if(/\b(ultra-?wide|cinemascope|anamorphic|2\.39|letterbox\w*)\b/i.test(t)) want = 21/9;
@@ -3955,6 +3955,11 @@ function forgeFromText(text, m, level, more){
     const v = String(v0 ?? "").trim(); if(!v || !F[k]) continue;
     brief[k] = F[k].t === "chips" ? v.split(/\s*,\s*/) : v;
     const i = suggested.indexOf(k); if(i >= 0) suggested.splice(i, 1);
+  }
+  // 5 Oct (making the Veo Short): an answer can name the shape ("Where will you use it? a vertical YouTube Short") but only the
+  // first message was read for it, so the clip stayed 16:9. The first message still wins when it names a shape itself.
+  if((m.tech || []).includes("aspect") && !pickAspect(text, m)){
+    const a = pickAspect(Object.values((more && more.answers) || {}).join(". "), m); if(a) brief.aspect = a;
   }
   if(more && more.level) level = more.level;
   const res = forge(brief, m, level, {said: text, ...(more || {})});
