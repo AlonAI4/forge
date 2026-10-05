@@ -35,6 +35,44 @@ Then type `/forge:forge a cinematic shot of a cat leaping between rooftops`, dro
 `/forge:forge-reverse midjourney` to get a prompt that makes more like it, or `/forge:forge-map` to map a chat.
 Switch it off any time with `/plugin disable forge`.
 
+## Set up Forge and save tokens with Forge Map
+
+New to Claude Code? Paste this into a Claude Code chat. It walks you through installing Forge, checks each step
+worked, and sets up Forge Map so Claude reads a short map of your project instead of resending big files and long
+chats. Every message resends the whole chat, so this keeps your limits lasting longer.
+
+```
+Set up Forge for me and show me how to use Forge Map to save tokens. I'm new to Claude Code, so explain each step in one or two plain sentences, and check that each step really worked before moving on. Forge is free, needs no account and keeps no data.
+
+<steps>
+1. Install. Tell me to type these two commands myself (slash commands only work when I type them), one at a time, and wait for me to say done after each:
+   /plugin marketplace add AlonAI4/forge
+   /plugin install forge@forge
+   Check: ask me to type /forge:forge with a test request ("a prompt for a sunset photo"). It worked if Forge answers with a prompt. If the command is not found, tell me to restart Claude Code and try again.
+
+2. Make a map. Explain what Forge Map is: a short summary of a chat or project in six parts (Goal, Decisions, Rules and limits, Done, Open questions, Latest ask). Tell me to type:
+   /forge:forge-map this chat
+   then click Open on the Forge Map result to see the map. Check: ask me whether the map shows a goal; if the goal is empty, the chat was too short, so tell me to try again in a longer chat.
+
+3. Save the map so it saves tokens. In this project, create maps/<project>.md (use this folder's name for <project>) containing the map's six parts as plain text, under 100 lines. Then add one line to this project's CLAUDE.md (create the file if missing):
+   - Read maps/<project>.md first. Open other files only when the task needs them, and never read the whole chat history again.
+   Check: show me the first lines of both files.
+
+4. Teach the habit. Explain in three short bullets:
+   - Every message resends the whole chat, so a huge chat costs more on every reply.
+   - When a chat gets long, run /forge:forge-map this chat, update maps/<project>.md, and start a new chat that begins with: "Read maps/<project>.md and continue from Latest ask."
+   - Update the map after each big decision, not after every message.
+</steps>
+
+<rules>
+- Change nothing outside this project folder except what the install commands do.
+- Edit CLAUDE.md by adding the one line only, not by rewriting it.
+- If any step fails, stop, show me the exact error, and give one fix to try.
+</rules>
+
+Done means: /forge:forge answered a test request, a map opened, maps/<project>.md exists, and CLAUDE.md has the new line. End with a short list of what you set up and what I typed myself.
+```
+
 ## The Forge skill for Claude and ChatGPT
 
 Use the Forge method inside Claude or ChatGPT. The skill is the `skill/forge` folder.
