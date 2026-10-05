@@ -5551,6 +5551,9 @@ function forge(b, m, level, opts){
   level = level || "pro"; opts = opts || {};
   // 3.4: what you see is what is used. Boxes hidden at this level are left out.
   let orig = level === "pro" ? b : onlyVisible(b, m, level); // what the user wrote: this is what gets scored
+  // 5 Oct (making the Lovable Short): an answer to one of Forge's own questions is always used, even when that box is hidden
+  // at this level. Before, Simple asked "What must it not touch?" and then dropped the answer.
+  for(const k of Object.keys(/** @type {any} */ (opts).answers || {})) if(has(b[k]) && !has(orig[k])) orig = {...orig, [k]: b[k]};
   // 4.6: fix spelling in typed boxes first (unless "keep my spelling"), and list every change
   /** @type {{from: string, to: string}[]} */
   const fixes = [];

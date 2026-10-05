@@ -44635,6 +44635,10 @@ function forge(b, m2, level, opts2) {
   level = level || "pro";
   opts2 = opts2 || {};
   let orig = level === "pro" ? b : onlyVisible(b, m2, level);
+  for (const k2 of Object.keys(
+    /** @type {any} */
+    opts2.answers || {}
+  )) if (has(b[k2]) && !has(orig[k2])) orig = { ...orig, [k2]: b[k2] };
   const fixes = [];
   if (!opts2.noFix) {
     orig = Object.fromEntries(Object.entries(orig).map(([k2, v2]) => {
