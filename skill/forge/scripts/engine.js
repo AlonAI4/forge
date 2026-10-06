@@ -2771,6 +2771,11 @@ llm(b, m){
   if(has(b.length)) out.push("Length: " + stripDot(b.length) + ".");
   out.push("No preamble and no summary of the request: start with the answer.");
   S.push([xml ? "<output_format>" : "## Output", out.join(" ")]);
+  // 1.0 (review 5 Oct): a short plain question needs no wrapper; tags and "No preamble" around
+  // "What is the capital of Australia?" add nothing, and the "?" was lost
+  const q = String(b.goal || "").trim();
+  if(/\?$/.test(q) && q.split(/\s+/).length <= 15 && !sysText && !has(b.context) && !has(b.examples) && !has(b.pasted) && !mat && !needs.length && out.length === 1)
+    return {blocks:[[xml ? "<instructions>" : "## Task", cap(q)]], flat: cap(q)};
   let flat;
   if(xml){
     flat = [
@@ -3446,7 +3451,9 @@ function rebuildBrief(text, m){
 }
 /** @param {string} text @param {Model} m @returns {{brief: Brief, suggested: string[]}} */
 function rebuildBriefParts(text, m){
-  const t0 = cleanDraft(stripBanned(text).text);
+  // 1.0 (review 5 Oct): cleanDraft turns "?" into "." (right for a picture), which made a question to a chat AI
+  // read "Why is the sky blue. explain it"; text AIs keep their question marks
+  const t0 = m.cat === "text" ? cleanDraft(stripBanned(text).text.replace(/\?/g, "\u2047")).replace(/\u2047/g, "?") : cleanDraft(stripBanned(text).text);
   const t = ["image","video"].includes(m.cat) ? notMine(t0).text : ["sfx","music"].includes(m.cat) ? cap(t0.replace(REQUEST_LEAD, "")) : t0; // 12.2; 12.4: a sound AI hears "Need a" too
   /** @type {Brief} */
   const b = {};

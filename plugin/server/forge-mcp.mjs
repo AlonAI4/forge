@@ -41881,6 +41881,9 @@ var COMPOSE = {
     if (has(b.length)) out.push("Length: " + stripDot(b.length) + ".");
     out.push("No preamble and no summary of the request: start with the answer.");
     S.push([xml ? "<output_format>" : "## Output", out.join(" ")]);
+    const q = String(b.goal || "").trim();
+    if (/\?$/.test(q) && q.split(/\s+/).length <= 15 && !sysText && !has(b.context) && !has(b.examples) && !has(b.pasted) && !mat && !needs.length && out.length === 1)
+      return { blocks: [[xml ? "<instructions>" : "## Task", cap(q)]], flat: cap(q) };
     let flat;
     if (xml) {
       flat = [
@@ -42497,7 +42500,7 @@ function rebuildBrief(text, m2) {
   return out;
 }
 function rebuildBriefParts(text, m2) {
-  const t0 = cleanDraft(stripBanned(text).text);
+  const t0 = m2.cat === "text" ? cleanDraft(stripBanned(text).text.replace(/\?/g, "\u2047")).replace(/\u2047/g, "?") : cleanDraft(stripBanned(text).text);
   const t = ["image", "video"].includes(m2.cat) ? notMine(t0).text : ["sfx", "music"].includes(m2.cat) ? cap(t0.replace(REQUEST_LEAD, "")) : t0;
   const b = {};
   const suggested = [];
