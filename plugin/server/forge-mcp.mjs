@@ -41385,7 +41385,7 @@ function speakerCount(b) {
 }
 var MEDIA_WORDS = /\b(image|images|photo|photos|picture|pictures|screenshot|screenshots|video|videos|pdf|pdfs|scan|scans|diagram|chart|file|files|attached|upload\w*)\b/i;
 function materialNamed(t) {
-  const x = String(t || "").match(/\b(?:my|our|the|this|these|his|her|their|a|an)\s+((?:(?!(?:into|to|for|as|a|an|and|or|in|on|with|from)\s)[a-z-]+\s+){0,2}?(?:notes|essay|draft|review|reviews|paragraph|clause|contract|posting|job ad|job description|doc|document|email|emails|letter|cv|resume|résumé|report|transcript|article|poem|story|script|joke|speech|code|data|spreadsheet|chapter|syllabus|rubric|minutes|message|text|feedback|slides|outline|copy|page copy|module|config|responses|results|description|listing|headlines|plan|breakup text|transcript))\b/i);
+  const x = String(t || "").match(/\b(?:my|our|the|this|these|his|her|their|a|an)\s+((?:(?!(?:into|to|for|as|a|an|and|or|in|on|with|from)\s)[a-z-]+\s+){0,2}?(?:notes|essay|draft|review|reviews|paragraph|clause|contract|posting|job ad|job description|doc|document|email|emails|letter|cv|resume|résumé|report|transcript|article|poem|story|script|joke|speech|code|function|functions|class|component|script|query|regex|data|spreadsheet|chapter|syllabus|rubric|minutes|message|text|feedback|slides|outline|copy|page copy|module|config|responses|results|description|listing|headlines|plan|breakup text|transcript))\b/i);
   const near = x ? String(t).slice(Math.max(0, (x.index || 0) - 40), x.index || 0) : "";
   if (x && /\b(fix|improve|edit|proofread|review|summari[sz]e|shorten|rewrite|reword|check|grade|mark|analy[sz]e|respond to|reply to|answer|translate|turn|polish|critique|feedback on|tighten|simplify|compare|go through|look at|from|based on)\b/i.test(near)) return "the " + x[1].toLowerCase();
   return /\b(?:(?:paste|pasted|pasting|i'?ll paste|ill paste)(?!\s+(?:it\s+)?(?:into|in|onto|to)\b)|below|attached|here it is)\b/i.test(String(t)) ? x ? "the " + x[1].toLowerCase() : "the text" : "";
@@ -41867,7 +41867,7 @@ var COMPOSE = {
     S.push([xml ? "<instructions>" : "## Task", cap(stripDot(b.goal)) || "State the task here."]);
     if (has(b.examples)) S.push([xml ? "<example>" : "## Example of a good answer", stripDot(b.examples)]);
     const all = [b.goal, b.context, b.extra].filter(has).map((v2) => join(v2)).join(" ");
-    const present = /```|\bdef \w+\(|\bfunction\b|=>|\b(?:let|const|var|return|for|while)\b[^.]{0,40}[=;{(]|\{[^}]{10,}\}|["\u201c'][^"\u201d']{30,}["\u201d']/.test(all);
+    const present = /```|\bdef \w+\(|\bfunction\s*\w*\s*\(|=>|\b(?:let|const|var|return|for|while)\b[^.]{0,40}[=;{(]|\{[^}]{10,}\}|["\u201c'][^"\u201d']{30,}["\u201d']/.test(all);
     const mat0 = materialNamed([b.goal, b.context].filter(has).join(" "));
     const inline = /\b(?:notes?|text|these|this|list|points|facts|info(?:rmation)?|headings|below)\b[^:]{0,40}:\s*\S+(?:\s+\S+){5,}/i.test(all);
     const mat = present || inline || /\b(chapter|textbook|book|unit|lesson)\b/i.test(String(mat0 || "")) ? "" : mat0;
@@ -42292,7 +42292,8 @@ var FIND = {
   goal: (t) => t.replace(/\bformat:\s*[^.\n]+\.?/i, "").trim().split(/\s+/).length >= 3 ? t.replace(/\bformat:\s*[^.\n]+\.?/i, "").trim() : "",
   // 8.15: "I'm a teacher" is background; "I'm scared of like" is not (only "I'm a/an ..." and "I work ...")
   context: (t) => firstMatch(t, /\b(for\s+(?:a|an|my|the)?\s*\d+[^,.;]*|i am (?:a|an) [^,.;]+|i'm (?:a|an) [^,.;]+|i work (?:as|at|in|for) [^,.;]+|because [^,.;]+|so that [^,.;]+|audience[^,.;]*|background[^,.;]*)/i),
-  format: (t) => firstMatch(t, /\bformat:\s*([^.\n]+)/i) || firstMatch(t, /\b(\d+\s+(?:bullet points?|bullets|steps|paragraphs?|lines|sentences|words)|bullet(?:ed)? list|numbered list|table|json|markdown|csv|xml|one paragraph|a list)\b/i),
+  format: (t) => firstMatch(t, /\bformat:\s*([^.\n]+)/i) || firstMatch(t, /\b(\d+\s+(?:bullet points?|bullets|steps|paragraphs?|lines|sentences|words)|bullet(?:ed)? list|numbered list|table|json|markdown|csv|xml|one paragraph|a list(?!\s+(?:app|website|site|page|component|of (?:dicts?|dictionaries|objects|strings|numbers|ints|integers|tuples|records|ids|users|tasks)\b)))\b/i),
+  // 1.0: "sorts a list of dicts" is code, not a format
   cTask: (t) => t.trim().split(/\s+/).length >= 3 ? t.trim() : "",
   cStack: (t) => found(t, ["react", "next.js", "nextjs", "vite", "typescript", "javascript", "python", "node", "html", "css", "tailwind", "supabase", "netlify", "django", "flask", "swift", "kotlin"]).join(", ") || (/\b[\w-]+\.(?:tsx?|jsx?|py|html|css|swift)\b/i.exec(t) || [""])[0],
   // 3.6.2: whole file name, not just "ts"
@@ -42557,7 +42558,7 @@ function rebuildBriefParts(text, m2) {
       const firstSentence = t.split(/(?<=[.!?\n])\s+/)[0] || "";
       const known = [b.subject, b.setting, b.purpose, b.extra, b.medium, b.imgtext, b.mood, b.light, b.palette].filter(has).map((v2) => join(v2)).join(" ").toLowerCase();
       const purp = has(b.purpose) ? stripDot(join(b.purpose)).toLowerCase() : "";
-      const parts = firstSentence.split(/,\s*/).slice(1).map((x) => x.trim().replace(/[.!?;\s]+$/, "")).map((x) => purp && x.toLowerCase().includes(purp) ? x.slice(0, x.toLowerCase().indexOf(purp)).replace(/\s+(?:for|to|in|on)?\s*(?:my|our|a|the)?\s*$/i, "").trim() : x).filter((x) => x && (x.toLowerCase().match(/[a-z]{3,}/g) || []).some((w2) => !STOP_WORDS.has(w2) && !known.includes(w2)));
+      const parts = firstSentence.split(/,\s*/).slice(1).map((x) => x.trim().replace(/[.!?;\s]+$/, "")).map((x) => purp && x.toLowerCase().includes(purp) ? x.slice(0, x.toLowerCase().indexOf(purp)).replace(/\s+(?:for|to|in|on)?\s*(?:my|our|a|the)?\s*$/i, "").trim() : x).filter((x) => x && ((x.toLowerCase().match(/[a-z]{3,}/g) || []).some((w2) => !STOP_WORDS.has(w2) && !known.includes(w2)) || (x.toLowerCase().match(/\d[\w:.]*/g) || []).some((d2) => !known.includes(d2))));
       const MOODS = /^(?:moody|dark|calm|cozy|cosy|eerie|creepy|spooky|dreamy|happy|sad|gloomy|cheerful|peaceful|dramatic|epic|mysterious|romantic|nostalgic|melancholic|playful|serene|tense|lonely|warm|cold|fun)$/i;
       const moodPart = parts.find((x) => MOODS.test(x));
       if (moodPart && !has(b.mood)) b.mood = moodPart.toLowerCase();
@@ -43016,7 +43017,8 @@ function askedFormat(t, kind) {
   if (/\btable\b/.test(x)) return "Markdown table";
   if (/step[- ]by[- ]step|\bsteps\b|numbered/.test(x)) return "Numbered steps";
   if (/\bcheck ?list\b/.test(x)) return "Checklist with tick boxes, grouped under headings";
-  if (/\bbullet|\blist\b/.test(x)) return "Bulleted list";
+  const thing = x.replace(/\b(?:to-?do|todo|shopping|grocery|wish|mailing|waiting|guest|contact|task|high ?score)\s+lists?\b/g, " ").replace(/\blists?\s+(?:app|website|site|page|component|feature|view|screen|widget|of (?:dicts?|dictionaries|objects|strings|numbers|ints|integers|tuples|records|ids|users|tasks|items in))\b/g, " ");
+  if (/\bbullet|\blist\b/.test(thing)) return "Bulleted list";
   if (/\bcode only|just the code|only the code/.test(x)) return "Code only, no commentary";
   return "";
 }
@@ -43869,6 +43871,19 @@ function addExtra(res, m2, extra, keepAny) {
     const block = /<[a-z_]+>/.test(f2) ? "<notes>\n" + line + "\n</notes>" : /^## /m.test(f2) ? "## Notes\n" + line : /^[A-Z][A-Z ]{2,}$/m.test(f2) ? "NOTES\n" + line : "Also: " + line;
     res.flat = f2 + "\n\n" + block;
   } else if (/^Subject: /m.test(f2) && /^(?:Goal|Scene): /m.test(f2)) {
+    const design = /\b(posters?|flyers?|leaflets?|invitations?|invites?|tickets?|menus?|certificates?|banners?|signs?|cards?)\b/i.test((f2.match(/^Subject: (.*)$/m) || ["", ""])[1]);
+    const facts = /\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\b|\b\d{1,2}(?::\d\d)?\s?(?:am|pm)\b|[£$€]\s?\d|\bfree\b|\b(?:sign up|register|rsvp|tickets?)\b/i;
+    if (design && /^Text: /m.test(f2) && facts.test(line)) {
+      const venue = f2.match(/^Scene: (.*?) ((?:at|in) (?:the )?[A-Z]?[a-z][^.]*)\.$/m), print = [...keep];
+      let g = f2;
+      if (venue) {
+        print.splice(1, 0, cap(venue[2]));
+        g = g.replace(venue[0], "Scene: " + venue[1] + ".");
+      }
+      res.flat = g.replace(/^(Text: .*)$/m, (_a3, t) => t + " Also print these details, smaller, exactly as written: " + print.map((c) => '"' + stripDot(c) + '"').join(", ") + ".");
+      res.blocks.push(["Anything else", line]);
+      return;
+    }
     res.flat = /^Details: /m.test(f2) ? f2.replace(/^(Details: .*?)\s*$/m, (_a3, d2) => d2 + " " + line) : f2.replace(/^(Subject: .*)$/m, (_a3, sj) => sj + "\nDetails: " + line);
   } else {
     const at = f2.search(/\s--[a-z]/);
