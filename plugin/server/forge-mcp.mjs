@@ -41513,7 +41513,7 @@ function lookOf(table, v2) {
     v2
   );
   const hit = table.find(([re]) => re.test(t));
-  return hit ? hit[1] : "";
+  return hit ? /\b(sleep\w*|asleep|napping|dozing|eyes closed|closed eyes)\b/i.test(t) ? hit[1].replace(/ and bright, alive eyes$/, "") : hit[1] : "";
 }
 function isDrawn(b) {
   return /\b(graphic design|design|vector|flat|line ?art|illustrat\w*|cartoon|anime|watercolou?r|gouache|ink|pixel|icon|logo|risograph|woodcut|chalk|crayon|pencil|painting|painted|3d render|clay|sticker|emblem|badge|drawing|comic|manga)\b/i.test(String(b.medium || ""));
@@ -42854,7 +42854,7 @@ function rebuildBriefParts(text, m2) {
     } else {
       const ac = askAndContext(t);
       b.goal = ac.ask;
-      if (ac.context && !has(b.context)) b.context = ac.context;
+      if (ac.context && (!has(b.context) || /^(?:for|and|to|with|but|or|so|because|of|in|on|at)\b/i.test(String(b.context)))) b.context = ac.context;
     }
     if (has(b.context) && has(b.goal) && String(b.goal).toLowerCase().includes(String(b.context).toLowerCase().replace(/[.!]+$/, "").trim())) delete b.context;
     {
@@ -42896,7 +42896,7 @@ function rebuildBriefParts(text, m2) {
       }
       if (typeof b.context === "string" && /^(?:not too long|short|sincere|polite|friendly|warm|formal|casual)(?:\s*,\s*(?:not too long|short|sincere|polite|friendly|warm|formal|casual))*[.]?$/i.test(b.context.trim()) && (has(b.rules) || has(b.length))) delete b.context;
     }
-    const shortJob = has(b.length) && /few sentences|short|brief|one (?:line|sentence)/i.test(String(b.length)) || /\b(text|message|caption|tweet|reply|dm|note|thank[- ]you)\b/i.test(t) && t.split(/\s+/).length < 40;
+    const shortJob = has(b.length) && /few sentences|short|brief|one (?:line|sentence)/i.test(String(b.length)) || /\b(text|message|caption|tweet|reply|dm|note|thank[- ]you)\b/i.test(t) && t.split(/\s+/).length < 40 || /\?\s*$/.test(t.trim()) && t.split(/\s+/).length <= 15;
     sug("effort", shortJob ? "Low" : "High");
     if (/\b(below|attached|pasted|these notes|my notes|the (document|article|transcript|report|data|email|notes))\b/i.test(t)) sug("rules", "Do not invent facts. If the answer is not in the material, say so");
   }
@@ -43044,9 +43044,9 @@ function forgeFromText(text, m2, level, more) {
     if (a) brief2.aspect = a;
   }
   if (more && more.level) level = more.level;
-  const res = forge(brief2, m2, level, { said: text, ...more || {} });
   const found2 = Object.fromEntries(Object.entries(brief2).filter(([k2]) => !suggested.includes(k2)));
-  const counted = forge(found2, m2, level, { said: text, ...more || {} });
+  const res = forge(brief2, m2, level, { said: text, own: Object.keys(found2), ...more || {} });
+  const counted = forge(found2, m2, level, { said: text, own: Object.keys(found2), ...more || {} });
   res.score = counted.score;
   res.parts = counted.parts;
   res.ask = counted.ask;
@@ -43085,6 +43085,16 @@ function forgeFromText(text, m2, level, more) {
     }
   }
   res.suggested = suggested.map((k2) => ({ f: k2, what: (F[k2] ? F[k2].l : k2) + ": " + join(brief2[k2]) }));
+  const said = String(text).toLowerCase(), flat = String(res.flat);
+  if (/leave a \[bracketed blank\]/.test(flat) && !/\[blank|bracket/.test(said)) res.suggested.push({ f: "rule", what: "Rule: leave a [blank] for any detail you did not give, instead of inventing it" });
+  if (/No preamble and no summary/.test(flat) && !/preamble/.test(said)) res.suggested.push({ f: "output", what: "Output: start with the answer, no preamble" });
+  for (const [, look] of SUBJECT_LOOK) {
+    const l = String(look).replace(/ and bright, alive eyes$/, "");
+    if (flat.toLowerCase().includes(l.toLowerCase()) && !said.includes(l.slice(0, 14).toLowerCase())) {
+      res.suggested.push({ f: "look", what: "Look: " + cap(l) });
+      break;
+    }
+  }
   res.fixes = fixed.fixes;
   const mine = stripBanned(fixed.text);
   res.stripped = [.../* @__PURE__ */ new Set([...res.stripped || [], ...mine.removed])];
@@ -44653,10 +44663,10 @@ function forge(b, m2, level, opts2) {
   level = level || "pro";
   opts2 = opts2 || {};
   let orig = level === "pro" ? b : onlyVisible(b, m2, level);
-  for (const k2 of Object.keys(
+  for (const k2 of [...Object.keys(
     /** @type {any} */
     opts2.answers || {}
-  )) if (has(b[k2]) && !has(orig[k2])) orig = { ...orig, [k2]: b[k2] };
+  ), ...opts2.own || []]) if (has(b[k2]) && !has(orig[k2])) orig = { ...orig, [k2]: b[k2] };
   const fixes = [];
   if (!opts2.noFix) {
     orig = Object.fromEntries(Object.entries(orig).map(([k2, v2]) => {

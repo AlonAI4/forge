@@ -558,6 +558,12 @@ body::before{display:none}
 .aboutai summary:hover{color:var(--ink)}
 .aboutai .chips{margin:10px 0 4px}
 /* "Use in Claude": the setup steps */
+.demo{border-top:1px solid var(--line, rgba(127,127,127,.25));padding-top:12px;margin:0 0 12px}
+.demo-k{display:block;margin:0 0 4px;font-size:0.75rem;font-weight:600;letter-spacing:.02em;opacity:.8}
+.demo-ask{margin:0 0 10px;font-size:0.875rem}.demo-ask q{font-style:italic}
+.demo-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:0 0 10px}
+.demo-out{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;max-height:240px;overflow:auto;font-size:0.75rem;line-height:1.45;padding:10px;border-radius:8px;border:1px solid var(--line, rgba(127,127,127,.25))}
+.demo-why{margin:0 0 10px;padding-left:18px;font-size:0.8125rem;display:grid;gap:4px}
 .setup-steps{display:grid;gap:12px;margin:6px 0 0;padding:0;list-style:none;counter-reset:st}
 .setup-steps[hidden]{display:none}
 .setup-steps li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start;counter-increment:st}
@@ -634,6 +640,21 @@ body::before{display:none}
             <li><span><b>Say what you want</b> in the first box. The rest are optional.</span></li>
             <li><span>Press <b>Strike</b>, then <b>Copy</b>.</span></li>
           </ol>
+          <!-- 1.0 (review 5 Oct): a visitor should see what Forge does in 20 seconds. Both prompts are written live by
+               the engine below, never typed in, so they always match what Forge really does -->
+          <div class="demo" id="demoPair">
+            <p class="demo-ask"><span class="demo-k">You type</span> <q id="demoAsk"></q></p>
+            <div class="demo-cols">
+              <div><p class="demo-k">Forge writes for Claude</p><pre class="demo-out" id="demoClaude" tabindex="0"></pre></div>
+              <div><p class="demo-k">Forge writes for ChatGPT</p><pre class="demo-out" id="demoGpt" tabindex="0"></pre></div>
+            </div>
+            <ul class="demo-why">
+              <li><b>Nothing you asked for is lost.</b> The reason, the tone and the length each get their own place.</li>
+              <li><b>Each AI gets its own layout:</b> tags for Claude, headings for ChatGPT, as their makers' prompting guides show.</li>
+              <li><b>No made-up details.</b> A name or date you did not give comes back as a [blank] to fill in.</li>
+            </ul>
+            <p style="margin:0"><button class="mini" type="button" id="demoTry">Try this example</button></p>
+          </div>
           <p style="margin:0;font-size:0.875rem;display:flex;gap:8px;flex-wrap:wrap"><button class="mini" type="button" data-open-tab="doctor">I already have a prompt</button><button class="mini" type="button" data-open-tab="match">Which AI should I use?</button><button class="mini" type="button" data-get-forge>Use Forge in Claude or ChatGPT</button></p>
         </div>
       </div>
@@ -3218,7 +3239,9 @@ const SUBJECT_LOOK = [
   [/\b(landscape|mountain|beach|forest|lake|ocean|desert|valley|summit|field|sky)\b/i, "depth from foreground to horizon, with layers that lead the eye in"]
 ];
 /** @param {[RegExp, string][]} table @param {Value=} v */
-function lookOf(table, v){ if(!has(v)) return ""; const t = join(/** @type {Value} */ (v)); const hit = table.find(([re]) => re.test(t)); return hit ? hit[1] : ""; }
+function lookOf(table, v){ if(!has(v)) return ""; const t = join(/** @type {Value} */ (v)); const hit = table.find(([re]) => re.test(t));
+  // 1.0 (review 5 Oct): a sleeping fox got "bright, alive eyes"
+  return hit ? (/\b(sleep\w*|asleep|napping|dozing|eyes closed|closed eyes)\b/i.test(t) ? hit[1].replace(/ and bright, alive eyes$/, "") : hit[1]) : ""; }
 /** 13.14: a photo look only for photos; a drawing does not get a lens or skin texture. @param {Brief} b */
 function isDrawn(b){ return /\b(graphic design|design|vector|flat|line ?art|illustrat\w*|cartoon|anime|watercolou?r|gouache|ink|pixel|icon|logo|risograph|woodcut|chalk|crayon|pencil|painting|painted|3d render|clay|sticker|emblem|badge|drawing|comic|manga)\b/i.test(String(b.medium || "")); }
 /** @param {Brief} b @param {Model} m */
@@ -4603,7 +4626,7 @@ function rebuildBriefParts(text, m){
       const ac = askAndContext(t);
       if(ac.context && (!has(b.context) || /^(?:for|and|to|with|but|or|so|because|of|in|on|at)\b/i.test(String(b.context)) || ac.context.length > String(b.context).length * 1.5)) b.context = ac.context;
     }
-    else { const ac = askAndContext(t); b.goal = ac.ask; if(ac.context && !has(b.context)) b.context = ac.context; } // 10.1
+    else { const ac = askAndContext(t); b.goal = ac.ask; if(ac.context && (!has(b.context) || /^(?:for|and|to|with|but|or|so|because|of|in|on|at)\b/i.test(String(b.context)))) b.context = ac.context; } // 10.1; 1.0: a detector's fragment ("for 2 more days on my science project because I was sick") repeated the task
     // Oct 2026 fake test: context that only repeats words already in the task ("Because of a dentist appointment") goes
     if(has(b.context) && has(b.goal) && String(b.goal).toLowerCase().includes(String(b.context).toLowerCase().replace(/[.!]+$/, "").trim())) delete b.context;
     // 12.1: "i dont want to sound like im throwing him under the bus" is the most important rule of the job; it was
@@ -4634,7 +4657,8 @@ function rebuildBriefParts(text, m){
       if(typeof b.context === "string" && /^(?:not too long|short|sincere|polite|friendly|warm|formal|casual)(?:\s*,\s*(?:not too long|short|sincere|polite|friendly|warm|formal|casual))*[.]?$/i.test(b.context.trim()) && (has(b.rules) || has(b.length))) delete b.context;
     }
     // Oct 2026 real run: a two-sentence text got "reasoning effort: high" (Claude lowered it itself). Short messages need little thinking.
-    const shortJob = (has(b.length) && /few sentences|short|brief|one (?:line|sentence)/i.test(String(b.length))) || (/\b(text|message|caption|tweet|reply|dm|note|thank[- ]you)\b/i.test(t) && t.split(/\s+/).length < 40);
+    const shortJob = (has(b.length) && /few sentences|short|brief|one (?:line|sentence)/i.test(String(b.length))) || (/\b(text|message|caption|tweet|reply|dm|note|thank[- ]you)\b/i.test(t) && t.split(/\s+/).length < 40)
+      || (/\?\s*$/.test(t.trim()) && t.split(/\s+/).length <= 15); // 1.0: a short question ("What is the capital of Australia?") needs no deep reasoning
     sug("effort", shortJob ? "Low" : "High");
     if(/\b(below|attached|pasted|these notes|my notes|the (document|article|transcript|report|data|email|notes))\b/i.test(t)) sug("rules", "Do not invent facts. If the answer is not in the material, say so"); // 8.5.2: only when there is material
   }
@@ -4821,9 +4845,9 @@ function forgeFromText(text, m, level, more){
     const a = pickAspect(Object.values((more && more.answers) || {}).join(". "), m); if(a) brief.aspect = a;
   }
   if(more && more.level) level = more.level;
-  const res = forge(brief, m, level, {said: text, ...(more || {})});
   const found = Object.fromEntries(Object.entries(brief).filter(([k])=>!suggested.includes(k)));
-  const counted = forge(found, m, level, {said: text, ...(more || {})});
+  const res = forge(brief, m, level, {said: text, own: Object.keys(found), ...(more || {})});
+  const counted = forge(found, m, level, {said: text, own: Object.keys(found), ...(more || {})});
   res.score = counted.score; res.parts = counted.parts; res.ask = counted.ask;
   // 9.2: never hand back something that scores lower than the person's own words (Prompt Doctor showed 51 -> 47
   // and 53 -> 45). Keep their words, spelling fixed and filler cut, and say why; the questions say what to add.
@@ -4871,6 +4895,12 @@ function forgeFromText(text, m, level, more){
     }
   }
   res.suggested = suggested.map(k=>({f:k, what:(F[k] ? F[k].l : k) + ": " + join(brief[k])}));
+  // 1.0 (review 5 Oct): lines Forge adds on its own are listed too, not only the boxes it filled ("No preamble",
+  // the [blank] rule and an image's subject look went into the prompt without being shown)
+  const said = String(text).toLowerCase(), flat = String(res.flat);
+  if(/leave a \[bracketed blank\]/.test(flat) && !/\[blank|bracket/.test(said)) res.suggested.push({f:"rule", what:"Rule: leave a [blank] for any detail you did not give, instead of inventing it"});
+  if(/No preamble and no summary/.test(flat) && !/preamble/.test(said)) res.suggested.push({f:"output", what:"Output: start with the answer, no preamble"});
+  for(const [, look] of SUBJECT_LOOK){ const l = String(look).replace(/ and bright, alive eyes$/, ""); if(flat.toLowerCase().includes(l.toLowerCase()) && !said.includes(l.slice(0, 14).toLowerCase())){ res.suggested.push({f:"look", what:"Look: " + cap(l)}); break; } }
   res.fixes = fixed.fixes;
   // 6.1.3: say what was wrong in YOUR text, even when the rewrite quietly fixes it, so you learn why
   const mine = stripBanned(fixed.text);
@@ -6418,14 +6448,16 @@ function withTips(flat, m, lines){
   const at = flat.search(/\s--[a-z]/);
   return at > 0 ? flat.slice(0, at).replace(/\s*$/, "") + " " + line + flat.slice(at) : flat.replace(/\s*$/, "") + " " + line;
 }
-/** @param {Brief} b @param {Model} m @param {Level=} level @param {{keep?: boolean, noFix?: boolean, context?: string, noRecipes?: boolean, said?: string, noStyle?: boolean}=} opts */
+/** @param {Brief} b @param {Model} m @param {Level=} level @param {{keep?: boolean, noFix?: boolean, context?: string, noRecipes?: boolean, said?: string, noStyle?: boolean, own?: string[]}=} opts */
 function forge(b, m, level, opts){
   level = level || "pro"; opts = opts || {};
   // 3.4: what you see is what is used. Boxes hidden at this level are left out.
   let orig = level === "pro" ? b : onlyVisible(b, m, level); // what the user wrote: this is what gets scored
   // 5 Oct (making the Lovable Short): an answer to one of Forge's own questions is always used, even when that box is hidden
   // at this level. Before, Simple asked "What must it not touch?" and then dropped the answer.
-  for(const k of Object.keys(/** @type {any} */ (opts).answers || {})) if(has(b[k]) && !has(orig[k])) orig = {...orig, [k]: b[k]};
+  // 1.0 (review 6 Oct): boxes filled from their own words are kept too ("keep it short and polite" set Length and
+  // Rules, both hidden at Basic, so it vanished). Only Forge's own suggestions stay hidden.
+  for(const k of [...Object.keys(/** @type {any} */ (opts).answers || {}), ...(opts.own || [])]) if(has(b[k]) && !has(orig[k])) orig = {...orig, [k]: b[k]};
   // 4.6: fix spelling in typed boxes first (unless "keep my spelling"), and list every change
   /** @type {{from: string, to: string}[]} */
   const fixes = [];
@@ -7903,6 +7935,16 @@ const store = {
 { const showWelcome = ()=>{ const w = document.getElementById("welcome"); if(w && !store.get("welcomed", false)) w.hidden = false; };
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", showWelcome); else showWelcome(); }
 document.addEventListener("click", e=>{ if(e.target.closest("#welcomeClose")){ document.getElementById("welcome").hidden = true; store.set("welcomed", true); } });
+// 1.0: the before/after in the welcome is written by the engine itself, so it can never drift from what Forge does
+{ const EX = "write an email to my teacher asking for 2 more days on my science project because I was sick, keep it short and polite";
+  const ask = document.getElementById("demoAsk");
+  // after the whole script has run: byId and the models are defined further down
+  if(ask) setTimeout(()=>{ ask.textContent = EX;
+    for(const [id, el] of [["claude", "demoClaude"], ["gpt", "demoGpt"]]){ const m = byId(id), o = document.getElementById(el); if(m && o) o.textContent = forgeFromText(EX, m, "basic").flat; } }, 0);
+  document.addEventListener("click", e=>{ if(!e.target.closest("#demoTry")) return;
+    // Prompt Doctor runs the same engine on their words, with the score and what changed
+    selectModel("claude"); document.querySelector('.tab[data-pane="doctor"]').click();
+    const box = $("#docIn"); box.value = EX; $("#docBtn").click(); box.focus(); }); }
 const ST = {
   model: store.get("model","midjourney"),
   pins: store.get("pins",["midjourney","el-tts","claude"]),

@@ -2,6 +2,8 @@
 
 **The prompt smithy.** Forge writes prompts in each AI model's own style, with the exact settings to match.
 
+For anyone who uses AI tools and wants the right answer the first time, without learning each AI's prompt rules.
+
 **Use it now, free: https://alonai4.github.io/forge/**
 
 Also at: https://forge-prompt-smith.pages.dev (the same site on Cloudflare; both update together).
@@ -9,6 +11,60 @@ Also at: https://forge-prompt-smith.pages.dev (the same site on Cloudflare; both
 **New here?** The website's Manual tab explains every part and how to add Forge to Claude or ChatGPT, step by step: https://alonai4.github.io/forge/#get-forge
 
 Works for 57 models: Image (12), Video (11), Voice & speech (6), Sound effects (2), Music (5), Chat & reasoning (6), Coding agents (6), App builders (5), Research (4).
+
+## Before and after
+
+Written by Forge 0.2.38 itself when this README was built, not typed in.
+
+You type:
+
+> write an email to my teacher asking for 2 more days on my science project because I was sick, keep it short and polite
+
+Forge writes for **Claude**:
+
+```
+<!-- system prompt -->
+Tone: polite.
+
+<context>
+I was sick
+</context>
+
+<instructions>
+Write an email to my teacher asking for 2 more days on my science project
+</instructions>
+
+<requirements>
+- Where you need a detail I did not give (a name, a date, a number), leave a [bracketed blank] instead of inventing it.
+</requirements>
+
+<output_format>
+Length: A few sentences. No preamble and no summary of the request: start with the answer.
+</output_format>
+```
+
+Forge writes for **ChatGPT**:
+
+```
+## System prompt
+Tone: polite.
+
+## Context
+I was sick
+
+## Task
+Write an email to my teacher asking for 2 more days on my science project
+
+## Requirements
+- Where you need a detail I did not give (a name, a date, a number), leave a [bracketed blank] instead of inventing it.
+
+## Output
+Length: A few sentences. No preamble and no summary of the request: start with the answer.
+```
+
+- **Nothing you asked for is lost.** The reason, the tone and the length each get their own place.
+- **Each AI gets its own layout:** tags for Claude, headings for ChatGPT, as their makers' prompting guides show. The content is the same.
+- **No made-up details.** A name or date you did not give comes back as a [blank] to fill in.
 
 ## What it does
 
@@ -18,8 +74,8 @@ Works for 57 models: Image (12), Video (11), Voice & speech (6), Sound effects (
 - **Fixes spelling.** "pormpt" becomes "prompt", and it always shows what it changed.
 - **Scores your prompt** out of 100: Covered, Detail, Fits, Clear, Lean.
 - **Prompt Doctor.** Paste any prompt and get it back better, with the score before and after.
-- **Three levels.** Basic, Intermediate and Professional. Basic is simpler, never worse.
-- **Kept up to date.** Every model is checked against its official docs, with sources shown.
+- **Three levels.** Basic, Intermediate and Professional. Basic asks for less; what you typed is always kept.
+- **Sourced.** Each model's facts link to its official docs. Anything not confirmed is marked unverified.
 
 ## The Forge plugin for Claude Code
 
@@ -32,7 +88,7 @@ wrote. It keeps no data. In Claude Code:
 ```
 
 Then type `/forge:forge a cinematic shot of a cat leaping between rooftops`, drop a picture in the chat and type
-`/forge:forge-reverse midjourney` to get a prompt that makes more like it, or `/forge:forge-map` to map a chat.
+`/forge:forge-reverse midjourney` to get a prompt that makes more like it (experimental), or `/forge:forge-map` to map a chat (experimental).
 Switch it off any time with `/plugin disable forge`.
 
 ## Set up Forge and save tokens with Forge Map
@@ -93,10 +149,18 @@ Tested on 3 October 2026. The same new requests went to Forge and to other free 
 | The plugin for Claude | won 10 of 10 | won 7 of 7 |
 | The website, on its own (no AI) | won 4 of 5 (the version before won 1 of 5) | lost 5 of 7 (tested before the 3 October update) |
 
-Against Claude itself (a full AI writing the prompt), the website on its own still loses almost every time (0-5% across its features on 90 new requests, 3 October), though each feature got clearly better than its old version (Chat Context 82%, Anvil 63%, Doctor 61%). The plugin, where Claude writes from Forge's brief, is the strong one.
+Against Claude itself (a full AI writing the prompt), the judge preferred the website's prompt in only 0-5% of 90 new requests (3 October). Each feature did beat its own older version most of the time (Chat Context in 82% of requests, Anvil 63%, Doctor 61%). The plugin, where Claude writes from Forge's brief, is the strong one.
 
 Why the plugin wins, in the judges' words: it keeps every detail the person gave, uses each AI's current settings, and invents nothing.
 Limits: these are small tests. The other generators limit free use (GeneratePrompt.net stops after 10 prompts a day, Jotform after a few an hour), so each had only 5 to 7 requests. Forge has no limits, needs no account and keeps no data.
+
+## Roadmap (experimental, may change)
+
+- **1.0:** the website, the plugin and the skill. Reverse Forge, Chat Context, Matchmaker and Forge Map are experimental.
+- **1.1:** fixes from testers, and a date on every AI fact so old ones get rechecked.
+- **1.5:** a free online AI writer for the website, so it matches the plugin. Maybe Cursor and VS Code.
+- **2.0:** Forge inside Claude Code, next to the prompt box.
+- **2.1:** a browser extension.
 
 ## Terms
 
