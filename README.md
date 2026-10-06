@@ -4,17 +4,17 @@
 
 For anyone who uses AI tools and wants the right answer the first time, without learning each AI's prompt rules.
 
-**Use it now, free: https://alonai4.github.io/forge/**
+**Use it now, free: https://forge-prompt-smith.pages.dev/**
 
-Also at: https://forge-prompt-smith.pages.dev (the same site on Cloudflare; both update together).
+Also at: https://alonai4.github.io/forge/ (a copy on GitHub Pages; it can be older).
 
-**New here?** The website's Manual tab explains every part and how to add Forge to Claude or ChatGPT, step by step: https://alonai4.github.io/forge/#get-forge
+**New here?** The website's Manual tab explains every part and how to add Forge to Claude or ChatGPT, step by step: https://forge-prompt-smith.pages.dev/#get-forge
 
 Works for 57 models: Image (12), Video (11), Voice & speech (6), Sound effects (2), Music (5), Chat & reasoning (6), Coding agents (6), App builders (5), Research (4).
 
 ## Before and after
 
-Written by Forge 0.2.38 itself when this README was built, not typed in.
+Written by Forge 0.2.39 itself when this README was built, not typed in.
 
 You type:
 
@@ -164,11 +164,11 @@ Limits: these are small tests. The other generators limit free use (GenerateProm
 
 ## Terms
 
-Free to use, provided as is. Forge can be wrong and the AIs it writes for change, so check a prompt before you rely on it. What you make is yours, and so is the responsibility: follow each AI's rules, and don't use Forge to make anything illegal, hateful, or meant to hurt or deceive someone. Forge keeps no data. The code is free to use, not to copy (see [LICENSE](LICENSE)). Full terms: https://alonai4.github.io/forge/#terms
+Free to use, provided as is. Forge can be wrong and the AIs it writes for change, so check a prompt before you rely on it. What you make is yours, and so is the responsibility: follow each AI's rules, and don't use Forge to make anything illegal, hateful, or meant to hurt or deceive someone. Forge keeps no data. Forge is independent: it is not made by, approved by or connected to any company whose AI it writes for, and their names are their trademarks. The code is free to use, not to copy (see [LICENSE](LICENSE)). Full terms: https://forge-prompt-smith.pages.dev/#terms
 
 ## Community
 
-Forge is free while it is being built. The full guide is on the website: https://alonai4.github.io/forge/#get-forge Found a bug, a model that is out of date, or have an idea?
+Forge is free while it is being built. The full guide is on the website: https://forge-prompt-smith.pages.dev/#get-forge Found a bug, a model that is out of date, or have an idea?
 Open an issue: https://github.com/AlonAI4/forge/issues
 
 The website updates itself whenever this repo changes.
