@@ -42263,7 +42263,7 @@ var firstMatch = (t, re) => {
   const x = re.exec(t);
   return x ? (x[1] || x[0]).trim() : "";
 };
-var PLACE = /\b((?:in|at|on|inside|under|over|near|by|beside|across)\s+(?!(?:the )?top\b|all\b|least\b|most\b|time\b|general\b|mind\b|repeat\b|the way\b|a budget\b|purpose\b|fire\b|point\b|board\b|loop\b|average\b)(?:a|an|the|my|our)?\s*[a-z][^,.;!?]*)/i;
+var PLACE = /(?<!\b(?:sign(?:ed|ing)? ?up|register\w*|enrol\w*|meet(?: us)?|pay|collect\w*|pick(?:ed)? up|rsvp|tickets?(?: available)?|on sale|enter|apply|drop[- ]off)\s+)\b((?:in|at|on|inside|under|over|near|by|beside|across)\s+(?!(?:the )?top\b|all\b|least\b|most\b|time\b|general\b|mind\b|repeat\b|the way\b|a budget\b|purpose\b|fire\b|point\b|board\b|loop\b|average\b)(?:a|an|the|my|our)?\s*[a-z][^,.;!?]*)/i;
 var SITE = /\b(pinterest|instagram|insta|tiktok|youtube|twitter|reddit|artstation|behance|dribbble|facebook|tumblr|twitch|discord|etsy|linkedin|snapchat|threads|deviantart|flickr|the internet|the web|(?:my|our|the|their)\s+(?:feed|page|site|website|homepage|profile|story|stories|timeline|channel|board|moodboard|camera roll|phone))\b/i;
 var PURPOSE = /\bfor\s+((?:a|an|the|my|our|your)\s+[^,.;!?]+)/i;
 var ACTION = /\b(then|while|drops?|runs?|walks?|jumps?|turns?|moves?|flies|falls?|rises?|spins?|dances?|opens?|looks?|waves?|rides?|skates?|climbs?|swims?|throws?|kicks?|lands?|(?:sail|chas|walk|runn|fly|fall|danc|jump|flipp|spinn|bloom|blow|rid|swimm|climb|float|drift|roll|pour|melt|grow|turn|open|crash|splash|chas|leap|wav|bounc|glid|sprint|march|crawl|swing|swirl)ing)\b/i;
@@ -42336,7 +42336,7 @@ function scoreText(text, m2) {
   const cov = core.length ? core.filter((k2) => FIND[k2](bad.text)).length / core.length : Math.min(1, words2 / 10);
   const hits = ["camera", "light", "film", "comp", "colour", "role", "example", "neg"].filter((k2) => LEX[k2].test(t)).length;
   const clashes = CLASHES.filter(([a, c]) => listedTogether(t, a, c)).length;
-  const reps = repeatsIn([bad.text]);
+  const reps = repeatsIn([bad.text.replace(/<(context|examples?|data|document)>[\s\S]*?<\/\1>/gi, " ").replace(/<\/?[a-z_]+>/gi, " ")]);
   const p2 = {
     covered: Math.round(30 * Math.min(1, cov)),
     detail: DETAIL_STEPS[Math.min(4, hits)],

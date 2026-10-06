@@ -4047,7 +4047,7 @@ function found(t, list){
 // so the two can never disagree about what you wrote.
 /** @type {(t: string, re: RegExp) => string} */
 const firstMatch = (t, re) => { const x = re.exec(t); return x ? (x[1] || x[0]).trim() : ""; };
-const PLACE = /\b((?:in|at|on|inside|under|over|near|by|beside|across)\s+(?!(?:the )?top\b|all\b|least\b|most\b|time\b|general\b|mind\b|repeat\b|the way\b|a budget\b|purpose\b|fire\b|point\b|board\b|loop\b|average\b)(?:a|an|the|my|our)?\s*[a-z][^,.;!?]*)/i; // 8.5.12: "over the top", "at all" are not places
+const PLACE = /(?<!\b(?:sign(?:ed|ing)? ?up|register\w*|enrol\w*|meet(?: us)?|pay|collect\w*|pick(?:ed)? up|rsvp|tickets?(?: available)?|on sale|enter|apply|drop[- ]off)\s+)\b((?:in|at|on|inside|under|over|near|by|beside|across)\s+(?!(?:the )?top\b|all\b|least\b|most\b|time\b|general\b|mind\b|repeat\b|the way\b|a budget\b|purpose\b|fire\b|point\b|board\b|loop\b|average\b)(?:a|an|the|my|our)?\s*[a-z][^,.;!?]*)/i; // 8.5.12: "over the top", "at all" are not places; 1.0: "sign up at the clubhouse" is where readers go, not the scene
 // 8.7.2: where people SEE things is not where the picture HAPPENS. "i keep seeing this on pinterest" was
 // landing in the Setting box, so the prompt read "...a glowing portal in a desert on pinterest".
 const SITE = /\b(pinterest|instagram|insta|tiktok|youtube|twitter|reddit|artstation|behance|dribbble|facebook|tumblr|twitch|discord|etsy|linkedin|snapchat|threads|deviantart|flickr|the internet|the web|(?:my|our|the|their)\s+(?:feed|page|site|website|homepage|profile|story|stories|timeline|channel|board|moodboard|camera roll|phone))\b/i;
@@ -4103,7 +4103,9 @@ function scoreText(text, m){
   const cov = core.length ? core.filter(k=>FIND[k](bad.text)).length / core.length : Math.min(1, words/10);
   const hits = ["camera","light","film","comp","colour","role","example","neg"].filter(k=>LEX[k].test(t)).length;
   const clashes = CLASHES.filter(([a,c])=>listedTogether(t,a,c)).length;
-  const reps = repeatsIn([bad.text]);
+  // XML tag names open and close (<context>...</context>), so they always "repeat"; and pasted context is
+  // skipped, as NO_REPEAT_CHECK does for the brief score. Without this Forge's own Claude prompt scored lower than the request.
+  const reps = repeatsIn([bad.text.replace(/<(context|examples?|data|document)>[\s\S]*?<\/\1>/gi, " ").replace(/<\/?[a-z_]+>/gi, " ")]);
   const p = {
     covered: Math.round(30 * Math.min(1, cov)),
     detail: DETAIL_STEPS[Math.min(4, hits)],
