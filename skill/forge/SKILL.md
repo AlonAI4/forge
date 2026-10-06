@@ -60,4 +60,4 @@ If you cannot run code, do the same job by hand:
 Out of 100: Covered 30 (the main things are there), Detail 20 (1st detail 8, 2nd 6, 3rd 4, 4th 2, more earns nothing), Fits 20 (the length suits this model), Clear 15 (15 if nothing clashes, 0 if anything does), Lean 15 (minus 5 per filler word, minus 3 per repeated word). `--check` prints it.
 
 ---
-Made by Alon Shayo. Free to use, not to copy: see LICENSE. Try it in your browser: https://forge-prompt-smith.pages.dev/
+Made by Alon. Free to use, not to copy: see LICENSE. Try it in your browser: https://forge-prompt-smith.pages.dev/

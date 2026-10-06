@@ -11,7 +11,7 @@ Category: Voice & speech. From Forge's prompt library. The 9-part master prompt 
 ```
 Model: sonic-3.6. Voice: a calm, friendly female support agent, en-GB.
 Parameters: emotion neutral-positive, speed 1.0, volume 1.0.
-Pronunciation dictionary: "Forge" /fɔːdʒ/, "Shayo" /ˈʃaɪ.oʊ/.
+Pronunciation dictionary: "Forge" /fɔːdʒ/.
 Script: Hi, thanks for calling. I can see your order, number F, 4, 7, 2, 9, was dispatched this morning and should arrive by Thursday. Would you like me to text the tracking link to the number ending 0, 3, 1, 5?
 ```
 

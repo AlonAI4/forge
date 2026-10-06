@@ -1,9 +1,9 @@
 {
   "name": "forge",
   "displayName": "Forge",
-  "version": "0.2.39",
+  "version": "0.2.40",
   "description": "Expert prompts for any AI. Forge picks the AI, asks at most 3 questions, hands Claude its brief, and checks what Claude wrote. Keeps no data.",
-  "author": { "name": "Alon Shayo", "url": "https://github.com/AlonAI4" },
+  "author": { "name": "Alon", "url": "https://github.com/AlonAI4" },
   "homepage": "https://forge-prompt-smith.pages.dev/",
   "repository": "https://github.com/AlonAI4/forge",
   "keywords": ["prompts", "prompt engineering", "image", "video", "coding agents"]

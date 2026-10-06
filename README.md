@@ -14,7 +14,7 @@ Works for 57 models: Image (12), Video (11), Voice & speech (6), Sound effects (
 
 ## Before and after
 
-Written by Forge 0.2.39 itself when this README was built, not typed in.
+Written by Forge 0.2.40 itself when this README was built, not typed in.
 
 You type:
 
@@ -175,4 +175,4 @@ The website updates itself whenever this repo changes.
 
 ---
 
-Made by Alon Shayo. Free to use, not to copy: see [LICENSE](LICENSE).
+Made by Alon. Free to use, not to copy: see [LICENSE](LICENSE).
