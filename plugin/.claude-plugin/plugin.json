@@ -1,7 +1,7 @@
 {
   "name": "forge",
   "displayName": "Forge",
-  "version": "0.2.40",
+  "version": "0.2.41",
   "description": "Expert prompts for any AI. Forge picks the AI, asks at most 3 questions, hands Claude its brief, and checks what Claude wrote. Keeps no data.",
   "author": { "name": "Alon", "url": "https://github.com/AlonAI4" },
   "homepage": "https://forge-prompt-smith.pages.dev/",

@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Forge</title>
+<meta name="description" content="Forge writes better prompts for 57 AIs, each in that AI's own style, with the settings to match. Free, no account, nothing you type leaves your browser.">
+<!-- 1.0 (7 Oct): structured data, so search engines and AI assistants can tell what Forge is -->
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Forge", "alternateName": "Forge, the prompt smithy", "url": "https://forge-prompt-smith.pages.dev/", "applicationCategory": "DeveloperApplication", "operatingSystem": "Any (runs in the browser)", "description": "Forge writes prompts in each AI model's own style, with the settings to match, for 57 AIs: image, video, voice, music, chat, coding agents, app builders and research. It runs in your browser and keeps no data.", "isAccessibleForFree": true, "author": {"@type": "Person", "name": "Alon"}}</script>
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml"><!-- Oct 2026: the anvil icon in the browser tab and search results -->
 <link rel="icon" href="icons/favicon-48.png" sizes="48x48" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -320,6 +323,10 @@ textarea.inp{resize:vertical;min-height:74px;line-height:1.5}
 }
 .strike:hover{filter:brightness(1.08)}
 .strike:active{transform:translateY(1px)}
+/* 1.0 polish (7 Oct): every button and tab answers a press, not only Strike. Motion is skipped for people who ask for less. */
+.mini,.ghost,.tab,.rail button{transition:transform .08s ease,filter .08s ease}
+.mini:active,.ghost:active,.tab:active,.rail button:active{transform:scale(.96);filter:brightness(.92)}
+@media (prefers-reduced-motion:reduce){.mini,.ghost,.tab,.rail button{transition:none}.mini:active,.ghost:active,.tab:active,.rail button:active{transform:none}}
 .strike[disabled]{opacity:.4;cursor:not-allowed;filter:grayscale(.6)}
 
 /* ---------- output billet ---------- */

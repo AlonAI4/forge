@@ -1,0 +1,3 @@
+# Everyone is welcome, AI crawlers included.
+User-agent: *
+Allow: /
