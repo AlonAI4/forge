@@ -18,7 +18,7 @@ Files you can use (read only what you need):
 The Forge plugin's tools (`forge_brief`, `forge_check`, ...) do the same job when they are installed and allowed. If they are missing or blocked, use this skill's own script below. Never stop just because a plugin tool was refused.
 
 1. **Pick the AI.** If the user named one, find its id (`node scripts/forge.mjs --list`). If not, pick the best one from `references/models.md` and say why in one line. Then read `references/models/<id>.md`.
-2. **Get Forge's brief.** Pass the user's words exactly as they wrote them:
+2. **Get Forge's brief.** Pass the user's own words, with clear spelling mistakes fixed first ("astronuat" → "astronaut"). Never change names, file names, links, colour codes, numbers or quoted words, and never reword anything else:
    ```bash
    node scripts/forge.mjs --writer --model <id> --request "<what the user asked>"
    ```
@@ -38,7 +38,7 @@ The Forge plugin's tools (`forge_brief`, `forge_check`, ...) do the same job whe
    - the prompt in a code block, ready to copy (the negative prompt in its own block, if the AI has that field);
    - the settings (aspect ratio, model, duration...) as a short list;
    - one line on anything you chose that the user did not say, so they can change it;
-   - spelling Forge fixed and clashes it found, if any.
+   - spelling you fixed and clashes Forge found, if any.
 
 Forge's own rule-based version is still there when you just want it fast: `node scripts/forge.mjs --model <id> --text "<prompt>"` (like the website's Prompt Doctor), or `--brief '{"subject":"..."}'` with the box ids from `references/models.md`. Add `--json` to any command for raw output.
 

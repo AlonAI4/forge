@@ -2362,7 +2362,8 @@ const SHOT_LOOK = [
 ];
 /** what the kind of subject needs to look right @type {[RegExp, string][]} */
 const SUBJECT_LOOK = [
-  [/\b(food|dish|meal|burger|taco|pizza|cake|cupcakes?|cookies?|dessert|pastry|bread|salad|soup|noodles|sushi|steak|sandwich|pie|donuts?|fruit|vegetables?|produce|apples?|squash|pumpkins?|tomatoes|berries|oranges|lemons|bananas|grapes|cheese)\b/i, "fresh, appetising texture: glistening surfaces, crisp edges and sharp focus on the food"],
+  [/\b(food|dish|meal|burger|taco|pizza|cake|cupcakes?|cookies?|dessert|pastry|bread|salad|soup|noodles|sushi|steak|sandwich|pie|donuts?|fruit|vegetables?|produce|apples?|squash|pumpkins?|tomatoes|berries|oranges|lemons|bananas|grapes|cheese)\b/i,
+    "fresh, appetising texture: glistening surfaces, crisp edges and sharp focus on the food"],
   [/\b(drink|coffee(?!\s+(?:shop|table|house|bar|maker|machine|beans?|cart|truck))|latte|cocktail|beer(?!\s+garden)|wine(?!\s+(?:bar|shop|cellar))|smoothie|juice|soda)\b/i, "condensation and clear, glowing liquid, with the glass or cup sharp"],
   [/\b(product|bottle|packaging|watch|sneakers?|shoes?|phone|headphones|perfume|jar|box)\b/i, "the product crisp and sharp, with clean edges and soft, controlled reflections"],
   [/\b(portrait|headshot|face|person|woman|man|girl|boy|kid|child|couple|family|team)\b/i, "natural skin texture and genuine expressions, with the eyes sharp"],
@@ -2781,7 +2782,7 @@ llm(b, m){
   let flat;
   if(xml){
     flat = [
-      sysText ? "<!-- system prompt -->\n" + sysText : "",
+      sysText ? "[System prompt]\n" + sysText : "",
       has(b.context) ? "<context>\n" + cap(stripDot(b.context)) + "\n</context>" : "",
       has(b.examples) ? "<example>\n" + stripDot(b.examples) + "\n</example>" : "",
       has(b.pasted) ? "<material>\n" + String(b.pasted) + "\n</material>" : mat && !(has(b.context) && String(b.context).length > 280) ? "<material>\n[Paste " + mat + " here]\n</material>" : "",
