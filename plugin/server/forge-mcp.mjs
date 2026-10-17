@@ -41632,13 +41632,15 @@ var COMPOSE = {
   brief(b, m2) {
     const S = [];
     if (m2.cat === "image") {
-      S.push(["Goal", (has(b.purpose) ? /^(?:my|our|a|an|the|his|her|their)\b/i.test(stripDot(b.purpose)) ? "An image for " + stripDot(b.purpose) : cap(stripDot(b.purpose)) : "A single finished image") + "."]);
+      const setOf = String(join(b.extra) || "").match(/^A set of (\d+) images/);
+      S.push(["Goal", setOf && !has(b.purpose) ? "A set of " + setOf[1] + " different images." : (has(b.purpose) ? /^(?:my|our|a|an|the|his|her|their)\b/i.test(stripDot(b.purpose)) ? "An image for " + stripDot(b.purpose) : cap(stripDot(b.purpose)) : "A single finished image") + "."]);
       const med = has(b.medium) ? b.medium : defaultMedium(b);
-      S.push(["Scene", (has(b.setting) ? "" : /\bart$/i.test(String(med).trim()) ? "" : artic(lc(med)) + " ") + (has(b.setting) ? cap(med) : /\bart$/i.test(String(med).trim()) ? cap(lc(med)) : lc(med)) + (has(b.setting) ? (/^(in|on|at|under|inside|outside|by|beside|near|over|above|against|across|along|through|within|from|behind|among|around)\b/i.test(String(b.setting).trim()) ? " " : " set in ") + stripDot(b.setting) : "") + "."]);
+      if (has(b.setting)) S.push(["Scene", cap(stripDot(b.setting)) + "."]);
       S.push(["Subject", cap(stripDot(b.subject) || "the subject") + "."]);
       const shotLook = lookOf(SHOT_LOOK, b.shot), liLook = lookOf(LIGHT_LOOK, b.light), moodLook = lookOf(MOOD_LOOK, b.mood);
       const style = [camClause(b) + (camClause(b) && shotLook ? ", " + shotLook : ""), lightClause(b) + (lightClause(b) && liLook ? ": " + liLook : ""), finishClause(b)].filter(has);
-      if (style.length) S.push(["Style", sentences(style) + "."]);
+      const medLine = /\bart$/i.test(String(med).trim()) ? cap(lc(med)) : cap(artic(lc(med)) + " " + lc(med));
+      S.push(["Style", medLine + "." + (style.length ? " " + sentences(style) + "." : "")]);
       const det = [];
       if (has(b.comp)) det.push(b.comp);
       if (has(b.mood)) det.push(moodWithLook(b, moodLook));
@@ -41821,7 +41823,7 @@ var COMPOSE = {
     if (has(b.mKey)) style.push("in " + b.mKey);
     if (has(b.mInst)) style.push(join(b.mInst));
     const inst = m2.id === "suno" ? sunoInstrumental(b) : instrumental(b), choir = /\bchoir|voices\b/i.test(join(b.mInst));
-    if (has(b.mVocal) || inst) style.push(inst ? choir ? "wordless voices, no lyrics" : "instrumental" : lc(join(b.mVocal)) + (/vocal/i.test(join(b.mVocal)) ? "" : " vocals"));
+    if ((has(b.mVocal) || inst) && !(m2.id === "suno" && !inst && b.mVocal === "Vocals")) style.push(inst ? choir ? "wordless voices, no lyrics" : "instrumental" : lc(join(b.mVocal)) + (/vocal/i.test(join(b.mVocal)) ? "" : " vocals"));
     if (has(b.mProd)) style.push(join(b.mProd));
     if (has(b.mMood)) style.push(join(b.mMood));
     const styleLine = style.join(", ") || "Describe the genre, tempo and mood here";
@@ -41833,8 +41835,8 @@ var COMPOSE = {
     if (has(b.mExclude)) S.push([m2.id === "suno" ? "Exclude Styles field" : "Exclude", b.mExclude]);
     let flat;
     if (m2.id === "suno") {
-      flat = styleLine + (has(b.mStruct) ? ". " + cap(stripDot(b.mStruct)) + "." : "");
-      if (has(b.mLyrics)) flat += theme ? "\n\nSong about " + theme + "." + hookLine(String(b.mLyrics)) : "\n\nLyrics:\n" + String(b.mLyrics).trim();
+      flat = (style.length || !theme ? styleLine : "") + (has(b.mStruct) ? ". " + cap(stripDot(b.mStruct)) + "." : "");
+      if (has(b.mLyrics)) flat += (flat ? "\n\n" : "") + (theme ? "Song about " + theme + "." + hookLine(String(b.mLyrics)) : "Lyrics:\n" + String(b.mLyrics).trim());
       else if (has(b.mVocal) && b.mVocal !== "Instrumental") flat += "\n\nLyrics: leave the box empty and Suno writes them, or paste your own with [Verse] and [Chorus] tags.";
     } else {
       const maxLen = (
@@ -42480,7 +42482,17 @@ function notMine(t) {
   return { text, found: found2 };
 }
 function stripAsk(t) {
-  return String(t || "").replace(/^\s*(?:please\s+)?use\s+(?:the\s+)?(?:forge|smithy)(?:\s+(?:skill|plugin|tool))?\s*(?:to\s+|[:,.-]\s*)?/i, "").replace(/^\s*(?:(?:can|could)\s+you\s+|please\s+)?(?:write|make|create|generate|give me|forge|build)\s+(?:me\s+)?(?:a\s+|an\s+|the\s+)?(?:good\s+|great\s+|better\s+|expert\s+|detailed\s+)?prompt\s+(?:for|to use (?:in|with)|in)\s+[\w.+-]+(?:\s+[\w.+-]+){0,2}?\s*(?:[:,-]\s*|\.\s+|\s+(?=(?:a|an|the|my|our|of|about)\b))/i, "").replace(/\s*[.,]?\s*(?:and\s+)?(?:please\s+)?(?:skip|no|don'?t ask)\s+(?:the\s+|any\s+)?questions?\s*(?:please)?\s*[.!]?\s*$/i, "").replace(aiNameRe(), "").trim();
+  return String(t || "").replace(/^\s*(?:please\s+)?use\s+(?:the\s+)?(?:forge|smithy)(?:\s+(?:skill|plugin|tool))?\s*(?:to\s+|[:,.-]\s*)?/i, "").replace(/^\s*(?:(?:can|could)\s+you\s+|please\s+)?(?:write|make|create|generate|give me|forge|build)\s+(?:me\s+)?(?:a\s+|an\s+|the\s+)?(?:good\s+|great\s+|better\s+|expert\s+|detailed\s+)?prompt\s+(?:for|to use (?:in|with)|in)\s+[\w.+-]+(?:\s+[\w.+-]+){0,2}?\s*(?:[:,-]\s*|\.\s+|\s+(?=(?:a|an|the|my|our|of|about)\b))/i, "").replace(/\s*[.,]?\s*(?:and\s+)?(?:please\s+)?(?:skip|no|don'?t ask)\s+(?:the\s+|any\s+)?questions?\s*(?:please)?\s*[.!]?\s*$/i, "").replace(promptLeadRe(), "").replace(aiNameRe(), "").trim();
+}
+var PROMPT_LEAD_RE = (
+  /** @type {RegExp | null} */
+  null
+);
+function promptLeadRe() {
+  if (PROMPT_LEAD_RE) return PROMPT_LEAD_RE;
+  const names = [...new Set(MODELS.flatMap((m2) => [m2.n, m2.id]).filter((n) => n && n.length > 2).map((n) => String(n).toLowerCase()))].sort((x, y) => y.length - x.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "[\\s-]*"));
+  PROMPT_LEAD_RE = new RegExp("^\\s*(?:(?:can|could)\\s+you\\s+|please\\s+)?(?:(?:write|make|create|generate|give|forge|build|need|want)\\s+(?:me\\s+|us\\s+)?)?(?:a\\s+|an\\s+|the\\s+|some\\s+)?(?:good\\s+|great\\s+|better\\s+|expert\\s+|detailed\\s+)?(?:(?:" + names.join("|") + ")(?:[\\s-]*v?\\d+(?:\\.\\d+)?)?\\s+)?(?:(?:image|picture|photo|video|art|music|song|voice|text|chat|code)\\s+)?prompts?\\s*(?:(?:for|of|about|showing|that shows)\\s+|:\\s*)", "i");
+  return PROMPT_LEAD_RE;
 }
 var AI_NAME_RE = (
   /** @type {RegExp | null} */
@@ -42498,9 +42510,37 @@ var DECIMAL = "\u2024";
 var hideDecimals = (t) => t.replace(/(\d)\.(\d)/g, "$1" + DECIMAL + "$2");
 var showDecimals = (v2) => typeof v2 === "string" ? v2.split(DECIMAL).join(".") : Array.isArray(v2) ? v2.map(showDecimals) : v2;
 function rebuildBrief(text, m2) {
-  const out = rebuildBriefParts(hideDecimals(stripAsk(String(text || ""))), m2);
+  const asked = stripAsk(String(text || ""));
+  const out = rebuildBriefParts(hideDecimals(["image", "video"].includes(m2.cat) ? wallpaperLast(asked) : asked), m2);
   for (const k2 of Object.keys(out.brief)) out.brief[k2] = showDecimals(out.brief[k2]);
+  if (["image", "video"].includes(m2.cat)) asASet(out.brief);
   return out;
+}
+var WALL_DEVICE = "(?:(?:phone|iphone|android|mobile|desktop|laptop|computer|pc|mac|ipad|tablet|lock ?screen|home ?screen)\\s+)";
+function wallpaperLast(t) {
+  const lead = t.match(new RegExp("^\\s*(?:a|an|my|the|some)?\\s*(" + WALL_DEVICE + "?(?:wallpapers?|lock ?screens?|home ?screens?|backgrounds?))\\s+(?:of|with|showing)\\s+(.+)$", "i"));
+  if (lead) return lead[2].replace(/[.!]\s*$/, "") + ", as a " + lead[1].toLowerCase().replace(/s$/, "");
+  const tail = t.match(new RegExp("^\\s*((?:(?:a|an|my|the|some)\\s+)?)(.+?)\\s+(" + WALL_DEVICE + "(?:wallpapers?|backgrounds?))\\s*[.!]?$", "i"));
+  if (tail) return (tail[1] ? artic(tail[2]) + " " : "") + tail[2] + ", as a " + tail[3].toLowerCase().replace(/s$/, "");
+  return t;
+}
+var SET_WORDS = "pictures?|images?|photos?|drawings?|illustrations?|versions?|variations?|designs?|options?|logos?|icons?|wallpapers?|clips?|videos?";
+var NUMBER_WORDS = (
+  /** @type {Record<string, number>} */
+  { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, twelve: 12, twenty: 20 }
+);
+function asASet(b) {
+  const sj = typeof b.subject === "string" ? b.subject.trim().replace(/\.$/, "") : "";
+  const m2 = sj.match(new RegExp("^(\\d{1,2}|" + Object.keys(NUMBER_WORDS).join("|") + ")\\s+(?:(?:different|unique|varied|distinct|new)\\s+)?(?:(?:" + SET_WORDS + ")\\s+(?:of|for|showing)\\s+(.+)|(.+?)\\s+(" + SET_WORDS + "))$", "i"));
+  if (!m2) return;
+  const n = /^\d/.test(m2[1]) ? Number(m2[1]) : NUMBER_WORDS[m2[1].toLowerCase()];
+  if (!(n >= 2 && n <= 40)) return;
+  let thing = (m2[2] || m2[3] || "").trim();
+  if (m2[3] && /^(?:logos?|icons?|wallpapers?)$/i.test(m2[4])) thing += " " + m2[4].replace(/s$/i, "");
+  if (!thing) return;
+  b.subject = cap(/^(?:a|an|the|my|our|some)\b/i.test(thing) ? thing : artic(thing) + " " + thing);
+  const line = "A set of " + n + " images. Give each one its own pose and setting";
+  b.extra = has(b.extra) ? line + ". " + join(b.extra) : line;
 }
 function rebuildBriefParts(text, m2) {
   const t0 = m2.cat === "text" ? cleanDraft(stripBanned(text).text.replace(/\?/g, "\u2047")).replace(/\u2047/g, "?") : cleanDraft(stripBanned(text).text);
@@ -42822,6 +42862,10 @@ function rebuildBriefParts(text, m2) {
     {
       const vg = t.match(/\b(female|woman'?s?|girl'?s?|male|man'?s?|boy'?s?|deep|soft|raspy|husky|choir|duet)\s+(vocals?|voice|singer)\b/i);
       if (vg && b.mVocal !== "Instrumental") b.mVocal = cap(vg[1].toLowerCase().replace(/'?s$/, "").replace(/^woman$/, "female").replace(/^girl$/, "female").replace(/^man$/, "male").replace(/^boy$/, "male")) + " vocals";
+    }
+    {
+      const ab = t.match(/\b(?:song|track|jingle|anthem|ballad|lullaby|rap|tune)\s+(?:about|on)\s+(.+?)(?=\s+(?:with|featuring|in the style|that|for)\b|[,.;!?]|$)/i);
+      if (ab && b.mVocal !== "Instrumental" && !has(b.mLyrics)) b.mLyrics = "a song about " + ab[1].trim();
     }
     if (/\b(start with|starts with|then|build|builds|drop|intro|outro|verse|chorus|bridge|breakdown|fade)\b/i.test(t)) b.mStruct = t;
   } else if (m2.cat === "sfx") {
@@ -43890,11 +43934,11 @@ function addExtra(res, m2, extra, keepAny) {
     const design = /\b(posters?|flyers?|leaflets?|invitations?|invites?|tickets?|menus?|certificates?|banners?|signs?|cards?)\b/i.test((f2.match(/^Subject: (.*)$/m) || ["", ""])[1]);
     const facts = /\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\b|\b\d{1,2}(?::\d\d)?\s?(?:am|pm)\b|[£$€]\s?\d|\bfree\b|\b(?:sign up|register|rsvp|tickets?)\b/i;
     if (design && /^Text: /m.test(f2) && facts.test(line)) {
-      const venue = f2.match(/^Scene: (.*?) ((?:at|in) (?:the )?[A-Z]?[a-z][^.]*)\.$/m), print = [...keep];
+      const venue = f2.match(/^Scene: (?:(.*?) )?((?:[Aa]t|[Ii]n) (?:the )?[A-Z]?[a-z][^.]*)\.$/m), print = [...keep];
       let g = f2;
       if (venue) {
         print.splice(1, 0, cap(venue[2]));
-        g = g.replace(venue[0], "Scene: " + venue[1] + ".");
+        g = venue[1] ? g.replace(venue[0], "Scene: " + venue[1] + ".") : g.replace(venue[0] + "\n", "");
       }
       res.flat = g.replace(/^(Text: .*)$/m, (_a3, t) => t + " Also print these details, smaller, exactly as written: " + print.map((c) => '"' + stripDot(c) + '"').join(", ") + ".");
       res.blocks.push(["Anything else", line]);

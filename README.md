@@ -14,7 +14,7 @@ Works for 57 models: Image (12), Video (11), Voice & speech (6), Sound effects (
 
 ## Before and after
 
-Written by Forge 0.2.42 itself when this README was built, not typed in.
+Written by Forge 1.0.0 itself when this README was built, not typed in.
 
 You type:
 
@@ -157,9 +157,11 @@ Limits: these are small tests. The other generators limit free use (GenerateProm
 ## Roadmap (experimental, may change)
 
 - **1.0:** the website, the plugin and the skill. Reverse Forge, Chat Context, Matchmaker and Forge Map are experimental.
-- **1.1:** fixes from testers, and a date on every AI fact so old ones get rechecked.
+- **1.1:** fixes from testers, a simpler main page, and a date on every AI fact so old ones get rechecked.
+- **1.2:** Forge tested against prompts written by experts, and every loss turned into a fix.
 - **1.5:** a free online AI writer for the website, so it matches the plugin. Maybe Cursor and VS Code.
-- **2.0:** Forge inside Claude Code, next to the prompt box.
+- **1.6:** Forge inside Claude Code, next to the prompt box.
+- **2.0:** accounts and saved prompts.
 - **2.1:** a browser extension.
 
 ## Terms
