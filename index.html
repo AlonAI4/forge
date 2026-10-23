@@ -8857,7 +8857,7 @@ document.addEventListener("click", e=>{
   const st = e.target.closest("[data-setup]");
   if(st){ for(const b of document.querySelectorAll("[data-setup]")) b.setAttribute("aria-pressed", b === st ? "true" : "false");
     for(const p of document.querySelectorAll("[data-setup-pane]")) p.hidden = p.getAttribute("data-setup-pane") !== st.dataset.setup; return; }
-  const c = e.target.closest("[data-copy]"); if(c) copy(c.dataset.copy, "Command");
+  const c = e.target.closest(".cmd [data-copy]"); if(c) copy(c.dataset.copy, "Command");
 });
 // A link to #manual or #get-forge (from the GitHub README) opens the Manual tab at that part.
 if(/^#(manual|get-forge|terms|privacy)$/.test(location.hash)){ const t = document.querySelector('.tab[data-pane="manual"]'); if(t){ t.click(); const g = document.getElementById(location.hash.slice(1)); if(g) setTimeout(()=>g.scrollIntoView(), 50); } }
