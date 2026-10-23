@@ -493,7 +493,7 @@ music_v2_5 · ElevenLabs. Studio language moves real levers here. Sidechained, c
 - Watch out: music_length_ms only applies when you use prompt, not composition_plan.
 - Watch out: Prompt cap is 4100 characters.
 - Not confirmed: tips written for music_v2
-- Sources (checked 2026-09-29): https://elevenlabs.io/docs/overview/capabilities/music
+- Sources (checked 2026-09-29): https://elevenlabs.io/docs/overview/capabilities/music https://elevenlabs.io/docs/api-reference/music/compose
 - Full guide: [models/el-music.md](models/el-music.md)
 
 ### Suno (`suno`)

@@ -20,7 +20,7 @@
 // ChatGPT) fixes spelling before passing the request, which it does better than a word list. Plain string joins
 // instead of template strings, so security scanners can read this file in full.
 import { readFileSync } from "node:fs";
-import { MODELS, CATS, F, forge, forgeFromText, scoreText, writerBrief, checkWritten, rebuildBrief, autocorrect } from "./engine.js";
+import { MODELS, CATS, F, forge, forgeFromText, scoreText, writerBrief, checkWritten } from "./engine.js";
 import * as E from "./engine.js";
 import { checkPrompt } from "./check.js"; // 10.10: the same checker as the plugin (kept facts, real settings, nothing invented)
 
@@ -51,20 +51,37 @@ const name = m.n + (m.sub ? " · " + m.sub : "");
 const level = opt("level") || "pro";
 
 // --writer and --check both start from what the person said (their request, plus answers to Forge's questions)
-const request = text("request") ?? text("text");
+const asked = text("request") ?? text("text");
+// 1.1.2: the same reading as the plugin. A pasted prompt to improve (Prompt Doctor) is the material, and the AI the request
+// names as its target stays out of the subject
+const doctor = asked && E.doctorPrompt ? E.doctorPrompt(asked) : null;
+const request = asked && E.withoutAI ? E.withoutAI(doctor ? doctor.prompt : asked).text || asked : asked;
 const details = text("details") || "";
 const said = () => { if (!request || !request.trim()) fail("Give what the person asked with --request \"...\" (or --request-file path)."); return [request, details].filter(s => s && s.trim()).join("\n"); };
+// 1.1 (G1): the same reading as the plugin. Each "Question: answer" line goes into its box; a line for no box goes to extra
+const answers = {};
+for (const line of details.split("\n").map(l => l.trim()).filter(Boolean)) {
+  // 1.1.2: a label is followed by a space, and never splits a time ("starts at 7:30 pm") or a link ("https://...")
+  const qa0 = line.match(/^([^:]{2,80}?):\s+(\S.*)$/), qa = qa0 && !(/\d$/.test(qa0[1]) && /^\d/.test(qa0[2])) ? qa0 : null, q = qa ? qa[1].trim().toLowerCase() : "";
+  const k = qa ? Object.keys(F).find(f => f.toLowerCase() === q || F[f].l.toLowerCase() === q || String(E.QUESTIONS[f] || "").replace(/\?\s*$/, "").toLowerCase() === q) : undefined;
+  const key = k || "extra", v = k ? qa[2].trim() : qa ? qa[2].trim() : line;
+  answers[key] = answers[key] ? answers[key] + ". " + v : v;
+}
 
 if (has("writer")) {
-  const res = forgeFromText(said(), m, level);
-  const brief = writerBrief({ m, request, details, res, brief: {} });
+  said(); // fails with a message when there is no request
+  const res = forgeFromText(request, m, level, { answers, chat: true }); // 1.1 (G5): chat = no craft questions
+  const brief0 = writerBrief({ m, request, details, answers, res, brief: res.mine || {} }); // 1.1 (G1): the person's own boxes; 1.1.1 G17 (item 3): lengths from the answers, not the questions
   const ask = (res.ask || []).slice(0, 3);
+  const brief = doctor ? E.doctorNote(doctor.ask) + "\n\n" + brief0 : brief0; // 1.1.2: Prompt Doctor
   if (json) { console.log(JSON.stringify({ model: m.id, brief, ask, settings: res.settings, warn: res.warn, fixes: res.fixes, suggested: (res.suggested || []).map(s => s.what) }, null, 2)); process.exit(0); }
   const out = [brief];
   if (res.fixes && res.fixes.length) out.push("", "SPELLING FORGE FIXED (tell the person)", ...res.fixes.map(f => "- " + f.from + " → " + f.to));
   if (res.warn && res.warn.length) out.push("", "WATCH OUT (tell the person if it matters)", ...res.warn.map(w => "- " + w));
-  out.push("", "QUESTIONS (ask at most these 3, only the ones the person has not answered and that change the result; if they want it now, skip them)");
-  out.push(...(ask.length ? ask.map((a, i) => (i + 1) + ". " + a.q + (a.why ? "  (why: " + a.why + ")" : "")) : ["- none: Forge has what it needs"]));
+  // 1.1 G11: Claude may add its own questions when Forge gives fewer than 3 (1.1.1 G14: answers go back keyed by the question)
+  out.push("", "QUESTIONS (suggestions, best first. Ask at most 3 in total, the ones whose answers would change the result most: drop any the request answers, replace or merge any (the first one too) with a sharper question about the same thing for this request, keeping its field for the answer and an open ending (...and anything else it must show, say or feel like?), never dropping the last open question or spending one on something the result does not depend on, and when there are fewer than 3, add your own about things only the person knows that the result depends on: names, exact words, numbers, what their own thing looks like, limits such as budget or time. Pass answers to your own as --details \"<your question>: ...\" (a line for no field goes to extra, added to what is there). If they want it now, skip them)");
+  // 1.1 (G5): each question names its field, so the answer goes back into the right box (--details "imgtext: ...")
+  out.push(...(ask.length ? ask.map((a, i) => (i + 1) + ". " + a.q + "  (field: " + a.f + (a.o && a.o.length >= 2 ? "; choices: " + a.o.slice(0, 4).join(" / ") : a.ph ? "; example: " + a.ph : "") + (a.why ? "; why: " + a.why : "") + ")") : ["- none from Forge: ask your own only if the result depends on something only the person knows"]));
   out.push("", "NEXT: write the prompt yourself following the RULES above, then run --check with it.");
   console.log(out.join("\n"));
   process.exit(0);
@@ -75,25 +92,25 @@ if (has("check")) {
   const prompt = text("prompt");
   if (!prompt || !prompt.trim()) fail("Give the prompt to check with --prompt \"...\" (or --prompt-file path).");
   const negative = text("negative");
-  const res = forgeFromText(all, m, level);
-  const { brief, suggested } = rebuildBrief(autocorrect(all).text, m);
+  const res = forgeFromText(request, m, level, { answers, chat: true }); // 1.1.2: the same reading as --writer and the plugin
+  // 1.1 (G1): one reading of the request for the brief and the check (it read the request a second time, differently)
   const raw = negative !== undefined ? JSON.stringify({ prompt, negative }) : prompt;
-  const c = checkWritten(raw, { m, request: all, brief, suggested, res });
+  const c = checkWritten(raw, { m, request: all, brief: res.mine || {}, suggested: (res.suggested || []).map(s => s.f), res, fallback: false }); // 1.1 (G2): never Forge's version instead
   // 10.10: the plugin's checker too, so the skill and the plugin give the same verdict
-  const full = checkPrompt(E, { m, request: all, said: all, answers: {}, prompt: negative !== undefined ? "Prompt: " + prompt + "\nNegative: " + negative : prompt, res, written: writerBrief({ m, request: all, res, brief: {} }) });
-  if (!full.ok) c.notes = [...full.problems.map(p => "Problem: " + p), ...c.notes];
-  const ok = c.used === "ai" && full.ok;
+  const full = checkPrompt(E, { m, request: all, said: all, answers, prompt: negative !== undefined ? "Prompt: " + prompt + "\nNegative: " + negative : prompt, res, written: writerBrief({ m, request, details, answers, res, brief: res.mine || {} }) });
+  c.notes = [...full.problems.map(p => "Problem: " + p), ...(full.notes || [])];
+  const ok = full.ok;
   const sc = scoreText(c.prompt, m);
-  const v = { model: m.id, verdict: ok ? "pass" : "fail", prompt: c.prompt, negative: c.negative, notes: c.notes, score: sc.total, parts: sc.parts, forgeVersion: ok ? undefined : res.flat };
+  const v = { model: m.id, verdict: ok ? "pass" : "fail", prompt: c.prompt, negative: c.negative, notes: c.notes, score: sc.total, parts: sc.parts };
   if (json) { console.log(JSON.stringify(v, null, 2)); process.exit(0); }
   const out = ["# Forge check: " + name];
-  out.push(ok ? "Verdict: PASS. Your prompt is kept (with any fixes below already applied)." : "Verdict: FAIL. Forge would throw this prompt away. Fix what the note says and check again.");
+  out.push(ok ? "Verdict: PASS. Your prompt is kept (with any fixes below already applied)." : "Verdict: FAIL. Fix each problem below in your own prompt and check again.");
   out.push("Forge Score: " + sc.total + "/100  (" + parts(sc.parts) + ")");
   out.push("", "## Notes", "", ...c.notes.map(n => "- " + n));
   if (ok) {
     out.push("", "## Checked prompt", "", c.prompt);
     if (c.negative) out.push("", "## " + ((m.neg && m.neg.label) || "Negative prompt"), "", c.negative);
-  } else out.push("", "## Forge's own version (last resort only, if your fixed prompt keeps failing)", "", res.flat);
+  }
   console.log(out.join("\n"));
   process.exit(0);
 }

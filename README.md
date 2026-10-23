@@ -14,7 +14,7 @@ Works for 57 models: Image (12), Video (11), Voice & speech (6), Sound effects (
 
 ## Before and after
 
-Written by Forge 1.0.0 itself when this README was built, not typed in.
+Written by Forge 1.1.2 itself when this README was built, not typed in.
 
 You type:
 
@@ -170,7 +170,7 @@ Free to use, provided as is. Forge can be wrong and the AIs it writes for change
 
 ## Community
 
-Forge is free while it is being built. The full guide is on the website: https://forge-prompt-smith.pages.dev/#get-forge Found a bug, a model that is out of date, or have an idea?
+The full guide is on the website: https://forge-prompt-smith.pages.dev/#get-forge Found a bug, a model that is out of date, or have an idea?
 Open an issue: https://github.com/AlonAI4/forge/issues
 
 The website updates itself whenever this repo changes.
